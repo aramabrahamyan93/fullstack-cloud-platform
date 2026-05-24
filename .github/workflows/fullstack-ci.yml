@@ -1,4 +1,4 @@
-name: Backend CI
+name: Fullstack CI
 
 on:
   pull_request:
@@ -14,13 +14,16 @@ on:
       - staging
 
 jobs:
-  backend-tests:
-    name: Build and test backend
+  fullstack-checks:
+    name: Build and test fullstack app
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Validate Docker Compose config
+        run: docker compose config
 
       - name: Build backend Docker image
         run: docker compose build backend
@@ -28,13 +31,24 @@ jobs:
       - name: Run backend tests
         run: docker compose run --rm backend pytest
 
+      - name: Build frontend Docker image
+        run: docker compose build frontend
+
+      - name: Start full stack
+        run: docker compose up -d
+
       - name: Show containers
-        if: always()
         run: docker compose ps
 
-      - name: Show backend logs
+      - name: Smoke test backend health
+        run: curl --fail http://localhost:8000/health
+
+      - name: Smoke test frontend
+        run: curl --fail http://localhost:3000
+
+      - name: Show logs on failure
         if: failure()
-        run: docker compose logs backend
+        run: docker compose logs
 
       - name: Cleanup
         if: always()
