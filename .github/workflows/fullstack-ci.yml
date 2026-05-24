@@ -40,11 +40,39 @@ jobs:
       - name: Show containers
         run: docker compose ps
 
-      - name: Smoke test backend health
-        run: curl --fail http://localhost:8000/health
+      - name: Wait for backend health
+        run: |
+          for i in {1..30}; do
+            if curl --fail http://localhost:8000/health; then
+              echo "Backend is healthy"
+              exit 0
+            fi
 
-      - name: Smoke test frontend
-        run: curl --fail http://localhost:3000
+            echo "Waiting for backend..."
+            docker compose ps
+            sleep 3
+          done
+
+          echo "Backend did not become healthy"
+          docker compose logs backend
+          exit 1
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..20}; do
+            if curl --fail http://localhost:3000; then
+              echo "Frontend is reachable"
+              exit 0
+            fi
+
+            echo "Waiting for frontend..."
+            docker compose ps
+            sleep 3
+          done
+
+          echo "Frontend did not become reachable"
+          docker compose logs frontend
+          exit 1
 
       - name: Show logs on failure
         if: failure()
