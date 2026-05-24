@@ -13,6 +13,17 @@ services:
     networks:
       - app-network
 
+  frontend:
+    build:
+      context: ./frontend
+    container_name: fullstack-cloud-platform-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
   postgres:
     image: postgres:16
     container_name: fullstack-cloud-platform-postgres
