@@ -152,7 +152,12 @@ TF_ACCOUNT_VARS=infra/accounts/$(ACCOUNT).tfvars
 
 .PHONY: tf-init
 tf-init:
-	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform init
+	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform init \
+		-backend-config="bucket=$(ACCOUNT_ID)-tf-state" \
+		-backend-config="key=$(PROJECT_NAME)/$(ACCOUNT)/$(STACK)/terraform.tfstate" \
+		-backend-config="region=$(AWS_REGION)" \
+		-backend-config="dynamodb_table=$(LOCK_TABLE)" \
+		-backend-config="encrypt=true"
 
 .PHONY: tf-plan
 tf-plan:
