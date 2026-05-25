@@ -171,3 +171,22 @@ tf-destroy:
 	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform destroy \
 		-var-file=../../config/global.tfvars \
 		-var-file=../../accounts/$(ACCOUNT).tfvars
+
+
+# ----------------------------
+# Terraform remote state bootstrap
+# ----------------------------
+
+ACCOUNT_ID ?=
+STATE_BUCKET ?=
+LOCK_TABLE ?= terraform-locks
+
+.PHONY: tf-bootstrap-state
+tf-bootstrap-state:
+	ACCOUNT_ID=$(ACCOUNT_ID) \
+	AWS_REGION=$(AWS_REGION) \
+	AWS_PROFILE=$(AWS_PROFILE) \
+	PROJECT_NAME=$(PROJECT_NAME) \
+	STATE_BUCKET=$(STATE_BUCKET) \
+	LOCK_TABLE=$(LOCK_TABLE) \
+	./scripts/bootstrap-terraform-state.sh
