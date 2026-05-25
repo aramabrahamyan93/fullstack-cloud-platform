@@ -13,6 +13,9 @@ on:
       - develop
       - staging
 
+permissions:
+  contents: read
+
 jobs:
   fullstack-checks:
     name: Build and test fullstack app
@@ -38,11 +41,11 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      # Validate Helm chart structure and syntax.
+      # Validate chart syntax and structure.
       - name: Lint Helm chart
         run: make helm-lint
 
-      # Render Helm templates for each environment to catch template/config errors early.
+      # Render all environment values to catch broken Helm templates early.
       - name: Render Helm chart for local
         run: make helm-render ENV=local
 
@@ -54,7 +57,6 @@ jobs:
 
       - name: Render Helm chart for prod
         run: make helm-render ENV=prod
-
 
       - name: Start full stack
         run: docker compose up -d
