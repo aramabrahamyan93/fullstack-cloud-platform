@@ -1,0 +1,13 @@
+namespace: fullstack-local
+
+backend:
+  replicas: 1
+  imagePullPolicy: Never
+
+frontend:
+  replicas: 1
+  imagePullPolicy: Never
+
+ingress:
+  enabled: true
+  host: localhost

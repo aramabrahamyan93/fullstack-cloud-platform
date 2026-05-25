@@ -1,0 +1,83 @@
+name: Fullstack CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - staging
+
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+
+jobs:
+  fullstack-checks:
+    name: Build and test fullstack app
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose config
+        run: docker compose config
+
+      - name: Build backend Docker image
+        run: docker compose build backend
+
+      - name: Run backend tests
+        run: docker compose run --rm backend pytest
+
+      - name: Build frontend Docker image
+        run: docker compose build frontend
+
+      - name: Start full stack
+        run: docker compose up -d
+
+      - name: Show containers
+        run: docker compose ps
+
+      - name: Wait for backend health
+        run: |
+          for i in {1..30}; do
+            if curl --fail http://localhost:8000/health; then
+              echo "Backend is healthy"
+              exit 0
+            fi
+
+            echo "Waiting for backend..."
+            docker compose ps
+            sleep 3
+          done
+
+          echo "Backend did not become healthy"
+          docker compose logs backend
+          exit 1
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..20}; do
+            if curl --fail http://localhost:3000; then
+              echo "Frontend is reachable"
+              exit 0
+            fi
+
+            echo "Waiting for frontend..."
+            docker compose ps
+            sleep 3
+          done
+
+          echo "Frontend did not become reachable"
+          docker compose logs frontend
+          exit 1
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
