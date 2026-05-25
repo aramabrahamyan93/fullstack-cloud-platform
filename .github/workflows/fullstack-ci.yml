@@ -34,6 +34,28 @@ jobs:
       - name: Build frontend Docker image
         run: docker compose build frontend
 
+      # Install Helm CLI so the CI pipeline can validate Kubernetes Helm charts.
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      # Validate Helm chart structure and syntax.
+      - name: Lint Helm chart
+        run: make helm-lint
+
+      # Render Helm templates for each environment to catch template/config errors early.
+      - name: Render Helm chart for local
+        run: make helm-render ENV=local
+
+      - name: Render Helm chart for dev
+        run: make helm-render ENV=dev
+
+      - name: Render Helm chart for staging
+        run: make helm-render ENV=staging
+
+      - name: Render Helm chart for prod
+        run: make helm-render ENV=prod
+
+
       - name: Start full stack
         run: docker compose up -d
 
