@@ -94,3 +94,38 @@ k8s-restart-backend:
 .PHONY: k8s-restart-frontend
 k8s-restart-frontend:
 	kubectl rollout restart deployment/frontend -n $(K8S_NAMESPACE)
+
+# ----------------------------
+# HELM
+# ----------------------------
+
+.PHONY: helm-lint
+helm-lint:
+	helm lint helm/fullstack-cloud-platform
+
+.PHONY: helm-render
+helm-render:
+	helm template fullstack-local helm/fullstack-cloud-platform \
+		-f helm/fullstack-cloud-platform/values-local.yaml
+
+.PHONY: helm-deploy
+helm-deploy:
+	helm upgrade --install fullstack-local helm/fullstack-cloud-platform \
+		-f helm/fullstack-cloud-platform/values-local.yaml
+
+.PHONY: helm-status
+helm-status:
+	helm list -A
+	kubectl get pods,svc,ingress,pvc -n $(K8S_NAMESPACE)
+
+.PHONY: helm-uninstall
+helm-uninstall:
+	helm uninstall fullstack-local
+
+.PHONY: k8s-helm-redeploy
+k8s-helm-redeploy:
+	make k8s-build
+	make k8s-load
+	make helm-deploy
+	kubectl rollout restart deployment/backend -n $(K8S_NAMESPACE)
+	kubectl rollout restart deployment/frontend -n $(K8S_NAMESPACE)
