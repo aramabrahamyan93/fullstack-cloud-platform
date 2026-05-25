@@ -136,3 +136,38 @@ k8s-helm-redeploy:
 	$(MAKE) helm-deploy ENV=$(ENV) PROJECT_NAME=$(PROJECT_NAME) AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID) AWS_REGION=$(AWS_REGION)
 	kubectl rollout restart deployment/backend -n $(K8S_NAMESPACE)
 	kubectl rollout restart deployment/frontend -n $(K8S_NAMESPACE)
+
+
+# ----------------------------
+# Terraform
+# ----------------------------
+
+STACK ?= ecr
+ACCOUNT ?= dev-859981975099
+AWS_PROFILE ?= aram-dev
+
+TF_DIR=infra/stacks/$(STACK)
+TF_GLOBAL_VARS=infra/config/global.tfvars
+TF_ACCOUNT_VARS=infra/accounts/$(ACCOUNT).tfvars
+
+.PHONY: tf-init
+tf-init:
+	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform init
+
+.PHONY: tf-plan
+tf-plan:
+	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform plan \
+		-var-file=../../config/global.tfvars \
+		-var-file=../../accounts/$(ACCOUNT).tfvars
+
+.PHONY: tf-apply
+tf-apply:
+	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform apply \
+		-var-file=../../config/global.tfvars \
+		-var-file=../../accounts/$(ACCOUNT).tfvars
+
+.PHONY: tf-destroy
+tf-destroy:
+	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform destroy \
+		-var-file=../../config/global.tfvars \
+		-var-file=../../accounts/$(ACCOUNT).tfvars
