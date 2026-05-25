@@ -1,0 +1,16 @@
+namespace: fullstack-dev
+
+app:
+  environment: dev
+
+backend:
+  replicas: 1
+  imagePullPolicy: IfNotPresent
+
+frontend:
+  replicas: 1
+  imagePullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  host: dev.fullstack-cloud-platform.local

@@ -1,0 +1,16 @@
+namespace: fullstack-staging
+
+app:
+  environment: staging
+
+backend:
+  replicas: 2
+  imagePullPolicy: IfNotPresent
+
+frontend:
+  replicas: 2
+  imagePullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  host: staging.fullstack-cloud-platform.local
