@@ -52,14 +52,6 @@ k8s-load:
 	kind load docker-image fullstack-cloud-platform-backend:latest --name $(KIND_CLUSTER)
 	kind load docker-image fullstack-cloud-platform-frontend:latest --name $(KIND_CLUSTER)
 
-.PHONY: k8s-deploy
-k8s-deploy:
-	kubectl apply -f k8s/base/namespace.yaml
-	kubectl apply -f k8s/base/postgres.yaml
-	kubectl apply -f k8s/base/backend.yaml
-	kubectl apply -f k8s/base/frontend.yaml
-	kubectl apply -f k8s/base/ingress.yaml
-
 .PHONY: k8s-redeploy
 k8s-redeploy:
 	make k8s-build
