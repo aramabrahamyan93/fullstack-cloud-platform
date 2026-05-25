@@ -91,33 +91,38 @@ k8s-restart-frontend:
 # HELM
 # ----------------------------
 
+ENV ?= local
+HELM_RELEASE=fullstack-$(ENV)
+HELM_CHART=helm/fullstack-cloud-platform
+HELM_VALUES=$(HELM_CHART)/values-$(ENV).yaml
+
 .PHONY: helm-lint
 helm-lint:
-	helm lint helm/fullstack-cloud-platform
+	helm lint $(HELM_CHART)
 
 .PHONY: helm-render
 helm-render:
-	helm template fullstack-local helm/fullstack-cloud-platform \
-		-f helm/fullstack-cloud-platform/values-local.yaml
+	helm template $(HELM_RELEASE) $(HELM_CHART) \
+		-f $(HELM_VALUES)
 
 .PHONY: helm-deploy
 helm-deploy:
-	helm upgrade --install fullstack-local helm/fullstack-cloud-platform \
-		-f helm/fullstack-cloud-platform/values-local.yaml
+	helm upgrade --install $(HELM_RELEASE) $(HELM_CHART) \
+		-f $(HELM_VALUES)
 
 .PHONY: helm-status
 helm-status:
 	helm list -A
-	kubectl get pods,svc,ingress,pvc -n $(K8S_NAMESPACE)
+	kubectl get pods,svc,ingress,pvc -n fullstack-$(ENV)
 
 .PHONY: helm-uninstall
 helm-uninstall:
-	helm uninstall fullstack-local
+	helm uninstall $(HELM_RELEASE)
 
 .PHONY: k8s-helm-redeploy
 k8s-helm-redeploy:
 	make k8s-build
 	make k8s-load
-	make helm-deploy
-	kubectl rollout restart deployment/backend -n $(K8S_NAMESPACE)
-	kubectl rollout restart deployment/frontend -n $(K8S_NAMESPACE)
+	make helm-deploy ENV=$(ENV)
+	kubectl rollout restart deployment/backend -n fullstack-$(ENV)
+	kubectl rollout restart deployment/frontend -n fullstack-$(ENV)
