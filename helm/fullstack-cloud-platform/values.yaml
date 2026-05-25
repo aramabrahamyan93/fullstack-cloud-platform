@@ -1,0 +1,31 @@
+namespace: fullstack-local
+
+app:
+  name: fullstack-cloud-platform
+  version: "0.1.0"
+  environment: local-k8s
+
+backend:
+  image: fullstack-cloud-platform-backend:latest
+  imagePullPolicy: Never
+  replicas: 1
+  port: 8000
+
+frontend:
+  image: fullstack-cloud-platform-frontend:latest
+  imagePullPolicy: Never
+  replicas: 1
+  port: 80
+
+postgres:
+  image: postgres:16
+  database: app
+  username: app
+  password: app
+  port: 5432
+  storageSize: 1Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: localhost
