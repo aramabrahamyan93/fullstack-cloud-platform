@@ -1,0 +1,72 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - staging
+
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+  AWS_PROFILE_NAME: github-actions-ecr-role
+
+jobs:
+  terraform-checks:
+    name: Validate Terraform stacks
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        stack:
+          - ecr
+          - bootstrap
+          - platform
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install Terraform CLI.
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # Configure temporary AWS credentials using GitHub OIDC.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-ecr-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Check Terraform formatting.
+      - name: Terraform format check
+        run: terraform fmt -check -recursive infra
+
+      # Initialize stack.
+      - name: Terraform init
+        working-directory: infra/stacks/${{ matrix.stack }}
+        run: terraform init
+
+      # Validate Terraform configuration.
+      - name: Terraform validate
+        working-directory: infra/stacks/${{ matrix.stack }}
+        run: terraform validate
+
+      # Generate a Terraform plan without applying changes.
+      - name: Terraform plan
+        working-directory: infra/stacks/${{ matrix.stack }}
+        run: |
+          terraform plan \
+            -var-file=../../config/global.tfvars \
+            -var-file=../../accounts/dev-${{ env.AWS_ACCOUNT_ID }}.tfvars
