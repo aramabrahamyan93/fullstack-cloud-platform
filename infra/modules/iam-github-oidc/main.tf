@@ -81,3 +81,43 @@ resource "aws_iam_role_policy" "ecr_push" {
     ]
   })
 }
+
+resource "aws_iam_role_policy" "terraform_state" {
+  name = "github-actions-terraform-state-policy"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "TerraformStateBucketList"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket"
+        ]
+        Resource = "arn:aws:s3:::${var.account_id}-tf-state"
+      },
+      {
+        Sid    = "TerraformStateObjectAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = "arn:aws:s3:::${var.account_id}-tf-state/${var.project_name}/*"
+      },
+      {
+        Sid    = "TerraformLockTableAccess"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:DescribeTable"
+        ]
+        Resource = "arn:aws:dynamodb:${var.aws_region}:${var.account_id}:table/terraform-locks"
+      }
+    ]
+  })
+}
