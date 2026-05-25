@@ -1,0 +1,25 @@
+namespace: fullstack-dev
+
+global:
+  projectName: fullstack-cloud-platform
+  awsAccountId: "859981975099"
+  awsRegion: eu-central-1
+
+app:
+  environment: dev
+
+backend:
+  replicas: 1
+  image:
+    tag: develop-latest
+    pullPolicy: IfNotPresent
+
+frontend:
+  replicas: 1
+  image:
+    tag: develop-latest
+    pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  host: dev.fullstack-cloud-platform.local

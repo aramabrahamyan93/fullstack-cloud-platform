@@ -25,6 +25,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Validate Docker Compose file syntax before building services.
       - name: Validate Docker Compose config
         run: docker compose config
 
@@ -37,27 +38,29 @@ jobs:
       - name: Build frontend Docker image
         run: docker compose build frontend
 
-      # Install Helm CLI so the CI pipeline can validate Kubernetes Helm charts.
+      # Install Helm CLI so Kubernetes templates can be validated in CI.
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      # Validate chart syntax and structure.
+      # Validate Helm chart structure and template syntax.
       - name: Lint Helm chart
         run: make helm-lint
 
-      # Render all environment values to catch broken Helm templates early.
+      # Render local values without AWS settings because local kind uses locally loaded images.
       - name: Render Helm chart for local
-        run: make helm-render ENV=local
+        run: make helm-render ENV=local PROJECT_NAME=${{ vars.PROJECT_NAME }}
 
+      # Render cloud-like environments with AWS/ECR settings.
       - name: Render Helm chart for dev
-        run: make helm-render ENV=dev
+        run: make helm-render ENV=dev PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
 
       - name: Render Helm chart for staging
-        run: make helm-render ENV=staging
+        run: make helm-render ENV=staging PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
 
       - name: Render Helm chart for prod
-        run: make helm-render ENV=prod
+        run: make helm-render ENV=prod PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
 
+      # Start the full local stack for smoke testing.
       - name: Start full stack
         run: docker compose up -d
 

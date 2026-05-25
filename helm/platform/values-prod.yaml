@@ -1,0 +1,25 @@
+namespace: fullstack-prod
+
+global:
+  projectName: fullstack-cloud-platform
+  awsAccountId: "859981975099"
+  awsRegion: eu-central-1
+
+app:
+  environment: prod
+
+backend:
+  replicas: 3
+  image:
+    tag: main-latest
+    pullPolicy: IfNotPresent
+
+frontend:
+  replicas: 3
+  image:
+    tag: main-latest
+    pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  host: fullstack-cloud-platform.local

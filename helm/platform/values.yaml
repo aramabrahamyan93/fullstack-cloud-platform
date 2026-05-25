@@ -1,21 +1,30 @@
 namespace: fullstack-local
 
+global:
+  projectName: fullstack-cloud-platform
+  awsAccountId: ""
+  awsRegion: eu-central-1
+  imageRegistry: ""
+
 app:
-  name: fullstack-cloud-platform
   version: "0.1.0"
   environment: local-k8s
 
 backend:
-  image: fullstack-cloud-platform-backend:latest
-  imagePullPolicy: Never
+  name: backend
   replicas: 1
   port: 8000
+  image:
+    tag: latest
+    pullPolicy: Never
 
 frontend:
-  image: fullstack-cloud-platform-frontend:latest
-  imagePullPolicy: Never
+  name: frontend
   replicas: 1
   port: 80
+  image:
+    tag: latest
+    pullPolicy: Never
 
 postgres:
   image: postgres:16

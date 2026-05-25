@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: {{ .Values.frontend.image }}
-          imagePullPolicy: {{ .Values.frontend.imagePullPolicy }}
+          image: "{{ include "platform.frontendImage" . }}"
+          imagePullPolicy: "{{ .Values.frontend.image.pullPolicy }}"
 
           ports:
             - containerPort: {{ .Values.frontend.port }}

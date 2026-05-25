@@ -1,0 +1,25 @@
+namespace: fullstack-staging
+
+global:
+  projectName: fullstack-cloud-platform
+  awsAccountId: "859981975099"
+  awsRegion: eu-central-1
+
+app:
+  environment: staging
+
+backend:
+  replicas: 2
+  image:
+    tag: staging-latest
+    pullPolicy: IfNotPresent
+
+frontend:
+  replicas: 2
+  image:
+    tag: staging-latest
+    pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  host: staging.fullstack-cloud-platform.local

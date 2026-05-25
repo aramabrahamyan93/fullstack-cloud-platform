@@ -34,8 +34,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: {{ .Values.backend.image }}
-          imagePullPolicy: {{ .Values.backend.imagePullPolicy }}
+          image: "{{ include "platform.backendImage" . }}"
+          imagePullPolicy: "{{ .Values.backend.image.pullPolicy }}"
 
           ports:
             - containerPort: {{ .Values.backend.port }}
