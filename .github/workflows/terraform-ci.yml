@@ -56,7 +56,13 @@ jobs:
       # Initialize stack.
       - name: Terraform init
         working-directory: infra/stacks/${{ matrix.stack }}
-        run: terraform init
+        run: |
+          terraform init \
+            -backend-config="bucket=${AWS_ACCOUNT_ID}-tf-state" \
+            -backend-config="key=${PROJECT_NAME}/dev-${AWS_ACCOUNT_ID}/${{ matrix.stack }}/terraform.tfstate" \
+            -backend-config="region=${AWS_REGION}" \
+            -backend-config="dynamodb_table=terraform-locks" \
+            -backend-config="encrypt=true"
 
       # Validate Terraform configuration.
       - name: Terraform validate
