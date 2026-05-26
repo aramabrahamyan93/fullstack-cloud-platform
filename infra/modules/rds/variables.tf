@@ -65,3 +65,8 @@ variable "backup_retention_days" {
   type        = number
   default     = 7
 }
+
+variable "allowed_cidr_blocks" {
+  description = "CIDR blocks allowed to access PostgreSQL."
+  type        = list(string)
+}

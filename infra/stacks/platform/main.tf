@@ -36,6 +36,10 @@ module "rds" {
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
 
+  allowed_cidr_blocks = [
+    var.vpc_cidr
+  ]
+
   db_name     = var.db_name
   db_username = var.db_username
 
