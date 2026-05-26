@@ -34,6 +34,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
 
       # Load Terraform stack list from a single source of truth.
       - name: Load Terraform stacks
