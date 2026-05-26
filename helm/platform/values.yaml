@@ -10,6 +10,11 @@ app:
   version: "0.1.0"
   environment: local-k8s
 
+database:
+  mode: local
+  secretName: backend-database-secret
+  urlKey: DATABASE_URL
+
 backend:
   name: backend
   replicas: 1

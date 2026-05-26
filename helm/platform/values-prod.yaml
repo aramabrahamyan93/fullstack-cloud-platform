@@ -8,6 +8,11 @@ global:
 app:
   environment: prod
 
+database:
+  mode: external
+  secretName: backend-database-secret
+  urlKey: DATABASE_URL
+
 backend:
   replicas: 3
   image:

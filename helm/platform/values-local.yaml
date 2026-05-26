@@ -6,6 +6,9 @@ global:
 app:
   environment: local-k8s
 
+database:
+  mode: local
+
 backend:
   replicas: 1
   image:

@@ -6,10 +6,13 @@ metadata:
   namespace: {{ .Values.namespace }}
 
 data:
-  APP_ENV: {{ .Values.app.environment }}
-  APP_NAME: {{ .Values.app.name }}-api
-  APP_VERSION: {{ .Values.app.version }}
-  DATABASE_URL: postgresql+psycopg://{{ .Values.postgres.username }}:{{ .Values.postgres.password }}@postgres:{{ .Values.postgres.port }}/{{ .Values.postgres.database }}
+  APP_ENV: {{ .Values.app.environment | quote }}
+  APP_NAME: "{{ .Values.global.projectName }}-api"
+  APP_VERSION: {{ .Values.app.version | quote }}
+
+  {{- if eq .Values.database.mode "local" }}
+  DATABASE_URL: "postgresql+psycopg://{{ .Values.postgres.username }}:{{ .Values.postgres.password }}@postgres:{{ .Values.postgres.port }}/{{ .Values.postgres.database }}"
+  {{- end }}
 
 ---
 apiVersion: apps/v1
@@ -43,6 +46,15 @@ spec:
           envFrom:
             - configMapRef:
                 name: backend-config
+
+          {{- if eq .Values.database.mode "external" }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: {{ .Values.database.urlKey }}
+          {{- end }}
 
           startupProbe:
             httpGet:
