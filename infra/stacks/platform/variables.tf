@@ -76,3 +76,18 @@ variable "db_username" {
   type        = string
   default     = "app"
 }
+
+variable "rds_deletion_protection" {
+  description = "Whether deletion protection is enabled for RDS."
+  type        = bool
+}
+
+variable "rds_skip_final_snapshot" {
+  description = "Whether to skip final snapshot when deleting RDS."
+  type        = bool
+}
+
+variable "rds_backup_retention_days" {
+  description = "Number of days to retain RDS automated backups."
+  type        = number
+}

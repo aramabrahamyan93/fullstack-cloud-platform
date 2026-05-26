@@ -47,3 +47,21 @@ variable "engine_version" {
   type        = string
   default     = "16.3"
 }
+
+variable "deletion_protection" {
+  description = "Whether deletion protection is enabled for the RDS instance."
+  type        = bool
+  default     = false
+}
+
+variable "skip_final_snapshot" {
+  description = "Whether to skip final snapshot when deleting the RDS instance."
+  type        = bool
+  default     = true
+}
+
+variable "backup_retention_days" {
+  description = "Number of days to retain automated RDS backups."
+  type        = number
+  default     = 7
+}

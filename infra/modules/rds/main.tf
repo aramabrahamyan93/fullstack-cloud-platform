@@ -99,9 +99,9 @@ resource "aws_db_instance" "this" {
   publicly_accessible = false
   multi_az            = false
 
-  backup_retention_period = 7
-  skip_final_snapshot     = true
-  deletion_protection     = false
+  backup_retention_period = var.backup_retention_days
+  skip_final_snapshot     = var.skip_final_snapshot
+  deletion_protection     = var.deletion_protection
   apply_immediately       = true
 
   tags = {
