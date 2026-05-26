@@ -49,14 +49,14 @@ fi
 case "${STACK}" in
   ecr|bootstrap)
     EXTRA_VAR_FILES+=("-var-file=${GLOBAL_VARS}")
-    EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
     EXTRA_VAR_FILES+=("-var-file=../../config/services.tfvars")
+    EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
     ;;
 
   platform)
     EXTRA_VAR_FILES+=("-var-file=${GLOBAL_VARS}")
-    EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
     EXTRA_VAR_FILES+=("-var-file=../../config/platform.tfvars")
+    EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
     ;;
 
   *)

@@ -17,11 +17,15 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
   secret_id = aws_secretsmanager_secret.db_credentials.id
 
   secret_string = jsonencode({
+    host     = aws_db_instance.this.address
+    endpoint = aws_db_instance.this.endpoint
+    port     = 5432
+
     db_name  = var.db_name
     username = var.db_username
     password = random_password.db_password.result
-    engine   = "postgres"
-    port     = 5432
+
+    engine = "postgres"
   })
 }
 
