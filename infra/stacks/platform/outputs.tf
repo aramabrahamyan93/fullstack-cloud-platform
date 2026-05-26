@@ -21,3 +21,13 @@ output "eks_cluster_endpoint" {
 output "eks_node_group_name" {
   value = var.enable_eks ? module.eks[0].node_group_name : null
 }
+
+output "rds_endpoint" {
+  description = "RDS endpoint."
+  value       = var.enable_rds ? module.rds[0].db_endpoint : null
+}
+
+output "rds_secret_arn" {
+  description = "Secrets Manager ARN for RDS credentials."
+  value       = var.enable_rds ? module.rds[0].db_secret_arn : null
+}

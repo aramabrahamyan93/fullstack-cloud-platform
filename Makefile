@@ -145,37 +145,28 @@ k8s-helm-redeploy:
 STACK ?= ecr
 ACCOUNT ?= dev-859981975099
 AWS_PROFILE ?= aram-dev
-
-TF_DIR=infra/stacks/$(STACK)
-TF_GLOBAL_VARS=infra/config/global.tfvars
-TF_ACCOUNT_VARS=infra/accounts/$(ACCOUNT).tfvars
+ACCOUNT_ID ?=
+LOCK_TABLE ?= terraform-locks
 
 .PHONY: tf-init
 tf-init:
-	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform init \
-		-backend-config="bucket=$(ACCOUNT_ID)-tf-state" \
-		-backend-config="key=$(PROJECT_NAME)/$(ACCOUNT)/$(STACK)/terraform.tfstate" \
-		-backend-config="region=$(AWS_REGION)" \
-		-backend-config="dynamodb_table=$(LOCK_TABLE)" \
-		-backend-config="encrypt=true"
+	ACTION=init STACK=$(STACK) ACCOUNT=$(ACCOUNT) AWS_PROFILE=$(AWS_PROFILE) PROJECT_NAME=$(PROJECT_NAME) AWS_REGION=$(AWS_REGION) ACCOUNT_ID=$(ACCOUNT_ID) LOCK_TABLE=$(LOCK_TABLE) ./scripts/terraform.sh
 
 .PHONY: tf-plan
 tf-plan:
-	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform plan \
-		-var-file=../../config/global.tfvars \
-		-var-file=../../accounts/$(ACCOUNT).tfvars
+	ACTION=plan STACK=$(STACK) ACCOUNT=$(ACCOUNT) AWS_PROFILE=$(AWS_PROFILE) PROJECT_NAME=$(PROJECT_NAME) AWS_REGION=$(AWS_REGION) ACCOUNT_ID=$(ACCOUNT_ID) LOCK_TABLE=$(LOCK_TABLE) ./scripts/terraform.sh
 
 .PHONY: tf-apply
 tf-apply:
-	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform apply \
-		-var-file=../../config/global.tfvars \
-		-var-file=../../accounts/$(ACCOUNT).tfvars
+	ACTION=apply STACK=$(STACK) ACCOUNT=$(ACCOUNT) AWS_PROFILE=$(AWS_PROFILE) PROJECT_NAME=$(PROJECT_NAME) AWS_REGION=$(AWS_REGION) ACCOUNT_ID=$(ACCOUNT_ID) LOCK_TABLE=$(LOCK_TABLE) ./scripts/terraform.sh
 
 .PHONY: tf-destroy
 tf-destroy:
-	cd $(TF_DIR) && AWS_PROFILE=$(AWS_PROFILE) terraform destroy \
-		-var-file=../../config/global.tfvars \
-		-var-file=../../accounts/$(ACCOUNT).tfvars
+	ACTION=destroy STACK=$(STACK) ACCOUNT=$(ACCOUNT) AWS_PROFILE=$(AWS_PROFILE) PROJECT_NAME=$(PROJECT_NAME) AWS_REGION=$(AWS_REGION) ACCOUNT_ID=$(ACCOUNT_ID) LOCK_TABLE=$(LOCK_TABLE) ./scripts/terraform.sh
+
+.PHONY: tf-validate
+tf-validate:
+	ACTION=validate STACK=$(STACK) ACCOUNT=$(ACCOUNT) AWS_PROFILE=$(AWS_PROFILE) PROJECT_NAME=$(PROJECT_NAME) AWS_REGION=$(AWS_REGION) ACCOUNT_ID=$(ACCOUNT_ID) LOCK_TABLE=$(LOCK_TABLE) ./scripts/terraform.sh
 
 
 # ----------------------------

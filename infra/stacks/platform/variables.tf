@@ -59,3 +59,20 @@ variable "enable_eks" {
   description = "Whether to create EKS cluster and node group."
   type        = bool
 }
+
+variable "enable_rds" {
+  description = "Whether to create RDS PostgreSQL."
+  type        = bool
+}
+
+variable "db_name" {
+  description = "PostgreSQL database name."
+  type        = string
+  default     = "app"
+}
+
+variable "db_username" {
+  description = "PostgreSQL master username."
+  type        = string
+  default     = "app"
+}
