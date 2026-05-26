@@ -111,7 +111,7 @@ jobs:
           PROJECT_NAME=${PROJECT_NAME} \
           AWS_REGION=${AWS_REGION} \
           ACCOUNT_ID=${AWS_ACCOUNT_ID} \
-          ./scripts/terraform.sh
+          bash scripts/terraform.sh
 
       # Validate Terraform configuration using the same script used locally.
       - name: Terraform validate
@@ -122,7 +122,7 @@ jobs:
           PROJECT_NAME=${PROJECT_NAME} \
           AWS_REGION=${AWS_REGION} \
           ACCOUNT_ID=${AWS_ACCOUNT_ID} \
-          ./scripts/terraform.sh
+          bash scripts/terraform.sh
 
       # Generate Terraform plan without applying changes.
       - name: Terraform plan
@@ -133,4 +133,4 @@ jobs:
           PROJECT_NAME=${PROJECT_NAME} \
           AWS_REGION=${AWS_REGION} \
           ACCOUNT_ID=${AWS_ACCOUNT_ID} \
-          ./scripts/terraform.sh
+          bash scripts/terraform.sh
