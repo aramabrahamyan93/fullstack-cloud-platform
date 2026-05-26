@@ -34,9 +34,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
-      - name: Make scripts executable
-        run: chmod +x scripts/*.sh
 
       # Load Terraform stack list from a single source of truth.
       - name: Load Terraform stacks
@@ -71,7 +68,15 @@ jobs:
 
       # Check Terraform formatting across the whole infra folder.
       - name: Terraform format check
-        run: terraform fmt -check -recursive infra
+        run: |
+          ACTION=fmt \
+          STACK=${{ matrix.stack }} \
+          ACCOUNT=${ACCOUNT} \
+          PROJECT_NAME=${PROJECT_NAME} \
+          AWS_REGION=${AWS_REGION} \
+          ACCOUNT_ID=${AWS_ACCOUNT_ID} \
+          TF_LOCK=false \
+          bash scripts/terraform.sh
 
       # Validate required CI variables before running Terraform.
       - name: Validate Terraform CI config
@@ -111,6 +116,7 @@ jobs:
           PROJECT_NAME=${PROJECT_NAME} \
           AWS_REGION=${AWS_REGION} \
           ACCOUNT_ID=${AWS_ACCOUNT_ID} \
+          TF_LOCK=false \
           bash scripts/terraform.sh
 
       # Validate Terraform configuration using the same script used locally.
@@ -122,9 +128,11 @@ jobs:
           PROJECT_NAME=${PROJECT_NAME} \
           AWS_REGION=${AWS_REGION} \
           ACCOUNT_ID=${AWS_ACCOUNT_ID} \
+          TF_LOCK=false \
           bash scripts/terraform.sh
 
       # Generate Terraform plan without applying changes.
+      # Lock is disabled for CI plan to avoid stale/parallel validation locks.
       - name: Terraform plan
         run: |
           ACTION=plan \
@@ -133,4 +141,5 @@ jobs:
           PROJECT_NAME=${PROJECT_NAME} \
           AWS_REGION=${AWS_REGION} \
           ACCOUNT_ID=${AWS_ACCOUNT_ID} \
+          TF_LOCK=false \
           bash scripts/terraform.sh

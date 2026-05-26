@@ -11,6 +11,7 @@ AWS_REGION="${AWS_REGION:-eu-central-1}"
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 PROJECT_NAME="${PROJECT_NAME:-fullstack-cloud-platform}"
 LOCK_TABLE="${LOCK_TABLE:-terraform-locks}"
+TF_LOCK="${TF_LOCK:-true}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STACK_DIR="${REPO_ROOT}/infra/stacks/${STACK}"
@@ -71,6 +72,7 @@ echo "Account ID:       ${ACCOUNT_ID}"
 echo "AWS Region:       ${AWS_REGION}"
 echo "AWS Profile:      ${AWS_PROFILE:-default}"
 echo "Project Name:     ${PROJECT_NAME}"
+echo "Terraform lock:   ${TF_LOCK}"
 echo "Stack Dir:        ${STACK_DIR}"
 
 case "${ACTION}" in
@@ -100,6 +102,7 @@ case "${ACTION}" in
     cd "${STACK_DIR}"
 
     env "${AWS_ENV[@]}" terraform plan \
+      -lock="${TF_LOCK}" \
       "${EXTRA_VAR_FILES[@]}"
     ;;
 
