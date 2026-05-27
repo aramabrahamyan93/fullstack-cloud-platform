@@ -1,7 +1,8 @@
 namespace: fullstack-local
 
 global:
-  projectName: fullstack-cloud-platform
+  projectName: platform
+  domain: platform.local
   awsAccountId: ""
   awsRegion: eu-central-1
   imageRegistry: ""
@@ -19,7 +20,6 @@ externalSecrets:
   enabled: false
   refreshInterval: 1h
   secretStoreName: aws-secrets-manager
-  remoteSecretName: ""
 
 backend:
   name: backend

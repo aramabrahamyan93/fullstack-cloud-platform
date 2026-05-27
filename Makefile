@@ -1,6 +1,13 @@
-COMPOSE=docker compose
+ifneq (,$(wildcard project.env))
+	include project.env
+	export
+endif
 
-PROJECT_NAME ?= fullstack-cloud-platform
+COMPOSE=docker compose --env-file project.env
+
+PROJECT_NAME ?= platform
+PROJECT_DOMAIN ?= $(PROJECT_NAME).local
+APP_NAME ?= $(PROJECT_NAME)-api
 RELEASE_PREFIX ?= fullstack
 ENV ?= local
 
@@ -16,6 +23,7 @@ HELM_VALUES ?= $(HELM_CHART)/values-$(ENV).yaml
 
 HELM_SET_ARGS= \
 	--set global.projectName=$(PROJECT_NAME) \
+	--set global.domain=$(PROJECT_DOMAIN) \
 	--set global.awsAccountId=$(AWS_ACCOUNT_ID) \
 	--set global.awsRegion=$(AWS_REGION)
 
@@ -84,14 +92,6 @@ k8s-logs-backend:
 k8s-logs-frontend:
 	kubectl logs -f deployment/frontend -n $(K8S_NAMESPACE)
 
-.PHONY: k8s-describe-backend
-k8s-describe-backend:
-	kubectl describe pod -n $(K8S_NAMESPACE) -l app=backend
-
-.PHONY: k8s-describe-frontend
-k8s-describe-frontend:
-	kubectl describe pod -n $(K8S_NAMESPACE) -l app=frontend
-
 .PHONY: k8s-restart-backend
 k8s-restart-backend:
 	kubectl rollout restart deployment/backend -n $(K8S_NAMESPACE)
@@ -101,7 +101,7 @@ k8s-restart-frontend:
 	kubectl rollout restart deployment/frontend -n $(K8S_NAMESPACE)
 
 # ----------------------------
-# Helm deployment workflow
+# Helm
 # ----------------------------
 
 .PHONY: helm-lint
@@ -133,7 +133,7 @@ helm-uninstall:
 k8s-helm-redeploy:
 	$(MAKE) k8s-build PROJECT_NAME=$(PROJECT_NAME)
 	$(MAKE) k8s-load PROJECT_NAME=$(PROJECT_NAME) KIND_CLUSTER=$(KIND_CLUSTER)
-	$(MAKE) helm-deploy ENV=$(ENV) PROJECT_NAME=$(PROJECT_NAME) AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID) AWS_REGION=$(AWS_REGION)
+	$(MAKE) helm-deploy ENV=$(ENV) PROJECT_NAME=$(PROJECT_NAME) PROJECT_DOMAIN=$(PROJECT_DOMAIN) AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID) AWS_REGION=$(AWS_REGION)
 	kubectl rollout restart deployment/backend -n $(K8S_NAMESPACE)
 	kubectl rollout restart deployment/frontend -n $(K8S_NAMESPACE)
 
@@ -172,9 +172,7 @@ tf-validate:
 # Terraform remote state bootstrap
 # ----------------------------
 
-ACCOUNT_ID ?=
 STATE_BUCKET ?=
-LOCK_TABLE ?= terraform-locks
 
 .PHONY: tf-bootstrap-state
 tf-bootstrap-state:
@@ -184,4 +182,4 @@ tf-bootstrap-state:
 	PROJECT_NAME=$(PROJECT_NAME) \
 	STATE_BUCKET=$(STATE_BUCKET) \
 	LOCK_TABLE=$(LOCK_TABLE) \
-	./scripts/bootstrap-terraform-state.sh
+	bash scripts/bootstrap-terraform-state.sh

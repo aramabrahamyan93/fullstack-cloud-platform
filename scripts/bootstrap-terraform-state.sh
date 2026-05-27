@@ -2,10 +2,20 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+if [ -f "${REPO_ROOT}/project.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${REPO_ROOT}/project.env"
+  set +a
+fi
+
 ACCOUNT_ID="${ACCOUNT_ID:-}"
 AWS_REGION="${AWS_REGION:-eu-central-1}"
 AWS_PROFILE="${AWS_PROFILE:-}"
-PROJECT_NAME="${PROJECT_NAME:-fullstack-cloud-platform}"
+PROJECT_NAME="${PROJECT_NAME:-platform}"
 
 STATE_BUCKET="${STATE_BUCKET:-${ACCOUNT_ID}-tf-state}"
 LOCK_TABLE="${LOCK_TABLE:-terraform-locks}"

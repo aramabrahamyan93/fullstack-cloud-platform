@@ -1,7 +1,6 @@
 namespace: fullstack-prod
 
 global:
-  projectName: fullstack-cloud-platform
   awsAccountId: "859981975099"
   awsRegion: eu-central-1
 
@@ -17,7 +16,6 @@ externalSecrets:
   enabled: true
   refreshInterval: 1h
   secretStoreName: aws-secrets-manager
-  remoteSecretName: fullstack-cloud-platform/prod/rds/postgres
 
 backend:
   replicas: 3
@@ -33,4 +31,4 @@ frontend:
 
 ingress:
   enabled: true
-  host: fullstack-cloud-platform.local
+  host: ""

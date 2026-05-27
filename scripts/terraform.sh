@@ -9,17 +9,32 @@ ACCOUNT="${ACCOUNT:-dev-859981975099}"
 AWS_PROFILE="${AWS_PROFILE:-}"
 AWS_REGION="${AWS_REGION:-eu-central-1}"
 ACCOUNT_ID="${ACCOUNT_ID:-}"
-PROJECT_NAME="${PROJECT_NAME:-fullstack-cloud-platform}"
+PROJECT_NAME="${PROJECT_NAME:-}"
 LOCK_TABLE="${LOCK_TABLE:-terraform-locks}"
 TF_LOCK="${TF_LOCK:-true}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [ -f "${REPO_ROOT}/project.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${REPO_ROOT}/project.env"
+  set +a
+fi
+
+PROJECT_NAME="${PROJECT_NAME:-platform}"
+AWS_REGION="${AWS_REGION:-eu-central-1}"
+
 STACK_DIR="${REPO_ROOT}/infra/stacks/${STACK}"
 
 GLOBAL_VARS="../../config/global.tfvars"
 ACCOUNT_VARS="../../accounts/${ACCOUNT}.tfvars"
 
 EXTRA_VAR_FILES=()
+CLI_VARS=(
+  "-var=project_name=${PROJECT_NAME}"
+  "-var=aws_region=${AWS_REGION}"
+)
 
 if [ ! -d "${STACK_DIR}" ]; then
   echo "ERROR: Terraform stack directory does not exist: ${STACK_DIR}"
@@ -94,7 +109,6 @@ case "${ACTION}" in
 
   validate)
     cd "${STACK_DIR}"
-
     env "${AWS_ENV[@]}" terraform validate
     ;;
 
@@ -103,21 +117,24 @@ case "${ACTION}" in
 
     env "${AWS_ENV[@]}" terraform plan \
       -lock="${TF_LOCK}" \
-      "${EXTRA_VAR_FILES[@]}"
+      "${EXTRA_VAR_FILES[@]}" \
+      "${CLI_VARS[@]}"
     ;;
 
   apply)
     cd "${STACK_DIR}"
 
     env "${AWS_ENV[@]}" terraform apply \
-      "${EXTRA_VAR_FILES[@]}"
+      "${EXTRA_VAR_FILES[@]}" \
+      "${CLI_VARS[@]}"
     ;;
 
   destroy)
     cd "${STACK_DIR}"
 
     env "${AWS_ENV[@]}" terraform destroy \
-      "${EXTRA_VAR_FILES[@]}"
+      "${EXTRA_VAR_FILES[@]}" \
+      "${CLI_VARS[@]}"
     ;;
 
   *)
