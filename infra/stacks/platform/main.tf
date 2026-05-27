@@ -24,6 +24,7 @@ module "eks" {
   node_desired_size   = var.eks_node_desired_size
   node_min_size       = var.eks_node_min_size
   node_max_size       = var.eks_node_max_size
+  node_subnet_ids     = var.enable_nat_gateway ? module.vpc.private_subnet_ids : module.vpc.public_subnet_ids
 }
 
 module "rds" {
