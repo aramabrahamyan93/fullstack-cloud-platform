@@ -34,9 +34,6 @@ enable_rds = false
 db_name     = "app"
 db_username = "app"
 
-# Change before real production usage.
-db_password = "change-me-please"
-
 # RDS safety settings.
 # Dev-friendly defaults: easy to destroy, but still keeps automated backups while running.
 rds_deletion_protection   = false

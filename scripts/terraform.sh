@@ -62,9 +62,16 @@ if [ -n "${AWS_PROFILE}" ]; then
 fi
 
 case "${STACK}" in
-  ecr|bootstrap)
+  ecr)
     EXTRA_VAR_FILES+=("-var-file=${GLOBAL_VARS}")
     EXTRA_VAR_FILES+=("-var-file=../../config/services.tfvars")
+    EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
+    ;;
+
+  bootstrap)
+    EXTRA_VAR_FILES+=("-var-file=${GLOBAL_VARS}")
+    EXTRA_VAR_FILES+=("-var-file=../../config/services.tfvars")
+    EXTRA_VAR_FILES+=("-var-file=../../config/github.tfvars")
     EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
     ;;
 
