@@ -15,6 +15,12 @@ database:
   secretName: backend-database-secret
   urlKey: DATABASE_URL
 
+externalSecrets:
+  enabled: false
+  refreshInterval: 1h
+  secretStoreName: aws-secrets-manager
+  remoteSecretName: ""
+
 backend:
   name: backend
   replicas: 1
