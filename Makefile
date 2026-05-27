@@ -117,8 +117,10 @@ helm-render:
 .PHONY: helm-deploy
 helm-deploy:
 	helm upgrade --install $(HELM_RELEASE) $(HELM_CHART) \
-		-f $(HELM_VALUES) \
-		$(HELM_SET_ARGS)
+	--namespace $(K8S_NAMESPACE) \
+	--create-namespace \
+	-f $(HELM_VALUES) \
+	$(HELM_SET_ARGS)
 
 .PHONY: helm-status
 helm-status:
