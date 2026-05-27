@@ -22,6 +22,7 @@ externalSecrets:
   secretStoreName: aws-secrets-manager
   serviceAccountName: external-secrets
   serviceAccountNamespace: external-secrets
+  serviceAccountRoleArn: ""
 
 backend:
   name: backend
