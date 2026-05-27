@@ -20,6 +20,8 @@ externalSecrets:
   enabled: false
   refreshInterval: 1h
   secretStoreName: aws-secrets-manager
+  serviceAccountName: external-secrets
+  serviceAccountNamespace: external-secrets
 
 backend:
   name: backend
