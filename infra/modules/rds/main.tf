@@ -6,6 +6,8 @@ resource "random_password" "db_password" {
 resource "aws_secretsmanager_secret" "db_credentials" {
   name = "${var.project_name}/${var.environment}/rds/postgres"
 
+  recovery_window_in_days = var.secret_recovery_window_in_days
+
   tags = {
     Project     = var.project_name
     Environment = var.environment

@@ -116,11 +116,18 @@ helm-render:
 
 .PHONY: helm-deploy
 helm-deploy:
-	helm upgrade --install $(HELM_RELEASE) $(HELM_CHART) \
-	--namespace $(K8S_NAMESPACE) \
-	--create-namespace \
-	-f $(HELM_VALUES) \
-	$(HELM_SET_ARGS)
+	@echo "Helm deploy ENV=$(ENV)"
+	@echo "PROJECT_NAME=$(PROJECT_NAME)"
+	@echo "AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID)"
+
+	helm upgrade --install "fullstack-$(ENV)" helm/platform \
+		--namespace "fullstack-$(ENV)" \
+		--create-namespace \
+		-f "helm/platform/values-$(ENV).yaml" \
+		--set global.projectName="$(PROJECT_NAME)" \
+		--set global.domain="$(PROJECT_DOMAIN)" \
+		--set global.awsAccountId="$(AWS_ACCOUNT_ID)" \
+		--set global.awsRegion="$(AWS_REGION)"
 
 .PHONY: helm-status
 helm-status:
@@ -169,6 +176,27 @@ tf-destroy:
 .PHONY: tf-validate
 tf-validate:
 	ACTION=validate STACK=$(STACK) ACCOUNT=$(ACCOUNT) AWS_PROFILE=$(AWS_PROFILE) PROJECT_NAME=$(PROJECT_NAME) AWS_REGION=$(AWS_REGION) ACCOUNT_ID=$(ACCOUNT_ID) LOCK_TABLE=$(LOCK_TABLE) TF_LOCK=$(TF_LOCK) bash scripts/terraform.sh
+
+
+# ----------------------------
+# Cloud EKS/RDS workflow
+# ----------------------------
+
+.PHONY: cloud-deploy
+cloud-deploy:
+	ACCOUNT="$(ACCOUNT)" \
+	AWS_PROFILE="$(AWS_PROFILE)" \
+	AWS_REGION="$(AWS_REGION)" \
+	PROJECT_NAME="$(PROJECT_NAME)" \
+	bash scripts/cloud-deploy.sh
+
+.PHONY: cloud-teardown
+cloud-teardown:
+	ACCOUNT="$(ACCOUNT)" \
+	AWS_PROFILE="$(AWS_PROFILE)" \
+	AWS_REGION="$(AWS_REGION)" \
+	PROJECT_NAME="$(PROJECT_NAME)" \
+	bash scripts/cloud-teardown.sh
 
 # ----------------------------
 # Terraform remote state bootstrap

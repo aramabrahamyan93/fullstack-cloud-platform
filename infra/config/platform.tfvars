@@ -31,6 +31,9 @@ enable_eks         = false
 
 enable_rds = false
 
+# Secrets Manager safety default.
+secret_recovery_window_in_days = 30
+
 db_name     = "app"
 db_username = "app"
 

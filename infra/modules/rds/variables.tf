@@ -70,3 +70,9 @@ variable "allowed_cidr_blocks" {
   description = "CIDR blocks allowed to access PostgreSQL."
   type        = list(string)
 }
+
+variable "secret_recovery_window_in_days" {
+  description = "Secrets Manager recovery window in days. Use 0 for dev/test immediate deletion."
+  type        = number
+  default     = 30
+}

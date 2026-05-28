@@ -2,5 +2,7 @@ environment = "dev"
 account_id  = "859981975099"
 
 
-enable_eks = true
-enable_rds = true
+enable_eks = false
+enable_rds = false
+
+secret_recovery_window_in_days = 0

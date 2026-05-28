@@ -14,11 +14,15 @@ database:
 
 externalSecrets:
   enabled: true
+  authMode: jwt
   refreshInterval: 1h
   secretStoreName: aws-secrets-manager
+  awsCredentialsSecretName: awssm-secret
   serviceAccountName: external-secrets
   serviceAccountNamespace: external-secrets
   serviceAccountRoleArn: ""
+  remoteSecretName: ""
+  remoteSecretProperty: database_url
 
 backend:
   replicas: 2

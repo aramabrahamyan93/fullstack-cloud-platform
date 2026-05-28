@@ -91,3 +91,9 @@ variable "rds_backup_retention_days" {
   description = "Number of days to retain RDS automated backups."
   type        = number
 }
+
+variable "secret_recovery_window_in_days" {
+  description = "Secrets Manager recovery window in days."
+  type        = number
+  default     = 30
+}

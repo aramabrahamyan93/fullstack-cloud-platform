@@ -44,7 +44,8 @@ module "rds" {
   db_name     = var.db_name
   db_username = var.db_username
 
-  deletion_protection   = var.rds_deletion_protection
-  skip_final_snapshot   = var.rds_skip_final_snapshot
-  backup_retention_days = var.rds_backup_retention_days
+  deletion_protection            = var.rds_deletion_protection
+  skip_final_snapshot            = var.rds_skip_final_snapshot
+  backup_retention_days          = var.rds_backup_retention_days
+  secret_recovery_window_in_days = var.secret_recovery_window_in_days
 }

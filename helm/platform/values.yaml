@@ -20,9 +20,16 @@ externalSecrets:
   enabled: false
   refreshInterval: 1h
   secretStoreName: aws-secrets-manager
+
+  authMode: jwt
+  awsCredentialsSecretName: awssm-secret
+
   serviceAccountName: external-secrets
   serviceAccountNamespace: external-secrets
   serviceAccountRoleArn: ""
+
+  remoteSecretName: ""
+  remoteSecretProperty: database_url
 
 backend:
   name: backend
