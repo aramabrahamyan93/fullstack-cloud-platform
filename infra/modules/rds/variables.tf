@@ -45,7 +45,7 @@ variable "allocated_storage" {
 variable "engine_version" {
   description = "PostgreSQL engine version."
   type        = string
-  default     = "16.3"
+  default     = "15"
 }
 
 variable "deletion_protection" {
