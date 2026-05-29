@@ -14,7 +14,7 @@ database:
 
 externalSecrets:
   enabled: true
-  authMode: secretRef
+  authMode: jwt
   refreshInterval: 1h
   secretStoreName: aws-secrets-manager
   awsCredentialsSecretName: awssm-secret

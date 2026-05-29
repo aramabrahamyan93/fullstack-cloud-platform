@@ -97,3 +97,9 @@ variable "secret_recovery_window_in_days" {
   type        = number
   default     = 30
 }
+
+variable "enable_external_secrets_irsa" {
+  description = "Enable IRSA role for External Secrets Operator."
+  type        = bool
+  default     = true
+}

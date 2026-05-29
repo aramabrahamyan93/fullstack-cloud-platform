@@ -93,29 +93,31 @@ kubectl wait --namespace ingress-nginx \
   --selector=app.kubernetes.io/component=controller \
   --timeout=600s
 
-echo "Installing external-secrets..."
+echo "Getting External Secrets IRSA role ARN..."
+EXTERNAL_SECRETS_ROLE_ARN="$(
+  cd "${REPO_ROOT}/infra/stacks/platform" && terraform output -raw external_secrets_role_arn
+)"
+
+if [ -z "${EXTERNAL_SECRETS_ROLE_ARN}" ]; then
+  echo "ERROR: external_secrets_role_arn output is empty."
+  exit 1
+fi
+
+echo "Installing external-secrets with IRSA role: ${EXTERNAL_SECRETS_ROLE_ARN}"
+
 helm repo add external-secrets https://charts.external-secrets.io >/dev/null 2>&1 || true
 helm repo update
 
 helm upgrade --install external-secrets external-secrets/external-secrets \
   -n external-secrets \
   --create-namespace \
-  --set installCRDs=true
+  --set installCRDs=true \
+  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="${EXTERNAL_SECRETS_ROLE_ARN}"
 
 kubectl wait --namespace external-secrets \
   --for=condition=ready pod \
   --all \
   --timeout=600s
-
-echo "Creating AWS credentials secret for External Secrets dev/test auth..."
-eval "$(aws configure export-credentials --profile "${AWS_PROFILE}" --format env)"
-
-kubectl create secret generic awssm-secret \
-  -n external-secrets \
-  --from-literal=access-key="${AWS_ACCESS_KEY_ID}" \
-  --from-literal=secret-access-key="${AWS_SECRET_ACCESS_KEY}" \
-  --from-literal=session-token="${AWS_SESSION_TOKEN}" \
-  --dry-run=client -o yaml | kubectl apply -f -
 
 echo "Deleting old ClusterSecretStore to avoid jwt/secretRef merge leftovers..."
 kubectl delete clustersecretstore aws-secrets-manager --ignore-not-found=true
@@ -147,15 +149,23 @@ if [ -n "${LB_HOST}" ]; then
   echo "LoadBalancer host: ${LB_HOST}"
 
   echo "Smoke test: frontend"
-  curl -sS -H "Host: ${APP_HOST}" "http://${LB_HOST}/" >/dev/null \
-    && echo "Frontend OK" \
-    || echo "Frontend check failed"
+  curl -sS -f -H "Host: ${APP_HOST}" "http://${LB_HOST}/" >/dev/null
+  echo "Frontend OK"
 
   echo "Smoke test: backend health"
-  curl -sS -H "Host: ${APP_HOST}" "http://${LB_HOST}/api/health" || true
-  echo
+  HEALTH_RESPONSE="$(curl -sS -f -H "Host: ${APP_HOST}" "http://${LB_HOST}/api/health")"
+
+  echo "${HEALTH_RESPONSE}"
+
+  if ! echo "${HEALTH_RESPONSE}" | grep -q '"status":"ok"'; then
+    echo "ERROR: Backend health check did not return status ok."
+    exit 1
+  fi
+
+  echo "Backend health OK"
 else
-  echo "WARNING: LoadBalancer hostname is not ready yet."
+  echo "ERROR: LoadBalancer hostname is not ready."
+  exit 1
 fi
 
 echo "Cloud deploy completed."

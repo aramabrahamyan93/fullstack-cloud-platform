@@ -32,3 +32,7 @@ output "rds_security_group_id" {
   description = "RDS security group ID."
   value       = var.enable_rds ? module.rds[0].db_security_group_id : null
 }
+
+output "external_secrets_role_arn" {
+  value = var.enable_eks && var.enable_external_secrets_irsa ? aws_iam_role.external_secrets[0].arn : null
+}
