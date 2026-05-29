@@ -28,8 +28,14 @@ variable "github_repo" {
   type        = string
 }
 
-variable "role_name" {
-  description = "IAM role name used by GitHub Actions."
+variable "ecr_role_name" {
+  description = "IAM role name used by GitHub Actions for ECR push."
   type        = string
   default     = "github-actions-ecr-role"
+}
+
+variable "terraform_role_name" {
+  description = "IAM role name used by GitHub Actions for Terraform CI."
+  type        = string
+  default     = "github-actions-terraform-role"
 }
