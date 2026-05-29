@@ -39,6 +39,19 @@ backend:
     tag: latest
     pullPolicy: Never
 
+  strategy:
+    maxUnavailable: 0
+    maxSurge: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+
 frontend:
   name: frontend
   replicas: 1
@@ -46,6 +59,18 @@ frontend:
   image:
     tag: latest
     pullPolicy: Never
+
+  strategy:
+    maxUnavailable: 0
+    maxSurge: 1
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
 
 postgres:
   image: postgres:16

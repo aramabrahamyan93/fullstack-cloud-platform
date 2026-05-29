@@ -25,6 +25,12 @@ metadata:
 spec:
   replicas: {{ .Values.backend.replicas }}
 
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.backend.strategy.maxUnavailable }}
+      maxSurge: {{ .Values.backend.strategy.maxSurge }}
+
   selector:
     matchLabels:
       app: backend
@@ -39,6 +45,9 @@ spec:
         - name: backend
           image: "{{ include "platform.backendImage" . }}"
           imagePullPolicy: "{{ .Values.backend.image.pullPolicy }}"
+
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
 
           ports:
             - containerPort: {{ .Values.backend.port }}

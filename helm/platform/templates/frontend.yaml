@@ -8,6 +8,12 @@ metadata:
 spec:
   replicas: {{ .Values.frontend.replicas }}
 
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.frontend.strategy.maxUnavailable }}
+      maxSurge: {{ .Values.frontend.strategy.maxSurge }}
+
   selector:
     matchLabels:
       app: frontend
@@ -23,8 +29,25 @@ spec:
           image: "{{ include "platform.frontendImage" . }}"
           imagePullPolicy: "{{ .Values.frontend.image.pullPolicy }}"
 
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+
           ports:
             - containerPort: {{ .Values.frontend.port }}
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.frontend.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.frontend.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
 
 ---
 apiVersion: v1
