@@ -165,3 +165,33 @@ resource "aws_iam_role_policy_attachment" "terraform_read_only" {
   role       = aws_iam_role.github_actions_terraform.name
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
+
+resource "aws_iam_role" "github_actions_deploy" {
+  name = "github-actions-deploy-role"
+
+  assume_role_policy = data.aws_iam_policy_document.github_actions_assume_role.json
+
+  tags = {
+    Project   = var.project_name
+    ManagedBy = "terraform"
+    Purpose   = "github-actions-deploy"
+  }
+}
+
+resource "aws_iam_role_policy" "deploy_eks" {
+  name = "github-actions-deploy-eks-policy"
+  role = aws_iam_role.github_actions_deploy.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:DescribeCluster"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}

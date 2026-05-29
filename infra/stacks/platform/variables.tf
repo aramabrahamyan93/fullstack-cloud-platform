@@ -103,3 +103,9 @@ variable "enable_external_secrets_irsa" {
   type        = bool
   default     = true
 }
+
+variable "github_actions_deploy_role_name" {
+  description = "GitHub Actions deploy role name."
+  type        = string
+  default     = "github-actions-deploy-role"
+}
