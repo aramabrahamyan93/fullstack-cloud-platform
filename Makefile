@@ -129,6 +129,15 @@ helm-deploy:
 		--set global.awsAccountId="$(AWS_ACCOUNT_ID)" \
 		--set global.awsRegion="$(AWS_REGION)"
 
+.PHONY: docker-build-push
+docker-build-push:
+	ACCOUNT="$(ACCOUNT)" \
+	AWS_PROFILE="$(AWS_PROFILE)" \
+	AWS_REGION="$(AWS_REGION)" \
+	PROJECT_NAME="$(PROJECT_NAME)" \
+	IMAGE_TAG="$(IMAGE_TAG)" \
+	bash scripts/docker-build-push.sh
+
 .PHONY: helm-status
 helm-status:
 	helm list -A
