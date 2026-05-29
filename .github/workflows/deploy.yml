@@ -1,8 +1,18 @@
-name: Deploy Dev
+name: Deploy
 
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
       image_tag:
         description: "Image tag to deploy. Leave empty to use current Git SHA."
         required: false
@@ -16,29 +26,48 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
   PROJECT_NAME: ${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }}
-  ENVIRONMENT: dev
-  ACCOUNT: dev-${{ vars.AWS_ACCOUNT_ID }}
 
 jobs:
-  deploy-dev:
-    name: Deploy to dev EKS
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Resolve image tag
-        id: image
+      - name: Resolve deploy context
+        id: context
         run: |
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+
           if [ -n "${{ github.event.inputs.image_tag }}" ]; then
             IMAGE_TAG="${{ github.event.inputs.image_tag }}"
           else
             IMAGE_TAG="${GITHUB_SHA::7}"
           fi
 
+          ACCOUNT="${ENVIRONMENT}-${AWS_ACCOUNT_ID}"
+          CLUSTER_NAME="${PROJECT_NAME}-${ENVIRONMENT}"
+          NAMESPACE="fullstack-${ENVIRONMENT}"
+          APP_HOST="${ENVIRONMENT}.${PROJECT_NAME}.local"
+          EXTERNAL_SECRETS_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${PROJECT_NAME}-${ENVIRONMENT}-external-secrets-role"
+
+          echo "environment=${ENVIRONMENT}" >> "$GITHUB_OUTPUT"
           echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "account=${ACCOUNT}" >> "$GITHUB_OUTPUT"
+          echo "cluster_name=${CLUSTER_NAME}" >> "$GITHUB_OUTPUT"
+          echo "namespace=${NAMESPACE}" >> "$GITHUB_OUTPUT"
+          echo "app_host=${APP_HOST}" >> "$GITHUB_OUTPUT"
+          echo "external_secrets_role_arn=${EXTERNAL_SECRETS_ROLE_ARN}" >> "$GITHUB_OUTPUT"
+
+          echo "ENVIRONMENT=${ENVIRONMENT}"
           echo "IMAGE_TAG=${IMAGE_TAG}"
+          echo "ACCOUNT=${ACCOUNT}"
+          echo "CLUSTER_NAME=${CLUSTER_NAME}"
+          echo "NAMESPACE=${NAMESPACE}"
+          echo "APP_HOST=${APP_HOST}"
+          echo "EXTERNAL_SECRETS_ROLE_ARN=${EXTERNAL_SECRETS_ROLE_ARN}"
 
       - name: Validate config
         run: |
@@ -47,11 +76,15 @@ jobs:
             exit 1
           fi
 
-          echo "AWS_REGION=$AWS_REGION"
-          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID"
-          echo "PROJECT_NAME=$PROJECT_NAME"
-          echo "ACCOUNT=$ACCOUNT"
-          echo "IMAGE_TAG=${{ steps.image.outputs.image_tag }}"
+          if [ -z "$PROJECT_NAME" ]; then
+            echo "PROJECT_NAME is empty."
+            exit 1
+          fi
+
+          if [ ! -f "helm/platform/values-${{ steps.context.outputs.environment }}.yaml" ]; then
+            echo "Missing Helm values file: helm/platform/values-${{ steps.context.outputs.environment }}.yaml"
+            exit 1
+          fi
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -66,7 +99,7 @@ jobs:
         run: |
           aws eks update-kubeconfig \
             --region "$AWS_REGION" \
-            --name "$PROJECT_NAME-$ENVIRONMENT"
+            --name "${{ steps.context.outputs.cluster_name }}"
 
       - name: Install ingress-nginx
         run: |
@@ -84,13 +117,6 @@ jobs:
 
       - name: Install external-secrets with IRSA
         run: |
-          EXTERNAL_SECRETS_ROLE_ARN="$(
-            aws iam get-role \
-              --role-name "$PROJECT_NAME-$ENVIRONMENT-external-secrets-role" \
-              --query "Role.Arn" \
-              --output text
-          )"
-
           helm repo add external-secrets https://charts.external-secrets.io || true
           helm repo update
 
@@ -98,42 +124,53 @@ jobs:
             -n external-secrets \
             --create-namespace \
             --set installCRDs=true \
-            --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$EXTERNAL_SECRETS_ROLE_ARN"
+            --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="${{ steps.context.outputs.external_secrets_role_arn }}"
 
           kubectl wait --namespace external-secrets \
             --for=condition=ready pod \
             --all \
             --timeout=600s
 
+      - name: Delete old ClusterSecretStore
+        run: |
+          kubectl delete clustersecretstore aws-secrets-manager --ignore-not-found=true
+
       - name: Deploy Helm chart
         run: |
-          helm upgrade --install "fullstack-$ENVIRONMENT" helm/platform \
-            --namespace "fullstack-$ENVIRONMENT" \
+          ENVIRONMENT="${{ steps.context.outputs.environment }}"
+
+          helm upgrade --install "fullstack-${ENVIRONMENT}" helm/platform \
+            --namespace "fullstack-${ENVIRONMENT}" \
             --create-namespace \
-            -f "helm/platform/values-$ENVIRONMENT.yaml" \
+            -f "helm/platform/values-${ENVIRONMENT}.yaml" \
             --set global.projectName="$PROJECT_NAME" \
             --set global.domain="$PROJECT_NAME.local" \
             --set global.awsAccountId="$AWS_ACCOUNT_ID" \
             --set global.awsRegion="$AWS_REGION" \
-            --set backend.image.tag="${{ steps.image.outputs.image_tag }}" \
-            --set frontend.image.tag="${{ steps.image.outputs.image_tag }}"
+            --set backend.image.tag="${{ steps.context.outputs.image_tag }}" \
+            --set frontend.image.tag="${{ steps.context.outputs.image_tag }}"
 
       - name: Wait for ExternalSecret
         run: |
           kubectl wait externalsecret backend-database-external-secret \
-            -n "fullstack-$ENVIRONMENT" \
+            -n "${{ steps.context.outputs.namespace }}" \
             --for=condition=Ready \
             --timeout=300s
 
       - name: Wait for deployments
         run: |
-          kubectl rollout status deployment/frontend -n "fullstack-$ENVIRONMENT" --timeout=300s
-          kubectl rollout status deployment/backend -n "fullstack-$ENVIRONMENT" --timeout=300s
+          kubectl rollout status deployment/frontend \
+            -n "${{ steps.context.outputs.namespace }}" \
+            --timeout=300s
+
+          kubectl rollout status deployment/backend \
+            -n "${{ steps.context.outputs.namespace }}" \
+            --timeout=300s
 
       - name: Smoke test
         run: |
           LB_HOST="$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
-          APP_HOST="$ENVIRONMENT.$PROJECT_NAME.local"
+          APP_HOST="${{ steps.context.outputs.app_host }}"
 
           echo "LB_HOST=$LB_HOST"
           echo "APP_HOST=$APP_HOST"
