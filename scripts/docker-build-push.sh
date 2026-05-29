@@ -33,8 +33,8 @@ fi
 ENV="${BASH_REMATCH[1]}"
 AWS_ACCOUNT_ID="${BASH_REMATCH[2]}"
 
-if [ -z "${AWS_PROFILE}" ]; then
-  echo "ERROR: AWS_PROFILE is required."
+if [ -z "${AWS_PROFILE}" ] && [ "${CI:-false}" != "true" ]; then
+  echo "ERROR: AWS_PROFILE is required for local runs."
   exit 1
 fi
 
@@ -67,11 +67,18 @@ echo "Image Tag:      ${IMAGE_TAG}"
 echo "ECR Registry:   ${ECR_REGISTRY}"
 
 echo "Logging in to ECR..."
-aws ecr get-login-password \
-  --region "${AWS_REGION}" \
-  --profile "${AWS_PROFILE}" | docker login \
-  --username AWS \
-  --password-stdin "${ECR_REGISTRY}"
+if [ -n "${AWS_PROFILE}" ]; then
+  aws ecr get-login-password \
+    --region "${AWS_REGION}" \
+    --profile "${AWS_PROFILE}" | docker login \
+    --username AWS \
+    --password-stdin "${ECR_REGISTRY}"
+else
+  aws ecr get-login-password \
+    --region "${AWS_REGION}" | docker login \
+    --username AWS \
+    --password-stdin "${ECR_REGISTRY}"
+fi
 
 echo "Building backend image..."
 docker build \
