@@ -6,6 +6,7 @@ ACCOUNT="${ACCOUNT:-}"
 AWS_PROFILE="${AWS_PROFILE:-}"
 AWS_REGION="${AWS_REGION:-}"
 PROJECT_NAME="${PROJECT_NAME:-}"
+IMAGE_TAG="${IMAGE_TAG:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -15,6 +16,10 @@ if [ -f "${REPO_ROOT}/project.env" ]; then
   # shellcheck disable=SC1091
   source "${REPO_ROOT}/project.env"
   set +a
+fi
+
+if [ -z "${IMAGE_TAG}" ] && [ -f "${REPO_ROOT}/.image-tag" ]; then
+  IMAGE_TAG="$(cat "${REPO_ROOT}/.image-tag")"
 fi
 
 AWS_REGION="${AWS_REGION:-eu-central-1}"
@@ -123,7 +128,7 @@ echo "Deleting old ClusterSecretStore to avoid jwt/secretRef merge leftovers..."
 kubectl delete clustersecretstore aws-secrets-manager --ignore-not-found=true
 
 echo "Deploying application for ENV=${ACCOUNT_ENV}..."
-make helm-deploy ENV="${ACCOUNT_ENV}" AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID}"
+make helm-deploy ENV="${ACCOUNT_ENV}" AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID}" IMAGE_TAG="${IMAGE_TAG}"
 
 echo "Waiting for ExternalSecret sync..."
 kubectl wait externalsecret backend-database-external-secret \

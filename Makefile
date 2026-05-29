@@ -119,6 +119,7 @@ helm-deploy:
 	@echo "Helm deploy ENV=$(ENV)"
 	@echo "PROJECT_NAME=$(PROJECT_NAME)"
 	@echo "AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID)"
+	@echo "IMAGE_TAG=$(IMAGE_TAG)"
 
 	helm upgrade --install "fullstack-$(ENV)" helm/platform \
 		--namespace "fullstack-$(ENV)" \
@@ -127,7 +128,8 @@ helm-deploy:
 		--set global.projectName="$(PROJECT_NAME)" \
 		--set global.domain="$(PROJECT_DOMAIN)" \
 		--set global.awsAccountId="$(AWS_ACCOUNT_ID)" \
-		--set global.awsRegion="$(AWS_REGION)"
+		--set global.awsRegion="$(AWS_REGION)" \
+		$(if $(IMAGE_TAG),--set backend.image.tag="$(IMAGE_TAG)" --set frontend.image.tag="$(IMAGE_TAG)",)
 
 .PHONY: docker-build-push
 docker-build-push:
@@ -197,6 +199,7 @@ cloud-deploy:
 	AWS_PROFILE="$(AWS_PROFILE)" \
 	AWS_REGION="$(AWS_REGION)" \
 	PROJECT_NAME="$(PROJECT_NAME)" \
+	IMAGE_TAG="$(IMAGE_TAG)" \
 	bash scripts/cloud-deploy.sh
 
 .PHONY: cloud-teardown

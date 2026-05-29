@@ -6,7 +6,7 @@ ACCOUNT="${ACCOUNT:-}"
 AWS_PROFILE="${AWS_PROFILE:-}"
 AWS_REGION="${AWS_REGION:-}"
 PROJECT_NAME="${PROJECT_NAME:-}"
-IMAGE_TAG="${IMAGE_TAG:-develop-latest}"
+IMAGE_TAG="${IMAGE_TAG:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -40,6 +40,15 @@ fi
 
 if [ -z "${PROJECT_NAME}" ]; then
   echo "ERROR: PROJECT_NAME is required. Set it in project.env."
+  exit 1
+fi
+
+if [ -z "${IMAGE_TAG}" ]; then
+  IMAGE_TAG="$(git -C "${REPO_ROOT}" rev-parse --short HEAD)"
+fi
+
+if [ -z "${IMAGE_TAG}" ]; then
+  echo "ERROR: IMAGE_TAG could not be resolved."
   exit 1
 fi
 
@@ -93,3 +102,6 @@ docker push "${ECR_REGISTRY}/${FRONTEND_REPO}:${IMAGE_TAG}"
 echo "Docker build and push completed."
 echo "Backend:  ${ECR_REGISTRY}/${BACKEND_REPO}:${IMAGE_TAG}"
 echo "Frontend: ${ECR_REGISTRY}/${FRONTEND_REPO}:${IMAGE_TAG}"
+
+echo "${IMAGE_TAG}" > "${REPO_ROOT}/.image-tag"
+echo "Image tag saved to .image-tag"
