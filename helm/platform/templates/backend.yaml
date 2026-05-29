@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: backend-config
+  namespace: {{ .Values.namespace }}
+
+data:
+  APP_ENV: {{ .Values.app.environment | quote }}
+  APP_NAME: "{{ .Values.global.projectName }}-api"
+  APP_VERSION: {{ .Values.app.version | quote }}
+
+  {{- if eq .Values.database.mode "local" }}
+  DATABASE_URL: "postgresql+psycopg://{{ .Values.postgres.username }}:{{ .Values.postgres.password }}@postgres:{{ .Values.postgres.port }}/{{ .Values.postgres.database }}"
+  {{- end }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: backend
+  namespace: {{ .Values.namespace }}
+
+spec:
+  replicas: {{ .Values.backend.replicas }}
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.backend.strategy.maxUnavailable }}
+      maxSurge: {{ .Values.backend.strategy.maxSurge }}
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+      containers:
+        - name: backend
+          image: "{{ include "platform.backendImage" . }}"
+          imagePullPolicy: "{{ .Values.backend.image.pullPolicy }}"
+
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+
+          envFrom:
+            - configMapRef:
+                name: backend-config
+
+          {{- if eq .Values.database.mode "external" }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: {{ .Values.database.urlKey }}
+          {{- end }}
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.port }}
+            failureThreshold: 30
+            periodSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: backend
+  namespace: {{ .Values.namespace }}
+
+spec:
+  selector:
+    app: backend
+
+  ports:
+    - port: {{ .Values.backend.port }}
+      targetPort: {{ .Values.backend.port }}

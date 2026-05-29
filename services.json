@@ -1,0 +1,14 @@
+[
+  {
+    "name": "backend",
+    "context": "./backend",
+    "port": 8000,
+    "type": "api"
+  },
+  {
+    "name": "frontend",
+    "context": "./frontend",
+    "port": 80,
+    "type": "web"
+  }
+]

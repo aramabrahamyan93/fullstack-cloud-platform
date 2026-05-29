@@ -1,0 +1,41 @@
+namespace: fullstack-prod
+
+global:
+  awsAccountId: "859981975099"
+  awsRegion: eu-central-1
+
+app:
+  environment: prod
+
+database:
+  mode: external
+  secretName: backend-database-secret
+  urlKey: DATABASE_URL
+
+externalSecrets:
+  enabled: true
+  authMode: jwt
+  refreshInterval: 1h
+  secretStoreName: aws-secrets-manager
+  awsCredentialsSecretName: awssm-secret
+  serviceAccountName: external-secrets
+  serviceAccountNamespace: external-secrets
+  serviceAccountRoleArn: ""
+  remoteSecretName: ""
+  remoteSecretProperty: database_url
+
+backend:
+  replicas: 3
+  image:
+    tag: main-latest
+    pullPolicy: IfNotPresent
+
+frontend:
+  replicas: 3
+  image:
+    tag: main-latest
+    pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  host: ""

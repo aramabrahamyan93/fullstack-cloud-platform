@@ -1,0 +1,143 @@
+resource "aws_vpc" "this" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-vpc"
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_internet_gateway" "this" {
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-igw"
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_subnet" "public" {
+  for_each = {
+    for index, cidr in var.public_subnet_cidrs :
+    index => cidr
+  }
+
+  vpc_id                  = aws_vpc.this.id
+  cidr_block              = each.value
+  availability_zone       = var.availability_zones[tonumber(each.key)]
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-public-${each.key}"
+    Project     = var.project_name
+    Environment = var.environment
+    Type        = "public"
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_subnet" "private" {
+  for_each = {
+    for index, cidr in var.private_subnet_cidrs :
+    index => cidr
+  }
+
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = each.value
+  availability_zone = var.availability_zones[tonumber(each.key)]
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-private-${each.key}"
+    Project     = var.project_name
+    Environment = var.environment
+    Type        = "private"
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_eip" "nat" {
+  count = var.enable_nat_gateway ? 1 : 0
+
+  domain = "vpc"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-nat-eip"
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_nat_gateway" "this" {
+  count = var.enable_nat_gateway ? 1 : 0
+
+  allocation_id = aws_eip.nat[0].id
+  subnet_id     = aws_subnet.public[0].id
+
+  depends_on = [
+    aws_internet_gateway.this
+  ]
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-nat"
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-public-rt"
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_route" "public_internet" {
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.this.id
+}
+
+resource "aws_route_table_association" "public" {
+  for_each = aws_subnet.public
+
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-private-rt"
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_route" "private_nat" {
+  count = var.enable_nat_gateway ? 1 : 0
+
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.this[0].id
+}
+
+resource "aws_route_table_association" "private" {
+  for_each = aws_subnet.private
+
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.private.id
+}

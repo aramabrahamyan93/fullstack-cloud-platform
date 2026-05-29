@@ -1,0 +1,86 @@
+namespace: fullstack-local
+
+global:
+  projectName: platform
+  domain: platform.local
+  awsAccountId: ""
+  awsRegion: eu-central-1
+  imageRegistry: ""
+
+app:
+  version: "0.1.0"
+  environment: local-k8s
+
+database:
+  mode: local
+  secretName: backend-database-secret
+  urlKey: DATABASE_URL
+
+externalSecrets:
+  enabled: false
+  refreshInterval: 1h
+  secretStoreName: aws-secrets-manager
+
+  authMode: jwt
+  awsCredentialsSecretName: awssm-secret
+
+  serviceAccountName: external-secrets
+  serviceAccountNamespace: external-secrets
+  serviceAccountRoleArn: ""
+
+  remoteSecretName: ""
+  remoteSecretProperty: database_url
+
+backend:
+  name: backend
+  replicas: 1
+  port: 8000
+  image:
+    tag: latest
+    pullPolicy: Never
+
+  strategy:
+    maxUnavailable: 0
+    maxSurge: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+
+frontend:
+  name: frontend
+  replicas: 1
+  port: 80
+  image:
+    tag: latest
+    pullPolicy: Never
+
+  strategy:
+    maxUnavailable: 0
+    maxSurge: 1
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+postgres:
+  image: postgres:16
+  database: app
+  username: app
+  password: app
+  port: 5432
+  storageSize: 1Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: localhost

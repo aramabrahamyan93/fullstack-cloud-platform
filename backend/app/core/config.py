@@ -4,7 +4,7 @@ from pydantic_settings import SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = "local"
-    app_name: str = "fullstack-cloud-platform-api"
+    app_name: str = "platform-api"
     app_version: str = "0.1.0"
     database_url: str
 

@@ -1,0 +1,24 @@
+namespace: fullstack-local
+
+global:
+  imageRegistry: ""
+
+app:
+  environment: local-k8s
+
+database:
+  mode: local
+
+backend:
+  replicas: 1
+  image:
+    pullPolicy: Never
+
+frontend:
+  replicas: 1
+  image:
+    pullPolicy: Never
+
+ingress:
+  enabled: true
+  host: localhost

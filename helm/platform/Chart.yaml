@@ -1,0 +1,6 @@
+apiVersion: v2
+name: platform
+description: Reusable Kubernetes Helm chart for the fullstack cloud platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

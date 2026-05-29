@@ -1,0 +1,138 @@
+name: Publish Images to ECR
+
+on:
+  push:
+    branches:
+      - develop
+      - staging
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_ROLE_NAME: github-actions-ecr-role
+
+jobs:
+  prepare-services:
+    name: Prepare service matrix
+    runs-on: ubuntu-latest
+
+    outputs:
+      services: ${{ steps.services.outputs.services }}
+      deploy_env: ${{ steps.env.outputs.deploy_env }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Map Git branch to deployment environment name.
+      # develop -> dev
+      # staging -> staging
+      # main -> prod
+      - name: Resolve deployment environment
+        id: env
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            echo "deploy_env=prod" >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_REF_NAME}" = "staging" ]; then
+            echo "deploy_env=staging" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_env=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Load service definitions from services.json.
+      # New services can be added without changing this workflow.
+      - name: Load services
+        id: services
+        run: |
+          SERVICES=$(jq -c . services.json)
+          echo "services=$SERVICES" >> "$GITHUB_OUTPUT"
+
+  publish-images:
+    name: Build and push Docker images
+    runs-on: ubuntu-latest
+    needs: prepare-services
+
+    # GitHub Environment is selected dynamically.
+    # If environment-level variables exist, they override repository variables.
+    # If they do not exist, repository variables are used.
+    environment:
+      name: ${{ needs.prepare-services.outputs.deploy_env }}
+
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.prepare-services.outputs.services) }}
+
+    env:
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Validate required configuration before trying to authenticate with AWS.
+      - name: Validate AWS configuration
+        run: |
+          if [ -z "$AWS_ACCOUNT_ID" ]; then
+            echo "AWS_ACCOUNT_ID is not set"
+            exit 1
+          fi
+
+          if [ -z "$AWS_REGION" ]; then
+            echo "AWS_REGION is not set"
+            exit 1
+          fi
+
+          if [ -z "$PROJECT_NAME" ]; then
+            echo "PROJECT_NAME is not set"
+            exit 1
+          fi
+
+          echo "Deploy environment: ${{ needs.prepare-services.outputs.deploy_env }}"
+          echo "AWS account: $AWS_ACCOUNT_ID"
+          echo "AWS region: $AWS_REGION"
+          echo "Project name: $PROJECT_NAME"
+
+      # Use GitHub OIDC to assume an AWS IAM role without static AWS keys.
+      # Role ARN is built dynamically from AWS_ACCOUNT_ID and a static role name.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Authenticate Docker against Amazon ECR.
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Create immutable and branch-based tags.
+      # Example:
+      #   5eff799
+      #   develop-latest
+      - name: Set image tags
+        run: |
+          echo "IMAGE_TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "BRANCH_TAG=${GITHUB_REF_NAME}-latest" >> "$GITHUB_ENV"
+
+      # Build and push each service image defined in services.json.
+      - name: Build and push ${{ matrix.service.name }} image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          SERVICE_NAME: ${{ matrix.service.name }}
+          SERVICE_CONTEXT: ${{ matrix.service.context }}
+
+        run: |
+          REPOSITORY_NAME="${PROJECT_NAME}-${SERVICE_NAME}"
+
+          docker build \
+            -t "$ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG" \
+            -t "$ECR_REGISTRY/$REPOSITORY_NAME:$BRANCH_TAG" \
+            "$SERVICE_CONTEXT"
+
+          docker push "$ECR_REGISTRY/$REPOSITORY_NAME:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/$REPOSITORY_NAME:$BRANCH_TAG"
