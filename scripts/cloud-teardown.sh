@@ -26,21 +26,11 @@ fi
 
 if [[ ! "${ACCOUNT}" =~ ^([a-zA-Z0-9_-]+)-([0-9]{12})$ ]]; then
   echo "ERROR: ACCOUNT must match format: {ENV}-{AWS_ACCOUNT_ID}"
-  echo "Example: ACCOUNT=dev-859981975099"
   exit 1
 fi
 
 ACCOUNT_ENV="${BASH_REMATCH[1]}"
 AWS_ACCOUNT_ID="${BASH_REMATCH[2]}"
-
-export ENV="${ACCOUNT_ENV}"
-
-ACCOUNT_FILE="${REPO_ROOT}/infra/accounts/${ACCOUNT}.tfvars"
-
-if [ ! -f "${ACCOUNT_FILE}" ]; then
-  echo "ERROR: Account tfvars file not found: ${ACCOUNT_FILE}"
-  exit 1
-fi
 
 if [ -z "${AWS_PROFILE}" ]; then
   echo "ERROR: AWS_PROFILE is required. Example: AWS_PROFILE=aram-dev"
@@ -59,7 +49,6 @@ HELM_RELEASE="fullstack-${ACCOUNT_ENV}"
 echo "Cloud teardown"
 echo "Environment:    ${ACCOUNT_ENV}"
 echo "Account:        ${ACCOUNT}"
-echo "Account file:   ${ACCOUNT_FILE}"
 echo "AWS Profile:    ${AWS_PROFILE}"
 echo "AWS Account ID: ${AWS_ACCOUNT_ID}"
 echo "AWS Region:     ${AWS_REGION}"
@@ -67,59 +56,95 @@ echo "Project Name:   ${PROJECT_NAME}"
 echo "Cluster Name:   ${CLUSTER_NAME}"
 echo "Namespace:      ${APP_NAMESPACE}"
 
-echo "Trying to uninstall Kubernetes resources if EKS exists..."
+echo "Checking if EKS cluster exists..."
 if aws eks describe-cluster \
   --name "${CLUSTER_NAME}" \
   --region "${AWS_REGION}" \
   --profile "${AWS_PROFILE}" >/dev/null 2>&1; then
 
+  echo "Updating kubeconfig..."
   aws eks update-kubeconfig \
     --region "${AWS_REGION}" \
     --name "${CLUSTER_NAME}" \
     --profile "${AWS_PROFILE}"
 
+  echo "Uninstalling application Helm release..."
   helm uninstall "${HELM_RELEASE}" -n "${APP_NAMESPACE}" || true
+
+  echo "Uninstalling ingress-nginx..."
   helm uninstall ingress-nginx -n ingress-nginx || true
+
+  echo "Uninstalling external-secrets..."
   helm uninstall external-secrets -n external-secrets || true
 
-  echo "Waiting for Kubernetes cloud resources cleanup..."
-  sleep 60
+  echo "Deleting namespaces..."
+  kubectl delete namespace "${APP_NAMESPACE}" --ignore-not-found=true || true
+  kubectl delete namespace ingress-nginx --ignore-not-found=true || true
+  kubectl delete namespace external-secrets --ignore-not-found=true || true
+
+  echo "Waiting for Kubernetes LoadBalancer cleanup..."
+  sleep 90
 else
-  echo "EKS cluster does not exist. Skipping Helm cleanup."
+  echo "EKS cluster does not exist. Skipping Kubernetes cleanup."
 fi
 
-echo "Terraform will remove EKS/RDS only if these are false in ${ACCOUNT_FILE}:"
+echo "IMPORTANT: Terraform will remove EKS/RDS only if these are false in infra/accounts/${ACCOUNT}.tfvars:"
 echo "  enable_eks = false"
 echo "  enable_rds = false"
 
 echo "Applying Terraform platform stack..."
-$(command -v make) tf-apply STACK=platform ACCOUNT="${ACCOUNT}" AWS_PROFILE="${AWS_PROFILE}"
+make tf-apply STACK=platform ACCOUNT="${ACCOUNT}" AWS_PROFILE="${AWS_PROFILE}"
 
-echo "Verifying EKS deletion..."
+echo "Verifying paid resource cleanup..."
+
+echo "Checking EKS..."
 if aws eks describe-cluster \
   --name "${CLUSTER_NAME}" \
   --region "${AWS_REGION}" \
   --profile "${AWS_PROFILE}" >/dev/null 2>&1; then
-  echo "WARNING: EKS cluster still exists."
+  echo "WARNING: EKS cluster still exists: ${CLUSTER_NAME}"
 else
-  echo "EKS cluster is deleted."
+  echo "OK: EKS cluster deleted."
 fi
 
-echo "Verifying RDS deletion..."
+echo "Checking RDS..."
 if aws rds describe-db-instances \
   --db-instance-identifier "${CLUSTER_NAME}" \
   --region "${AWS_REGION}" \
   --profile "${AWS_PROFILE}" >/dev/null 2>&1; then
-  echo "WARNING: RDS instance still exists."
+  echo "WARNING: RDS instance still exists: ${CLUSTER_NAME}"
 else
-  echo "RDS instance is deleted."
+  echo "OK: RDS instance deleted."
 fi
 
-echo "Checking leftover Kubernetes LoadBalancers..."
+echo "Checking LoadBalancers..."
 aws elbv2 describe-load-balancers \
   --region "${AWS_REGION}" \
   --profile "${AWS_PROFILE}" \
   --query "LoadBalancers[?contains(LoadBalancerName, 'k8s')].[LoadBalancerName,DNSName,State.Code]" \
+  --output table || true
+
+echo "Checking running EC2 instances..."
+aws ec2 describe-instances \
+  --region "${AWS_REGION}" \
+  --profile "${AWS_PROFILE}" \
+  --filters Name=instance-state-name,Values=running,pending \
+  --query "Reservations[*].Instances[*].[InstanceId,InstanceType,State.Name,Tags[?Key=='Name']|[0].Value]" \
+  --output table || true
+
+echo "Checking NAT Gateways..."
+aws ec2 describe-nat-gateways \
+  --region "${AWS_REGION}" \
+  --profile "${AWS_PROFILE}" \
+  --query "NatGateways[?State!='deleted'].[NatGatewayId,State,VpcId]" \
+  --output table || true
+
+echo "Checking available EBS volumes..."
+aws ec2 describe-volumes \
+  --region "${AWS_REGION}" \
+  --profile "${AWS_PROFILE}" \
+  --filters Name=status,Values=available \
+  --query "Volumes[*].[VolumeId,Size,State,AvailabilityZone]" \
   --output table || true
 
 echo "Cloud teardown completed."
