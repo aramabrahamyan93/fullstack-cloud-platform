@@ -20,7 +20,23 @@ echo "Project Name:   ${PROJECT_NAME}"
 echo
 
 if [ "${ENABLE_ARGOCD}" = "true" ]; then
-  echo "ArgoCD enabled - deployment not implemented yet."
+  echo "Deploying ArgoCD..."
+
+  helm repo add argo https://argoproj.github.io/argo-helm || true
+  helm repo update
+
+  helm upgrade --install argocd argo/argo-cd \
+    --namespace argocd \
+    --create-namespace \
+    --wait \
+    --timeout 10m
+
+  kubectl wait --namespace argocd \
+    --for=condition=ready pod \
+    --all \
+    --timeout=600s
+
+  echo "ArgoCD deployed successfully."
 else
   echo "ArgoCD disabled."
 fi
