@@ -9,6 +9,10 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: auto-deploy-dev
+  cancel-in-progress: true
+
 jobs:
   docker-build-push:
     uses: ./.github/workflows/docker-build-push.yml

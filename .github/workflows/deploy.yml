@@ -36,6 +36,10 @@ env:
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
   PROJECT_NAME: ${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }}
 
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to ${{ github.event.inputs.environment }}

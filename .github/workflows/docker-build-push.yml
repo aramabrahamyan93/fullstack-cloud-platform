@@ -1,12 +1,11 @@
 name: Docker Build and Push
 
 on:
-  push:
-    branches:
-      - develop
+#  push:
+#    branches:
+#      - develop
 
   workflow_dispatch:
-
   workflow_call:
     outputs:
       image_tag:
