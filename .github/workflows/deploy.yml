@@ -199,15 +199,32 @@ jobs:
         run: |
           LB_HOST="$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
           APP_HOST="${{ steps.context.outputs.app_host }}"
-
+          
           echo "LB_HOST=$LB_HOST"
           echo "APP_HOST=$APP_HOST"
-
-          curl -sS -f -H "Host: $APP_HOST" "http://$LB_HOST/" >/dev/null
-          echo "Frontend OK"
-
-          HEALTH_RESPONSE="$(curl -sS -f -H "Host: $APP_HOST" "http://$LB_HOST/api/health")"
-          echo "$HEALTH_RESPONSE"
-
-          echo "$HEALTH_RESPONSE" | grep -q '"status":"ok"'
-          echo "Backend health OK"
+          
+          for i in {1..30}; do
+            if curl -sS -f -H "Host: $APP_HOST" "http://$LB_HOST/" >/dev/null; then
+              echo "Frontend OK"
+              break
+            fi
+          
+            echo "Frontend not ready yet. Retry $i/30..."
+            sleep 10
+          done
+          
+          for i in {1..30}; do
+            HEALTH_RESPONSE="$(curl -sS -f -H "Host: $APP_HOST" "http://$LB_HOST/api/health" || true)"
+            echo "$HEALTH_RESPONSE"
+          
+            if echo "$HEALTH_RESPONSE" | grep -q '"status":"ok"'; then
+              echo "Backend health OK"
+              exit 0
+            fi
+          
+            echo "Backend not ready yet. Retry $i/30..."
+            sleep 10
+          done
+          
+          echo "Backend health check failed"
+          exit 1
