@@ -106,9 +106,14 @@ jobs:
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
           helm repo update
 
+          kubectl delete job ingress-nginx-admission-create -n ingress-nginx --ignore-not-found=true
+          kubectl delete job ingress-nginx-admission-patch -n ingress-nginx --ignore-not-found=true
+
           helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
             -n ingress-nginx \
-            --create-namespace
+            --create-namespace \
+            --wait \
+            --timeout 10m
 
           kubectl wait --namespace ingress-nginx \
             --for=condition=ready pod \
