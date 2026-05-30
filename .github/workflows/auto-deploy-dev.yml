@@ -1,0 +1,25 @@
+name: Auto Deploy Dev
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: auto-deploy-dev
+  cancel-in-progress: true
+
+jobs:
+  docker-build-push:
+    uses: ./.github/workflows/docker-build-push.yml
+
+  deploy-dev:
+    needs: docker-build-push
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: dev
+      image_tag: ${{ needs.docker-build-push.outputs.image_tag }}

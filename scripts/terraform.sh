@@ -107,6 +107,7 @@ case "${ACTION}" in
     cd "${STACK_DIR}"
 
     env "${AWS_ENV[@]}" terraform init \
+      -reconfigure \
       -backend-config="bucket=${ACCOUNT_ID}-tf-state" \
       -backend-config="key=${PROJECT_NAME}/${ACCOUNT}/${STACK}/terraform.tfstate" \
       -backend-config="region=${AWS_REGION}" \

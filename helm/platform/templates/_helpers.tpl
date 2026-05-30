@@ -13,23 +13,24 @@
 {{- define "platform.frontendRepository" -}}
 {{- printf "%s-%s" .Values.global.projectName .Values.frontend.name -}}
 {{- end -}}
-
 {{- define "platform.backendImage" -}}
 {{- $registry := include "platform.imageRegistry" . -}}
 {{- $repository := include "platform.backendRepository" . -}}
+{{- $tag := toString .Values.backend.image.tag -}}
 {{- if $registry -}}
-{{- printf "%s/%s:%s" $registry $repository .Values.backend.image.tag -}}
+{{- printf "%s/%s:%s" $registry $repository $tag -}}
 {{- else -}}
-{{- printf "%s:%s" $repository .Values.backend.image.tag -}}
+{{- printf "%s:%s" $repository $tag -}}
 {{- end -}}
 {{- end -}}
 
 {{- define "platform.frontendImage" -}}
 {{- $registry := include "platform.imageRegistry" . -}}
 {{- $repository := include "platform.frontendRepository" . -}}
+{{- $tag := toString .Values.frontend.image.tag -}}
 {{- if $registry -}}
-{{- printf "%s/%s:%s" $registry $repository .Values.frontend.image.tag -}}
+{{- printf "%s/%s:%s" $registry $repository $tag -}}
 {{- else -}}
-{{- printf "%s:%s" $repository .Values.frontend.image.tag -}}
+{{- printf "%s:%s" $repository $tag -}}
 {{- end -}}
 {{- end -}}

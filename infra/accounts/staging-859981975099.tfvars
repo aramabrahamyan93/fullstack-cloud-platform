@@ -1,4 +1,4 @@
-environment = "dev"
+environment = "staging"
 account_id  = "859981975099"
 
 enable_vpc = false

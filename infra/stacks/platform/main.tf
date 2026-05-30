@@ -1,4 +1,5 @@
 module "vpc" {
+  count  = var.enable_vpc ? 1 : 0
   source = "../../modules/vpc"
 
   project_name         = var.project_name
@@ -12,19 +13,19 @@ module "vpc" {
 }
 
 module "eks" {
-  count  = var.enable_eks ? 1 : 0
+  count  = var.enable_vpc && var.enable_eks ? 1 : 0
   source = "../../modules/eks"
 
   project_name       = var.project_name
   environment        = var.environment
-  private_subnet_ids = module.vpc.private_subnet_ids
+  private_subnet_ids = module.vpc[0].private_subnet_ids
 
   cluster_version     = var.eks_cluster_version
   node_instance_types = var.eks_node_instance_types
   node_desired_size   = var.eks_node_desired_size
   node_min_size       = var.eks_node_min_size
   node_max_size       = var.eks_node_max_size
-  node_subnet_ids     = var.enable_nat_gateway ? module.vpc.private_subnet_ids : module.vpc.public_subnet_ids
+  node_subnet_ids     = var.enable_nat_gateway ? module.vpc[0].private_subnet_ids : module.vpc[0].public_subnet_ids
 }
 
 locals {
@@ -174,14 +175,14 @@ resource "aws_iam_role_policy_attachment" "external_secrets" {
 }
 
 module "rds" {
-  count  = var.enable_rds ? 1 : 0
+  count  = var.enable_vpc && var.enable_rds ? 1 : 0
   source = "../../modules/rds"
 
   project_name = var.project_name
   environment  = var.environment
 
-  vpc_id             = module.vpc.vpc_id
-  private_subnet_ids = module.vpc.private_subnet_ids
+  vpc_id             = module.vpc[0].vpc_id
+  private_subnet_ids = module.vpc[0].private_subnet_ids
 
   allowed_cidr_blocks = [
     var.vpc_cidr

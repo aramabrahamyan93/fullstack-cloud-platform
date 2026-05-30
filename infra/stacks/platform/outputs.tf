@@ -36,3 +36,7 @@ output "rds_security_group_id" {
 output "external_secrets_role_arn" {
   value = var.enable_eks && var.enable_external_secrets_irsa ? aws_iam_role.external_secrets[0].arn : null
 }
+
+output "vpc_id" {
+  value = var.enable_vpc ? module.vpc[0].vpc_id : null
+}

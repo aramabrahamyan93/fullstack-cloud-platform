@@ -225,3 +225,6 @@ tf-bootstrap-state:
 	STATE_BUCKET=$(STATE_BUCKET) \
 	LOCK_TABLE=$(LOCK_TABLE) \
 	bash scripts/bootstrap-terraform-state.sh
+
+deploy-addons:
+	bash scripts/deploy-addons.sh
