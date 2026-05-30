@@ -227,4 +227,8 @@ tf-bootstrap-state:
 	bash scripts/bootstrap-terraform-state.sh
 
 deploy-addons:
+	ACCOUNT="$(ACCOUNT)" \
+	AWS_PROFILE="$(AWS_PROFILE)" \
+	AWS_REGION="$(AWS_REGION)" \
+	PROJECT_NAME="$(PROJECT_NAME)" \
 	bash scripts/deploy-addons.sh

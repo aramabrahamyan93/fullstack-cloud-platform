@@ -2,23 +2,46 @@
 
 set -euo pipefail
 
+ACCOUNT="${ACCOUNT:-}"
+AWS_PROFILE="${AWS_PROFILE:-}"
+AWS_REGION="${AWS_REGION:-eu-central-1}"
+PROJECT_NAME="${PROJECT_NAME:-fullstack-cloud-platform}"
+
 ENABLE_ARGOCD="${ENABLE_ARGOCD:-false}"
 ENABLE_ARGO_ROLLOUTS="${ENABLE_ARGO_ROLLOUTS:-false}"
 ENABLE_MONITORING="${ENABLE_MONITORING:-false}"
 ENABLE_LOGGING="${ENABLE_LOGGING:-false}"
 
-if [ "$ENABLE_ARGOCD" = "true" ]; then
-  echo "Deploying ArgoCD..."
+echo "Deploy addons"
+echo "Account:        ${ACCOUNT}"
+echo "AWS Profile:    ${AWS_PROFILE:-default}"
+echo "AWS Region:     ${AWS_REGION}"
+echo "Project Name:   ${PROJECT_NAME}"
+echo
+
+if [ "${ENABLE_ARGOCD}" = "true" ]; then
+  echo "ArgoCD enabled - deployment not implemented yet."
+else
+  echo "ArgoCD disabled."
 fi
 
-if [ "$ENABLE_ARGO_ROLLOUTS" = "true" ]; then
-  echo "Deploying Argo Rollouts..."
+if [ "${ENABLE_ARGO_ROLLOUTS}" = "true" ]; then
+  echo "Argo Rollouts enabled - deployment not implemented yet."
+else
+  echo "Argo Rollouts disabled."
 fi
 
-if [ "$ENABLE_MONITORING" = "true" ]; then
-  echo "Deploying Monitoring..."
+if [ "${ENABLE_MONITORING}" = "true" ]; then
+  echo "Monitoring enabled - deployment not implemented yet."
+else
+  echo "Monitoring disabled."
 fi
 
-if [ "$ENABLE_LOGGING" = "true" ]; then
-  echo "Deploying Logging..."
+if [ "${ENABLE_LOGGING}" = "true" ]; then
+  echo "Logging enabled - deployment not implemented yet."
+else
+  echo "Logging disabled."
 fi
+
+echo
+echo "Addons deployment completed."
