@@ -18,6 +18,15 @@ on:
         required: false
         default: ""
 
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
 permissions:
   contents: read
   id-token: write
