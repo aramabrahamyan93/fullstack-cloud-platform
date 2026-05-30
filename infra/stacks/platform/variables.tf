@@ -65,6 +65,12 @@ variable "enable_rds" {
   type        = bool
 }
 
+variable "enable_vpc" {
+  description = "Whether to create VPC and networking resources."
+  type        = bool
+  default     = true
+}
+
 variable "db_name" {
   description = "PostgreSQL database name."
   type        = string
