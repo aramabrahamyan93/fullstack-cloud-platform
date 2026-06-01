@@ -49,9 +49,20 @@ if [ "${ENABLE_ARGOCD}" = "true" ]; then
     --wait \
     --timeout 10m
 
-  kubectl wait --namespace argocd \
-    --for=condition=ready pod \
-    --all \
+  kubectl rollout status statefulset/argocd-application-controller \
+    -n argocd \
+    --timeout=600s
+
+  kubectl rollout status deployment/argocd-server \
+    -n argocd \
+    --timeout=600s
+
+  kubectl rollout status deployment/argocd-repo-server \
+    -n argocd \
+    --timeout=600s
+
+  kubectl rollout status deployment/argocd-redis \
+    -n argocd \
     --timeout=600s
 
   echo "ArgoCD deployed successfully."
