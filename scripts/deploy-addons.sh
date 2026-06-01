@@ -45,6 +45,7 @@ if [ "${ENABLE_ARGOCD}" = "true" ]; then
   helm upgrade --install argocd argo/argo-cd \
     --namespace argocd \
     --create-namespace \
+    -f "${REPO_ROOT}/addons/argocd/values.yaml" \
     --wait \
     --timeout 10m
 
