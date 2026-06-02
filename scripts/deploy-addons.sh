@@ -23,6 +23,7 @@ fi
 ENABLE_ARGOCD="${ENABLE_ARGOCD:-false}"
 ENABLE_ARGOCD_APPLICATION="${ENABLE_ARGOCD_APPLICATION:-false}"
 ENABLE_EXTERNAL_SECRETS="${ENABLE_EXTERNAL_SECRETS:-false}"
+ENABLE_INGRESS_NGINX="${ENABLE_INGRESS_NGINX:-false}"
 
 ENABLE_ARGO_ROLLOUTS="${ENABLE_ARGO_ROLLOUTS:-false}"
 ENABLE_MONITORING="${ENABLE_MONITORING:-false}"
@@ -47,6 +48,7 @@ echo "Enable Argo Rollouts:     ${ENABLE_ARGO_ROLLOUTS}"
 echo "Enable Monitoring:        ${ENABLE_MONITORING}"
 echo "Enable Logging:           ${ENABLE_LOGGING}"
 echo "Enable External Secrets:  ${ENABLE_EXTERNAL_SECRETS}"
+echo "Enable Ingress NGINX:     ${ENABLE_INGRESS_NGINX}"
 echo
 
 require_command() {
@@ -170,6 +172,26 @@ deploy_argocd_application() {
   echo "ArgoCD Application applied successfully."
 }
 
+deploy_ingress_nginx() {
+  echo "Deploying Ingress NGINX..."
+
+  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
+  helm repo update
+
+  helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+    --namespace ingress-nginx \
+    --create-namespace \
+    -f "${REPO_ROOT}/addons/ingress-nginx/values.yaml" \
+    --wait \
+    --timeout 15m
+
+  kubectl rollout status deployment/ingress-nginx-controller \
+    -n ingress-nginx \
+    --timeout=900s
+
+  echo "Ingress NGINX deployed successfully."
+}
+
 validate_common_config
 require_command helm
 require_command kubectl
@@ -185,6 +207,12 @@ if [ "${ENABLE_ARGOCD}" = "true" ]; then
   deploy_argocd
 else
   echo "ArgoCD disabled."
+fi
+
+if [ "${ENABLE_INGRESS_NGINX}" = "true" ]; then
+  deploy_ingress_nginx
+else
+  echo "Ingress NGINX disabled."
 fi
 
 if [ "${ENABLE_ARGOCD_APPLICATION}" = "true" ]; then
