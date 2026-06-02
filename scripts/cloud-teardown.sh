@@ -45,6 +45,10 @@ fi
 CLUSTER_NAME="${PROJECT_NAME}-${ACCOUNT_ENV}"
 APP_NAMESPACE="fullstack-${ACCOUNT_ENV}"
 HELM_RELEASE="fullstack-${ACCOUNT_ENV}"
+ARGOCD_NAMESPACE="argocd"
+ARGOCD_APP_NAME="fullstack-${ACCOUNT_ENV}"
+EXTERNAL_SECRETS_NAMESPACE="external-secrets"
+INGRESS_NGINX_NAMESPACE="ingress-nginx"
 
 echo "Cloud teardown"
 echo "Environment:    ${ACCOUNT_ENV}"
@@ -55,6 +59,158 @@ echo "AWS Region:     ${AWS_REGION}"
 echo "Project Name:   ${PROJECT_NAME}"
 echo "Cluster Name:   ${CLUSTER_NAME}"
 echo "Namespace:      ${APP_NAMESPACE}"
+
+namespace_exists() {
+  local namespace="$1"
+  kubectl get namespace "${namespace}" >/dev/null 2>&1
+}
+
+application_exists() {
+  local app_name="$1"
+  local namespace="$2"
+  kubectl get application "${app_name}" -n "${namespace}" >/dev/null 2>&1
+}
+
+remove_application_finalizers() {
+  local app_name="$1"
+  local namespace="$2"
+
+  if application_exists "${app_name}" "${namespace}"; then
+    echo "Removing ArgoCD Application finalizers: ${app_name}"
+    kubectl patch application "${app_name}" \
+      -n "${namespace}" \
+      --type merge \
+      -p '{"metadata":{"finalizers":[]}}' || true
+  fi
+}
+
+delete_argocd_application() {
+  if ! namespace_exists "${ARGOCD_NAMESPACE}"; then
+    echo "ArgoCD namespace does not exist. Skipping ArgoCD Application cleanup."
+    return 0
+  fi
+
+  if application_exists "${ARGOCD_APP_NAME}" "${ARGOCD_NAMESPACE}"; then
+    echo "Deleting ArgoCD Application: ${ARGOCD_APP_NAME}"
+    remove_application_finalizers "${ARGOCD_APP_NAME}" "${ARGOCD_NAMESPACE}"
+    kubectl delete application "${ARGOCD_APP_NAME}" \
+      -n "${ARGOCD_NAMESPACE}" \
+      --ignore-not-found=true \
+      --timeout=120s || true
+  else
+    echo "ArgoCD Application does not exist: ${ARGOCD_APP_NAME}"
+  fi
+}
+
+patch_known_finalizers() {
+  echo "Patching known stuck finalizers, if any..."
+
+  kubectl patch externalsecret backend-database-external-secret \
+    -n "${APP_NAMESPACE}" \
+    --type merge \
+    -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
+
+  kubectl patch clustersecretstore aws-secrets-manager \
+    --type merge \
+    -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
+
+  kubectl patch applications.argoproj.io "${ARGOCD_APP_NAME}" \
+    -n "${ARGOCD_NAMESPACE}" \
+    --type merge \
+    -p '{"metadata":{"finalizers":[]}}' 2>/dev/null || true
+}
+
+force_finalize_namespace() {
+  local namespace="$1"
+
+  if ! namespace_exists "${namespace}"; then
+    return 0
+  fi
+
+  local phase
+  phase="$(kubectl get namespace "${namespace}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+
+  if [ "${phase}" != "Terminating" ]; then
+    return 0
+  fi
+
+  echo "Force finalizing stuck namespace: ${namespace}"
+
+  kubectl get namespace "${namespace}" -o json 2>/dev/null \
+    | sed 's/"finalizers": \[[^]]*\]/"finalizers": []/' \
+    | kubectl replace --raw "/api/v1/namespaces/${namespace}/finalize" -f - || true
+}
+
+delete_namespace_safely() {
+  local namespace="$1"
+
+  if ! namespace_exists "${namespace}"; then
+    echo "Namespace does not exist: ${namespace}"
+    return 0
+  fi
+
+  echo "Deleting namespace: ${namespace}"
+  kubectl delete namespace "${namespace}" --ignore-not-found=true --timeout=180s || true
+
+  sleep 10
+
+  if namespace_exists "${namespace}"; then
+    force_finalize_namespace "${namespace}"
+  fi
+}
+
+uninstall_helm_release() {
+  local release="$1"
+  local namespace="$2"
+
+  echo "Uninstalling Helm release: ${release} in namespace: ${namespace}"
+  helm uninstall "${release}" -n "${namespace}" || true
+}
+
+cleanup_kubernetes_resources() {
+  echo "Starting Kubernetes/GitOps cleanup..."
+
+  echo "Step 1: Delete ArgoCD Application first to stop reconciliation."
+  delete_argocd_application
+
+  echo "Step 2: Patch known finalizers."
+  patch_known_finalizers
+
+  echo "Step 3: Uninstall application Helm release if it exists."
+  uninstall_helm_release "${HELM_RELEASE}" "${APP_NAMESPACE}"
+
+  echo "Step 4: Delete app namespace."
+  delete_namespace_safely "${APP_NAMESPACE}"
+
+  echo "Step 5: Uninstall ingress-nginx if installed."
+  uninstall_helm_release "ingress-nginx" "${INGRESS_NGINX_NAMESPACE}"
+  delete_namespace_safely "${INGRESS_NGINX_NAMESPACE}"
+
+  echo "Step 6: Uninstall ArgoCD if installed."
+  uninstall_helm_release "argocd" "${ARGOCD_NAMESPACE}"
+
+  echo "Deleting ArgoCD CRDs left by Helm resource policy, if present."
+  kubectl delete crd applications.argoproj.io --ignore-not-found=true || true
+  kubectl delete crd applicationsets.argoproj.io --ignore-not-found=true || true
+  kubectl delete crd appprojects.argoproj.io --ignore-not-found=true || true
+
+  delete_namespace_safely "${ARGOCD_NAMESPACE}"
+
+  echo "Step 7: Uninstall External Secrets if installed."
+  uninstall_helm_release "external-secrets" "${EXTERNAL_SECRETS_NAMESPACE}"
+
+  echo "Deleting External Secrets CRDs, if present."
+  kubectl get crds -o name 2>/dev/null | grep 'external-secrets.io' | xargs -r kubectl delete || true
+  kubectl get crds -o name 2>/dev/null | grep 'generators.external-secrets.io' | xargs -r kubectl delete || true
+
+  delete_namespace_safely "${EXTERNAL_SECRETS_NAMESPACE}"
+
+  echo "Step 8: Final namespace check."
+  kubectl get ns || true
+
+  echo "Waiting for Kubernetes LoadBalancer cleanup..."
+  sleep 90
+}
 
 cleanup_classic_elbs_for_vpc() {
   local vpc_id="$1"
@@ -134,6 +290,11 @@ cleanup_vpc_dependencies() {
     return 0
   fi
 
+  if [[ ! "${vpc_id}" =~ ^vpc-[a-zA-Z0-9]+$ ]]; then
+    echo "WARNING: Invalid VPC ID resolved, skipping VPC dependency cleanup: ${vpc_id}"
+    return 0
+  fi
+
   cleanup_classic_elbs_for_vpc "${vpc_id}"
   cleanup_orphan_k8s_security_groups_for_vpc "${vpc_id}"
 
@@ -146,6 +307,19 @@ cleanup_vpc_dependencies() {
     --output table || true
 }
 
+resolve_current_vpc_id() {
+  local output
+  output="$(
+    cd "${REPO_ROOT}/infra/stacks/platform" && \
+    env AWS_PROFILE="${AWS_PROFILE}" terraform output -raw vpc_id 2>/dev/null || true
+  )"
+
+  if [[ "${output}" =~ ^vpc-[a-zA-Z0-9]+$ ]]; then
+    echo "${output}"
+  else
+    echo ""
+  fi
+}
 
 echo "Checking if EKS cluster exists..."
 if aws eks describe-cluster \
@@ -159,38 +333,23 @@ if aws eks describe-cluster \
     --name "${CLUSTER_NAME}" \
     --profile "${AWS_PROFILE}"
 
-  echo "Uninstalling application Helm release..."
-  helm uninstall "${HELM_RELEASE}" -n "${APP_NAMESPACE}" || true
-
-  echo "Uninstalling ingress-nginx..."
-  helm uninstall ingress-nginx -n ingress-nginx || true
-
-  echo "Uninstalling external-secrets..."
-  helm uninstall external-secrets -n external-secrets || true
-
-  echo "Deleting namespaces..."
-  kubectl delete namespace "${APP_NAMESPACE}" --ignore-not-found=true || true
-  kubectl delete namespace ingress-nginx --ignore-not-found=true || true
-  kubectl delete namespace external-secrets --ignore-not-found=true || true
-
-  echo "Waiting for Kubernetes LoadBalancer cleanup..."
-  sleep 90
+  cleanup_kubernetes_resources
 else
   echo "EKS cluster does not exist. Skipping Kubernetes cleanup."
 fi
 
 echo "IMPORTANT: Terraform will remove EKS/RDS only if these are false in infra/accounts/${ACCOUNT}.tfvars:"
+echo "  enable_vpc = false"
 echo "  enable_eks = false"
 echo "  enable_rds = false"
 
 echo "Resolving current VPC ID from Terraform state, if available..."
-CURRENT_VPC_ID="$(
-  cd "${REPO_ROOT}/infra/stacks/platform" && \
-  env AWS_PROFILE="${AWS_PROFILE}" terraform output -raw vpc_id 2>/dev/null || true
-)"
+CURRENT_VPC_ID="$(resolve_current_vpc_id)"
 
 if [ -n "${CURRENT_VPC_ID}" ]; then
   cleanup_vpc_dependencies "${CURRENT_VPC_ID}"
+else
+  echo "No valid VPC ID found in Terraform output."
 fi
 
 echo "Applying Terraform platform stack..."
