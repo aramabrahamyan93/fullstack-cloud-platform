@@ -1,17 +1,13 @@
 namespace: fullstack-dev
-
 global:
   awsAccountId: "859981975099"
   awsRegion: eu-central-1
-
 app:
   environment: dev
-
 database:
   mode: external
   secretName: backend-database-secret
   urlKey: DATABASE_URL
-
 externalSecrets:
   enabled: true
   authMode: jwt
@@ -23,19 +19,16 @@ externalSecrets:
   serviceAccountRoleArn: ""
   remoteSecretName: ""
   remoteSecretProperty: database_url
-
 backend:
   replicas: 1
   image:
-    tag: develop-latest
+    tag: 167fbba
     pullPolicy: IfNotPresent
-
 frontend:
   replicas: 1
   image:
-    tag: develop-latest
+    tag: 167fbba
     pullPolicy: IfNotPresent
-
 ingress:
   enabled: true
   host: ""
