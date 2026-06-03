@@ -149,7 +149,8 @@ data "aws_iam_policy_document" "external_secrets_permissions" {
     ]
 
     resources = [
-      "arn:aws:secretsmanager:${var.aws_region}:${var.account_id}:secret:${var.project_name}/${var.environment}/rds/postgres-*"
+      "arn:aws:secretsmanager:${var.aws_region}:${var.account_id}:secret:${var.project_name}/${var.environment}/rds/postgres-*",
+      "arn:aws:secretsmanager:${var.aws_region}:${var.account_id}:secret:${var.project_name}/${var.environment}/github/argocd-repo*"
     ]
   }
 }
@@ -197,3 +198,14 @@ module "rds" {
   secret_recovery_window_in_days = var.secret_recovery_window_in_days
 }
 
+resource "aws_secretsmanager_secret" "argocd_repo_credentials" {
+  name = "${var.project_name}/${var.environment}/github/argocd-repo"
+
+  recovery_window_in_days = 0
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+}
