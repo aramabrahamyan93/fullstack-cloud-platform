@@ -1,9 +1,7 @@
 name: Auto Deploy Dev
 
 on:
-  push:
-    branches:
-      - develop
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,12 +12,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  docker-build-push:
-    uses: ./.github/workflows/docker-build-push.yml
-
-  deploy-dev:
-    needs: docker-build-push
-    uses: ./.github/workflows/deploy.yml
-    with:
-      environment: dev
-      image_tag: ${{ needs.docker-build-push.outputs.image_tag }}
+  disabled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disabled
+        run: |
+          echo "Auto deploy is disabled."
+          echo "Deployment is now handled by ArgoCD GitOps."
