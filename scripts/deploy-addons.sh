@@ -118,6 +118,53 @@ deploy_external_secrets() {
   echo "External Secrets deployed successfully."
 }
 
+deploy_external_secrets_store() {
+  local template_file="${REPO_ROOT}/addons/external-secrets/cluster-secret-store.yaml.tpl"
+
+  if [ ! -f "${template_file}" ]; then
+    echo "ERROR: External Secrets ClusterSecretStore template does not exist: ${template_file}"
+    exit 1
+  fi
+
+  echo "Deploying External Secrets ClusterSecretStore..."
+
+  export AWS_REGION
+
+  envsubst < "${template_file}" | kubectl apply -f -
+
+  echo "External Secrets ClusterSecretStore applied successfully."
+}
+
+deploy_argocd_repo_credentials() {
+  local template_file="${REPO_ROOT}/addons/argocd/repository-external-secret.yaml.tpl"
+
+  if [ ! -f "${template_file}" ]; then
+    echo "ERROR: ArgoCD repository ExternalSecret template does not exist: ${template_file}"
+    exit 1
+  fi
+
+  echo "Deploying ArgoCD repository credentials ExternalSecret..."
+
+  export ENVIRONMENT="${ACCOUNT_ENV}"
+  export PROJECT_NAME
+  export GIT_REPO_URL
+
+  envsubst < "${template_file}" | kubectl apply -f -
+
+  echo "ArgoCD repository credentials ExternalSecret applied successfully."
+
+  echo "Waiting for ArgoCD repository secret to be created..."
+  kubectl wait \
+    --namespace argocd \
+    --for=condition=Ready \
+    externalsecret/argocd-repo-fullstack-cloud-platform \
+    --timeout=300s
+
+  kubectl get secret private-repo-fullstack-cloud-platform -n argocd >/dev/null
+
+  echo "ArgoCD repository secret is ready."
+}
+
 deploy_argocd() {
   echo "Deploying ArgoCD..."
 
@@ -199,12 +246,19 @@ require_command envsubst
 
 if [ "${ENABLE_EXTERNAL_SECRETS}" = "true" ]; then
   deploy_external_secrets
+  deploy_external_secrets_store
 else
   echo "External Secrets disabled."
 fi
 
 if [ "${ENABLE_ARGOCD}" = "true" ]; then
   deploy_argocd
+
+  if [ "${ENABLE_EXTERNAL_SECRETS}" = "true" ]; then
+    deploy_argocd_repo_credentials
+  else
+    echo "Skipping ArgoCD repository credentials because External Secrets is disabled."
+  fi
 else
   echo "ArgoCD disabled."
 fi
