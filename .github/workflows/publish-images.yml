@@ -62,44 +62,7 @@ jobs:
 
           echo "Comparing $BEFORE_SHA..$HEAD_SHA"
 
-          python - <<'PY'
-          import json
-          import os
-          import subprocess
-          from pathlib import Path
-
-          before = os.environ["BEFORE_SHA"]
-          head = os.environ["HEAD_SHA"]
-
-          changed_files = subprocess.check_output(
-              ["git", "diff", "--name-only", before, head],
-              text=True,
-          ).splitlines()
-
-          services = json.loads(Path("services.json").read_text())
-
-          build_all = (
-              "services.json" in changed_files
-              or ".github/workflows/publish-images.yml" in changed_files
-          )
-
-          selected = []
-          for service in services:
-              context = service["context"].lstrip("./").rstrip("/")
-              if build_all or any(path == context or path.startswith(context + "/") for path in changed_files):
-                  selected.append(service)
-
-          print("Changed files:")
-          for path in changed_files:
-              print(f" - {path}")
-
-          print("Selected services:")
-          for service in selected:
-              print(f" - {service['name']}")
-
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"services={json.dumps(selected, separators=(',', ':'))}\n")
-          PY
+          python scripts/github-actions/detect-changed-services.py
 
   publish-images:
     name: Build and push Docker images
@@ -205,16 +168,14 @@ jobs:
       - name: Update Helm dev image tags
         run: |
           IMAGE_TAG="${GITHUB_SHA::7}"
-          export IMAGE_TAG
 
           cat > /tmp/services.json <<'JSON'
           ${{ needs.prepare-services.outputs.services }}
           JSON
-
-          for service in $(jq -r '.[].name' /tmp/services.json); do
-            echo "Updating ${service}.image.tag to ${IMAGE_TAG}"
-            yq -i ".${service}.image.tag = strenv(IMAGE_TAG)" helm/platform/values-dev.yaml
-          done
+          
+          bash scripts/github-actions/update-helm-image-tags.sh \
+            "$IMAGE_TAG" \
+            /tmp/services.json
 
           git diff
 
