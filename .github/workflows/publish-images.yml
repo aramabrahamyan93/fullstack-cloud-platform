@@ -6,26 +6,38 @@ on:
       - develop
       - staging
       - main
+    paths:
+      - backend/**
+      - frontend/**
+      - services.json
+      - helm/platform/values-dev.yaml
+      - .github/workflows/publish-images.yml
 
 permissions:
   id-token: write
   contents: write
+
+concurrency:
+  group: publish-images-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   AWS_ROLE_NAME: github-actions-ecr-role
 
 jobs:
   prepare-services:
-    name: Prepare service matrix
+    name: Prepare changed service matrix
     runs-on: ubuntu-latest
 
     outputs:
-      services: ${{ steps.services.outputs.services }}
+      services: ${{ steps.changed-services.outputs.services }}
       deploy_env: ${{ steps.env.outputs.deploy_env }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Resolve deployment environment
         id: env
@@ -38,16 +50,63 @@ jobs:
             echo "deploy_env=dev" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Load services
-        id: services
+      - name: Detect changed services
+        id: changed-services
         run: |
-          SERVICES=$(jq -c . services.json)
-          echo "services=$SERVICES" >> "$GITHUB_OUTPUT"
+          BEFORE_SHA="${{ github.event.before }}"
+          HEAD_SHA="${{ github.sha }}"
+
+          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BEFORE_SHA="$(git rev-parse HEAD~1)"
+          fi
+
+          echo "Comparing $BEFORE_SHA..$HEAD_SHA"
+
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          before = os.environ["BEFORE_SHA"]
+          head = os.environ["HEAD_SHA"]
+
+          changed_files = subprocess.check_output(
+              ["git", "diff", "--name-only", before, head],
+              text=True,
+          ).splitlines()
+
+          services = json.loads(Path("services.json").read_text())
+
+          build_all = (
+              "services.json" in changed_files
+              or ".github/workflows/publish-images.yml" in changed_files
+          )
+
+          selected = []
+          for service in services:
+              context = service["context"].lstrip("./").rstrip("/")
+              if build_all or any(path == context or path.startswith(context + "/") for path in changed_files):
+                  selected.append(service)
+
+          print("Changed files:")
+          for path in changed_files:
+              print(f" - {path}")
+
+          print("Selected services:")
+          for service in selected:
+              print(f" - {service['name']}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"services={json.dumps(selected, separators=(',', ':'))}\n")
+          PY
 
   publish-images:
     name: Build and push Docker images
     runs-on: ubuntu-latest
     needs: prepare-services
+
+    if: needs.prepare-services.outputs.services != '[]'
 
     environment:
       name: ${{ needs.prepare-services.outputs.deploy_env }}
@@ -126,7 +185,7 @@ jobs:
       - prepare-services
       - publish-images
 
-    if: github.ref_name == 'develop' && !contains(github.event.head_commit.message, '[skip image-update]')
+    if: github.ref_name == 'develop' && needs.prepare-services.outputs.services != '[]' && !contains(github.event.head_commit.message, '[skip image-update]')
 
     permissions:
       contents: write
@@ -148,7 +207,11 @@ jobs:
           IMAGE_TAG="${GITHUB_SHA::7}"
           export IMAGE_TAG
 
-          for service in $(jq -r '.[].name' services.json); do
+          cat > /tmp/services.json <<'JSON'
+          ${{ needs.prepare-services.outputs.services }}
+          JSON
+
+          for service in $(jq -r '.[].name' /tmp/services.json); do
             echo "Updating ${service}.image.tag to ${IMAGE_TAG}"
             yq -i ".${service}.image.tag = strenv(IMAGE_TAG)" helm/platform/values-dev.yaml
           done
