@@ -24,6 +24,9 @@ backend:
   image:
     tag: 3aeada7
     pullPolicy: IfNotPresent
+  metrics:
+    enabled: true
+    path: /metrics
 frontend:
   replicas: 1
   image:
