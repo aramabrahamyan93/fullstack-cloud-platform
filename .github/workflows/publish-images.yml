@@ -52,16 +52,20 @@ jobs:
 
       - name: Detect changed services
         id: changed-services
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
-          BEFORE_SHA="${{ github.event.before }}"
-          HEAD_SHA="${{ github.sha }}"
-
+          echo "BEFORE_SHA=$BEFORE_SHA"
+          echo "HEAD_SHA=$HEAD_SHA"
+          
           if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
             BEFORE_SHA="$(git rev-parse HEAD~1)"
           fi
-
-          echo "Comparing $BEFORE_SHA..$HEAD_SHA"
-
+          
+          export BEFORE_SHA
+          export HEAD_SHA
+          
           python scripts/github-actions/detect-changed-services.py
 
   publish-images:
