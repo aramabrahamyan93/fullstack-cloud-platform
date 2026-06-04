@@ -22,12 +22,12 @@ externalSecrets:
 backend:
   replicas: 1
   image:
-    tag: 167fbba
+    tag: 3aeada7
     pullPolicy: IfNotPresent
 frontend:
   replicas: 1
   image:
-    tag: 167fbba
+    tag: 3aeada7
     pullPolicy: IfNotPresent
 ingress:
   enabled: true
