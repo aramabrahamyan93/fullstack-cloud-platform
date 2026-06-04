@@ -50,6 +50,9 @@ backend:
     limits:
       cpu: 500m
       memory: 512Mi
+  metrics:
+    enabled: false
+    path: /metrics
 
 
 frontend:
