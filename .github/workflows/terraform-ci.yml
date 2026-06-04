@@ -6,16 +6,30 @@ on:
       - main
       - develop
       - staging
+    paths:
+      - infra/**
+      - scripts/terraform.sh
+      - scripts/bootstrap-terraform-state.sh
+      - .github/workflows/terraform-ci.yml
 
   push:
     branches:
       - main
       - develop
       - staging
+    paths:
+      - infra/**
+      - scripts/terraform.sh
+      - scripts/bootstrap-terraform-state.sh
+      - .github/workflows/terraform-ci.yml
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: terraform-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
@@ -35,7 +49,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Load Terraform stack list from a single source of truth.
       - name: Load Terraform stacks
         id: stacks
         run: |
@@ -55,18 +68,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install Terraform CLI.
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # Configure temporary AWS credentials using GitHub OIDC.
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-terraform-role
           aws-region: ${{ env.AWS_REGION }}
 
-      # Check Terraform formatting across the whole infra folder.
       - name: Terraform format check
         run: |
           ACTION=fmt \
@@ -78,7 +88,6 @@ jobs:
           TF_LOCK=false \
           bash scripts/terraform.sh
 
-      # Validate required CI variables before running Terraform.
       - name: Validate Terraform CI config
         run: |
           if [ -z "$PROJECT_NAME" ]; then
@@ -101,13 +110,6 @@ jobs:
             exit 1
           fi
 
-          echo "PROJECT_NAME=$PROJECT_NAME"
-          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID"
-          echo "AWS_REGION=$AWS_REGION"
-          echo "ACCOUNT=$ACCOUNT"
-          echo "STACK=${{ matrix.stack }}"
-
-      # Initialize Terraform using the same script used locally.
       - name: Terraform init
         run: |
           ACTION=init \
@@ -119,7 +121,6 @@ jobs:
           TF_LOCK=false \
           bash scripts/terraform.sh
 
-      # Validate Terraform configuration using the same script used locally.
       - name: Terraform validate
         run: |
           ACTION=validate \
@@ -131,8 +132,6 @@ jobs:
           TF_LOCK=false \
           bash scripts/terraform.sh
 
-      # Generate Terraform plan without applying changes.
-      # Lock is disabled for CI plan to avoid stale/parallel validation locks.
       - name: Terraform plan
         run: |
           ACTION=plan \
