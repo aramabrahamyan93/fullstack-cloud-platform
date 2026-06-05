@@ -4,6 +4,12 @@ get_ingress_nginx_helm_status() {
   helm status ingress-nginx -n ingress-nginx 2>/dev/null | awk '/^STATUS:/ { print $2 }' || true
 }
 
+is_ingress_nginx_controller_ready() {
+  kubectl rollout status deployment/ingress-nginx-controller \
+    -n ingress-nginx \
+    --timeout=30s >/dev/null 2>&1
+}
+
 cleanup_ingress_nginx_admission_hooks() {
   echo "Cleaning old ingress-nginx admission hook jobs if they exist..."
 
@@ -46,6 +52,14 @@ deploy_ingress_nginx() {
   echo "Deploying Ingress NGINX..."
 
   cleanup_failed_ingress_nginx_release_if_needed
+
+  local status
+  status="$(get_ingress_nginx_helm_status)"
+
+  if [ "${status}" = "deployed" ] && is_ingress_nginx_controller_ready; then
+    echo "Ingress NGINX is already deployed and controller is ready. Skipping Helm upgrade to avoid unnecessary admission hook pods on small dev clusters."
+    return
+  fi
 
   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
   helm repo update
