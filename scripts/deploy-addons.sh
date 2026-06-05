@@ -34,6 +34,22 @@ else
   echo "External Secrets disabled."
 fi
 
+if [ "${ENABLE_INGRESS_NGINX}" = "true" ]; then
+  deploy_ingress_nginx
+else
+  echo "Ingress NGINX disabled."
+fi
+
+# Important:
+# Monitoring must be deployed before ArgoCD Application when the application Helm chart
+# creates ServiceMonitor resources. Otherwise ArgoCD/Helm sync can fail with:
+# "no matches for kind ServiceMonitor in version monitoring.coreos.com/v1".
+if [ "${ENABLE_MONITORING}" = "true" ]; then
+  deploy_monitoring
+else
+  echo "Monitoring disabled."
+fi
+
 if [ "${ENABLE_ARGOCD}" = "true" ]; then
   deploy_argocd
 
@@ -46,16 +62,15 @@ else
   echo "ArgoCD disabled."
 fi
 
-if [ "${ENABLE_INGRESS_NGINX}" = "true" ]; then
-  deploy_ingress_nginx
-else
-  echo "Ingress NGINX disabled."
-fi
-
 if [ "${ENABLE_ARGOCD_APPLICATION}" = "true" ]; then
   if [ "${ENABLE_ARGOCD}" != "true" ]; then
     echo "ERROR: ENABLE_ARGOCD_APPLICATION=true requires ENABLE_ARGOCD=true"
     exit 1
+  fi
+
+  if [ "${ENABLE_MONITORING}" != "true" ]; then
+    echo "WARNING: ENABLE_ARGOCD_APPLICATION=true but ENABLE_MONITORING=false."
+    echo "WARNING: If the app Helm chart renders ServiceMonitor, ArgoCD sync may fail unless ServiceMonitor CRDs already exist."
   fi
 
   deploy_argocd_application
@@ -67,12 +82,6 @@ if [ "${ENABLE_ARGO_ROLLOUTS}" = "true" ]; then
   deploy_argo_rollouts
 else
   echo "Argo Rollouts disabled."
-fi
-
-if [ "${ENABLE_MONITORING}" = "true" ]; then
-  deploy_monitoring
-else
-  echo "Monitoring disabled."
 fi
 
 if [ "${ENABLE_LOGGING}" = "true" ]; then
