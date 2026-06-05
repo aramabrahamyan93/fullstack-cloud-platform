@@ -36,6 +36,13 @@ cleanup_failed_ingress_nginx_release_if_needed() {
 
   case "${status}" in
     failed|pending-install|pending-upgrade|pending-rollback)
+      if [ "${AUTO_RECOVER_FAILED_HELM_RELEASES:-false}" != "true" ]; then
+        echo "ERROR: Ingress NGINX Helm release is ${status}, but AUTO_RECOVER_FAILED_HELM_RELEASES is not true."
+        echo "Refusing to automatically uninstall ingress-nginx in environment: ${ACCOUNT_ENV}"
+        echo "For dev only, set AUTO_RECOVER_FAILED_HELM_RELEASES=true in config/addons/${ACCOUNT_ENV}.env"
+        exit 1
+      fi
+
       echo "Ingress NGINX Helm release is in a failed/pending state. Cleaning it up before retry..."
       helm uninstall ingress-nginx -n ingress-nginx --wait --timeout 10m || true
       cleanup_ingress_nginx_admission_hooks

@@ -17,6 +17,13 @@ cleanup_failed_argocd_release_if_needed() {
 
   case "${status}" in
     failed|pending-install|pending-upgrade|pending-rollback)
+      if [ "${AUTO_RECOVER_FAILED_HELM_RELEASES:-false}" != "true" ]; then
+        echo "ERROR: ArgoCD Helm release is ${status}, but AUTO_RECOVER_FAILED_HELM_RELEASES is not true."
+        echo "Refusing to automatically uninstall ArgoCD in environment: ${ACCOUNT_ENV}"
+        echo "For dev only, set AUTO_RECOVER_FAILED_HELM_RELEASES=true in config/addons/${ACCOUNT_ENV}.env"
+        exit 1
+      fi
+
       echo "ArgoCD Helm release is in a non-recoverable/pending state. Cleaning it up before retry..."
       helm uninstall argocd -n argocd --wait --timeout 10m || true
       echo "ArgoCD Helm release cleanup completed."

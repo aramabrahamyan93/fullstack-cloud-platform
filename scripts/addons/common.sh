@@ -31,6 +31,8 @@ load_addons_config() {
   GIT_REPO_URL="${GIT_REPO_URL:-$(git -C "${REPO_ROOT}" config --get remote.origin.url)}"
   GIT_TARGET_REVISION="${ARGOCD_TARGET_REVISION:-${GIT_TARGET_REVISION:-$(git -C "${REPO_ROOT}" branch --show-current)}}"
 
+  AUTO_RECOVER_FAILED_HELM_RELEASES="${AUTO_RECOVER_FAILED_HELM_RELEASES:-false}"
+
   export ACCOUNT
   export AWS_PROFILE
   export AWS_REGION
@@ -50,6 +52,8 @@ load_addons_config() {
 
   export GIT_REPO_URL
   export GIT_TARGET_REVISION
+
+  export AUTO_RECOVER_FAILED_HELM_RELEASES
 }
 
 print_addons_summary() {
@@ -70,6 +74,7 @@ print_addons_summary() {
   echo "Enable Logging:           ${ENABLE_LOGGING}"
   echo "Enable External Secrets:  ${ENABLE_EXTERNAL_SECRETS}"
   echo "Enable Ingress NGINX:     ${ENABLE_INGRESS_NGINX}"
+  echo "Auto recover Helm releases: ${AUTO_RECOVER_FAILED_HELM_RELEASES}"
   echo
 }
 
