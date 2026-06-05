@@ -1,7 +1,36 @@
 #!/usr/bin/env bash
 
+get_argocd_helm_status() {
+  helm status argocd -n argocd 2>/dev/null | awk '/^STATUS:/ { print $2 }' || true
+}
+
+cleanup_failed_argocd_release_if_needed() {
+  local status
+  status="$(get_argocd_helm_status)"
+
+  if [ -z "${status}" ]; then
+    echo "ArgoCD Helm release does not exist yet."
+    return
+  fi
+
+  echo "Current ArgoCD Helm release status: ${status}"
+
+  case "${status}" in
+    failed|pending-install|pending-upgrade|pending-rollback)
+      echo "ArgoCD Helm release is in a non-recoverable/pending state. Cleaning it up before retry..."
+      helm uninstall argocd -n argocd --wait --timeout 10m || true
+      echo "ArgoCD Helm release cleanup completed."
+      ;;
+    *)
+      echo "ArgoCD Helm release status is reusable."
+      ;;
+  esac
+}
+
 deploy_argocd() {
   echo "Deploying ArgoCD..."
+
+  cleanup_failed_argocd_release_if_needed
 
   helm repo add argo https://argoproj.github.io/argo-helm || true
   helm repo update

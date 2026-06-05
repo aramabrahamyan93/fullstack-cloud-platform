@@ -19,9 +19,25 @@ source "${SCRIPT_DIR}/addons/logging.sh"
 # shellcheck source=scripts/addons/argo-rollouts.sh
 source "${SCRIPT_DIR}/addons/argo-rollouts.sh"
 
+cleanup_failed_addon_releases_before_deploy() {
+  echo "Cleaning failed or pending addon releases before deploy..."
+
+  if [ "${ENABLE_ARGOCD}" = "true" ]; then
+    cleanup_failed_argocd_release_if_needed
+  fi
+
+  if [ "${ENABLE_INGRESS_NGINX}" = "true" ]; then
+    cleanup_failed_ingress_nginx_release_if_needed
+  fi
+
+  echo "Failed or pending addon release cleanup completed."
+  echo
+}
+
 load_addons_config
 print_addons_summary
 validate_common_config
+cleanup_failed_addon_releases_before_deploy
 
 require_command helm
 require_command kubectl

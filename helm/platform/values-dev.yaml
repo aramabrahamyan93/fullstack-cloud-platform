@@ -21,6 +21,9 @@ externalSecrets:
   remoteSecretProperty: database_url
 backend:
   replicas: 1
+  strategy:
+    maxUnavailable: 1
+    maxSurge: 0
   image:
     tag: 3aeada7
     pullPolicy: IfNotPresent
@@ -29,6 +32,9 @@ backend:
     path: /metrics
 frontend:
   replicas: 1
+  strategy:
+    maxUnavailable: 1
+    maxSurge: 0
   image:
     tag: 3aeada7
     pullPolicy: IfNotPresent
