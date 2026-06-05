@@ -51,6 +51,10 @@ app.include_router(health_router)
 app.include_router(version_router)
 app.include_router(tasks_router)
 
+@app.get("/deploy-test")
+def deploy_test():
+    return {"status": "backend-gitops-ok"}
+
 # Prometheus Metrics
 Instrumentator().instrument(app).expose(
     app,
