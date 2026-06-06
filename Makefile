@@ -3,7 +3,9 @@ ifneq (,$(wildcard project.env))
 	export
 endif
 
-COMPOSE=docker compose --env-file project.env
+.DEFAULT_GOAL := help
+
+COMPOSE ?= docker compose --env-file project.env
 
 PROJECT_NAME ?= platform
 PROJECT_DOMAIN ?= $(PROJECT_NAME).local
@@ -21,11 +23,59 @@ HELM_RELEASE ?= $(RELEASE_PREFIX)-$(ENV)
 HELM_CHART ?= helm/platform
 HELM_VALUES ?= $(HELM_CHART)/values-$(ENV).yaml
 
-HELM_SET_ARGS= \
+BACKEND_URL ?= http://localhost:8000
+FRONTEND_URL ?= http://localhost:3000
+
+HELM_SET_ARGS = \
 	--set global.projectName=$(PROJECT_NAME) \
 	--set global.domain=$(PROJECT_DOMAIN) \
 	--set global.awsAccountId=$(AWS_ACCOUNT_ID) \
 	--set global.awsRegion=$(AWS_REGION)
+
+# ----------------------------
+# Help
+# ----------------------------
+
+.PHONY: help
+help:
+	@echo ""
+	@echo "Fullstack Cloud Platform"
+	@echo ""
+	@echo "Local Docker Compose:"
+	@echo "  make local-up              Start backend, frontend, postgres in background"
+	@echo "  make local-up-attached     Start services attached"
+	@echo "  make local-build           Build local Docker images"
+	@echo "  make local-test            Run backend tests"
+	@echo "  make local-smoke-test      Check backend/frontend locally"
+	@echo "  make local-logs            Follow compose logs"
+	@echo "  make local-down            Stop compose services"
+	@echo "  make local-clean           Stop compose services and remove volumes"
+	@echo ""
+	@echo "Local Kubernetes / kind:"
+	@echo "  make local-k8s-up          Create local kind cluster"
+	@echo "  make local-k8s-build       Build backend/frontend images"
+	@echo "  make local-k8s-load        Load images into kind"
+	@echo "  make local-k8s-deploy      Build, load, and Helm deploy to kind"
+	@echo "  make local-k8s-status      Show local Kubernetes resources"
+	@echo "  make local-k8s-down        Delete local kind cluster"
+	@echo ""
+	@echo "Helm:"
+	@echo "  make helm-lint             Lint Helm chart"
+	@echo "  make helm-render           Render Helm chart"
+	@echo "  make helm-deploy           Deploy Helm release"
+	@echo "  make helm-status           Show Helm/Kubernetes status"
+	@echo "  make helm-uninstall        Uninstall Helm release"
+	@echo ""
+	@echo "Cloud:"
+	@echo "  make cloud-deploy ACCOUNT=dev-859981975099 AWS_PROFILE=aram-dev"
+	@echo "  make cloud-teardown ACCOUNT=dev-859981975099 AWS_PROFILE=aram-dev"
+	@echo ""
+	@echo "Terraform:"
+	@echo "  make tf-init STACK=platform"
+	@echo "  make tf-plan STACK=platform"
+	@echo "  make tf-apply STACK=platform"
+	@echo "  make tf-destroy STACK=platform"
+	@echo ""
 
 # ----------------------------
 # Docker Compose
@@ -58,6 +108,38 @@ test:
 .PHONY: clean
 clean:
 	$(COMPOSE) down -v
+
+# ----------------------------
+# Local Docker Compose aliases
+# ----------------------------
+
+.PHONY: local-up
+local-up: up-d
+
+.PHONY: local-up-attached
+local-up-attached: up
+
+.PHONY: local-build
+local-build: build
+
+.PHONY: local-test
+local-test: test
+
+.PHONY: local-logs
+local-logs: logs
+
+.PHONY: local-down
+local-down: down
+
+.PHONY: local-clean
+local-clean: clean
+
+.PHONY: local-smoke-test
+local-smoke-test:
+	BACKEND_URL="$(BACKEND_URL)" \
+	FRONTEND_URL="$(FRONTEND_URL)" \
+	CHECK_FRONTEND="$(CHECK_FRONTEND)" \
+	bash scripts/local-smoke-test.sh
 
 # ----------------------------
 # kind / Kubernetes local helpers
@@ -101,6 +183,32 @@ k8s-restart-frontend:
 	kubectl rollout restart deployment/frontend -n $(K8S_NAMESPACE)
 
 # ----------------------------
+# Local Kubernetes / kind aliases
+# ----------------------------
+
+.PHONY: local-k8s-up
+local-k8s-up: k8s-create
+
+.PHONY: local-k8s-build
+local-k8s-build: k8s-build
+
+.PHONY: local-k8s-load
+local-k8s-load: k8s-load
+
+.PHONY: local-k8s-deploy
+local-k8s-deploy:
+	$(MAKE) k8s-build PROJECT_NAME=$(PROJECT_NAME)
+	$(MAKE) k8s-load PROJECT_NAME=$(PROJECT_NAME) KIND_CLUSTER=$(KIND_CLUSTER)
+	$(MAKE) helm-deploy ENV=local PROJECT_NAME=$(PROJECT_NAME) PROJECT_DOMAIN=$(PROJECT_DOMAIN) AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID) AWS_REGION=$(AWS_REGION)
+
+.PHONY: local-k8s-status
+local-k8s-status:
+	$(MAKE) k8s-status ENV=local
+
+.PHONY: local-k8s-down
+local-k8s-down: k8s-delete
+
+# ----------------------------
 # Helm
 # ----------------------------
 
@@ -119,16 +227,13 @@ helm-deploy:
 	@echo "Helm deploy ENV=$(ENV)"
 	@echo "PROJECT_NAME=$(PROJECT_NAME)"
 	@echo "AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID)"
+	@echo "AWS_REGION=$(AWS_REGION)"
 	@echo "IMAGE_TAG=$(IMAGE_TAG)"
-
-	helm upgrade --install "fullstack-$(ENV)" helm/platform \
-		--namespace "fullstack-$(ENV)" \
+	helm upgrade --install "$(HELM_RELEASE)" "$(HELM_CHART)" \
+		--namespace "$(K8S_NAMESPACE)" \
 		--create-namespace \
-		-f "helm/platform/values-$(ENV).yaml" \
-		--set global.projectName="$(PROJECT_NAME)" \
-		--set global.domain="$(PROJECT_DOMAIN)" \
-		--set global.awsAccountId="$(AWS_ACCOUNT_ID)" \
-		--set global.awsRegion="$(AWS_REGION)" \
+		-f "$(HELM_VALUES)" \
+		$(HELM_SET_ARGS) \
 		$(if $(IMAGE_TAG),--set backend.image.tag="$(IMAGE_TAG)" --set frontend.image.tag="$(IMAGE_TAG)",)
 
 .PHONY: docker-build-push
@@ -147,7 +252,7 @@ helm-status:
 
 .PHONY: helm-uninstall
 helm-uninstall:
-	helm uninstall $(HELM_RELEASE)
+	helm uninstall $(HELM_RELEASE) -n $(K8S_NAMESPACE)
 
 .PHONY: k8s-helm-redeploy
 k8s-helm-redeploy:
@@ -188,7 +293,6 @@ tf-destroy:
 tf-validate:
 	ACTION=validate STACK=$(STACK) ACCOUNT=$(ACCOUNT) AWS_PROFILE=$(AWS_PROFILE) PROJECT_NAME=$(PROJECT_NAME) AWS_REGION=$(AWS_REGION) ACCOUNT_ID=$(ACCOUNT_ID) LOCK_TABLE=$(LOCK_TABLE) TF_LOCK=$(TF_LOCK) bash scripts/terraform.sh
 
-
 # ----------------------------
 # Cloud EKS/RDS workflow
 # ----------------------------
@@ -226,6 +330,11 @@ tf-bootstrap-state:
 	LOCK_TABLE=$(LOCK_TABLE) \
 	bash scripts/bootstrap-terraform-state.sh
 
+# ----------------------------
+# Addons
+# ----------------------------
+
+.PHONY: deploy-addons
 deploy-addons:
 	ACCOUNT="$(ACCOUNT)" \
 	AWS_PROFILE="$(AWS_PROFILE)" \
