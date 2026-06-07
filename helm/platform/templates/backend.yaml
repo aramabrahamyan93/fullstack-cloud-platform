@@ -10,6 +10,10 @@ data:
   APP_NAME: "{{ .Values.global.projectName }}-api"
   APP_VERSION: {{ .Values.app.version | quote }}
 
+  SQL_ECHO: {{ .Values.backend.config.sqlEcho | quote }}
+  DB_INIT_RETRIES: {{ .Values.backend.config.dbInitRetries | quote }}
+  DB_INIT_RETRY_DELAY_SECONDS: {{ .Values.backend.config.dbInitRetryDelaySeconds | quote }}
+
   {{- if eq .Values.database.mode "local" }}
   DATABASE_URL: "postgresql+psycopg://{{ .Values.postgres.username }}:{{ .Values.postgres.password }}@postgres:{{ .Values.postgres.port }}/{{ .Values.postgres.database }}"
   {{- end }}
@@ -109,23 +113,23 @@ spec:
           startupProbe:
             httpGet:
               path: /health/live
-              port: { { .Values.backend.port } }
+              port: {{ .Values.backend.port }}
             failureThreshold: 30
             periodSeconds: 5
 
-            readinessProbe:
-              httpGet:
-                path: /health/ready
-                port: { { .Values.backend.port } }
-              initialDelaySeconds: 5
-              periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
 
-            livenessProbe:
-              httpGet:
-                path: /health/live
-                port: { { .Values.backend.port } }
-              initialDelaySeconds: 15
-              periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
 
 ---
 apiVersion: v1
