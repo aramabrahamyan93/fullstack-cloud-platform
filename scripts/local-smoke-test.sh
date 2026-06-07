@@ -4,15 +4,18 @@ set -euo pipefail
 BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:8000}"
 FRONTEND_URL="${FRONTEND_URL:-http://127.0.0.1:3000}"
 CHECK_FRONTEND="${CHECK_FRONTEND:-true}"
+CHECK_FRONTEND_API_PROXY="${CHECK_FRONTEND_API_PROXY:-true}"
+
 SMOKE_TEST_ATTEMPTS="${SMOKE_TEST_ATTEMPTS:-30}"
 SMOKE_TEST_RESPONSE_FILE="${SMOKE_TEST_RESPONSE_FILE:-/tmp/local-smoke-response.txt}"
 SMOKE_TEST_ERROR_FILE="${SMOKE_TEST_ERROR_FILE:-/tmp/local-smoke-error.txt}"
 
 echo "Local smoke test"
-echo "Backend URL:  ${BACKEND_URL}"
-echo "Frontend URL: ${FRONTEND_URL}"
-echo "Check frontend: ${CHECK_FRONTEND}"
-echo "Attempts: ${SMOKE_TEST_ATTEMPTS}"
+echo "Backend URL:              ${BACKEND_URL}"
+echo "Frontend URL:             ${FRONTEND_URL}"
+echo "Check frontend:           ${CHECK_FRONTEND}"
+echo "Check frontend API proxy: ${CHECK_FRONTEND_API_PROXY}"
+echo "Attempts:                 ${SMOKE_TEST_ATTEMPTS}"
 echo
 
 wait_for_endpoint() {
@@ -61,12 +64,67 @@ wait_for_endpoint() {
   exit 1
 }
 
+check_post_json() {
+  local name="$1"
+  local url="$2"
+  local json_body="$3"
+
+  echo "Checking ${name}: ${url}"
+
+  rm -f "${SMOKE_TEST_RESPONSE_FILE}" "${SMOKE_TEST_ERROR_FILE}"
+
+  local status_code
+  status_code="$(
+    curl -sS \
+      --max-time 5 \
+      -X POST \
+      -H "Content-Type: application/json" \
+      -d "${json_body}" \
+      -o "${SMOKE_TEST_RESPONSE_FILE}" \
+      -w "%{http_code}" \
+      "${url}" \
+      2>"${SMOKE_TEST_ERROR_FILE}" || true
+  )"
+
+  if [ "${status_code}" = "200" ]; then
+    echo "OK: ${name}"
+    echo
+    return 0
+  fi
+
+  echo
+  echo "ERROR: ${name} failed. status=${status_code}"
+  echo "URL: ${url}"
+  echo
+  echo "Last curl error:"
+  cat "${SMOKE_TEST_ERROR_FILE}" 2>/dev/null || true
+  echo
+  echo "Last response:"
+  cat "${SMOKE_TEST_RESPONSE_FILE}" 2>/dev/null || true
+  echo
+
+  exit 1
+}
+
 wait_for_endpoint "backend health" "${BACKEND_URL}/health"
 wait_for_endpoint "backend version" "${BACKEND_URL}/version"
 wait_for_endpoint "backend metrics" "${BACKEND_URL}/metrics"
+wait_for_endpoint "backend tasks" "${BACKEND_URL}/tasks"
 
 if [ "${CHECK_FRONTEND}" = "true" ]; then
   wait_for_endpoint "frontend" "${FRONTEND_URL}"
+
+  if [ "${CHECK_FRONTEND_API_PROXY}" = "true" ]; then
+    wait_for_endpoint "frontend API proxy health" "${FRONTEND_URL}/api/health"
+    wait_for_endpoint "frontend API proxy tasks" "${FRONTEND_URL}/api/tasks"
+
+    check_post_json \
+      "frontend API proxy create task" \
+      "${FRONTEND_URL}/api/tasks" \
+      '{"title":"Created by local smoke test","status":"open"}'
+
+    wait_for_endpoint "frontend API proxy tasks after create" "${FRONTEND_URL}/api/tasks"
+  fi
 else
   echo "Skipping frontend check."
 fi
