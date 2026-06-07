@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
 from app.db.database import Base
 from app.db.database import engine
+from app.main import app
 
 
 client = TestClient(app)
@@ -59,3 +59,43 @@ def test_list_tasks_returns_created_task():
     assert data[0]["id"] == 1
     assert data[0]["title"] == "Test task"
     assert data[0]["status"] == "open"
+
+
+def test_create_task_rejects_empty_title():
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "",
+            "status": "open",
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_task_rejects_invalid_status():
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "Test task",
+            "status": "invalid",
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_task_accepts_all_supported_statuses():
+    supported_statuses = ["open", "in_progress", "done"]
+
+    for status in supported_statuses:
+        response = client.post(
+            "/tasks",
+            json={
+                "title": f"Task with status {status}",
+                "status": status,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["status"] == status
