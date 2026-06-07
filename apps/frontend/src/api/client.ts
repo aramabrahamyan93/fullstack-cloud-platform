@@ -1,4 +1,6 @@
-export const API_BASE_URL = "/api";
+import { appConfig } from "../config";
+
+export const API_BASE_URL = appConfig.apiBaseUrl;
 
 export async function fetchJson<T>(
   path: string,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { appConfig } from "./config";
 import { createTask, getTasks } from "./api/tasks";
 import { getHealth, getVersion } from "./api/system";
 import { SystemStatus } from "./components/SystemStatus";
@@ -97,7 +98,7 @@ export function App() {
 
   return (
     <main className="page">
-      <h1>Fullstack Cloud Platform</h1>
+      <h1>{appConfig.appTitle}</h1>
 
       <SystemStatus health={health} version={version} />
 
