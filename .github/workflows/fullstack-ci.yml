@@ -61,7 +61,7 @@ jobs:
         run: |
           DRY_RUN=true \
           ACCOUNT=dev-000000000000 \
-          ./scripts/docker-build-push.sh
+          bash scripts/docker-build-push.sh
 
       - name: Validate Docker Compose config
         run: docker compose config
