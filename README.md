@@ -50,7 +50,27 @@ Detailed documentation is available in the `docs/` directory:
 
 ## Current validated status
 
-The project currently has a working local Docker Compose workflow and a working local Kubernetes workflow. The full validation command `make validate-local-all` has been tested successfully with backend, frontend, PostgreSQL, smoke tests, backend tests, kind, Helm deployment, and Kubernetes smoke tests.
+The project currently has a working local Docker Compose workflow and a working local Kubernetes workflow.
+
+The full validation command has been tested successfully:
+
+```bash
+make validate-local-all
+```
+
+Current validated capabilities:
+
+- FastAPI backend starts successfully
+- PostgreSQL starts and becomes healthy
+- Backend initializes database tables on startup
+- Backend exposes `/health`, `/health/live`, `/health/ready`, `/version`, `/metrics`, and `/tasks`
+- Frontend is served by Nginx
+- Frontend connects to the backend through the `/api` Nginx proxy
+- Frontend can list and create tasks through the backend API
+- Docker Compose smoke tests validate backend, frontend, frontend API proxy, and task creation
+- Local Kubernetes smoke tests validate backend, frontend service, frontend API proxy, and task creation
+- Backend tests pass successfully
+- Helm chart renders and deploys successfully in local kind Kubernetes
 
 ## AWS cost note
 

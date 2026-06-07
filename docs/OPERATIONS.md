@@ -61,6 +61,34 @@ make cloud-deploy ACCOUNT=dev-859981975099 AWS_PROFILE=aram-dev
 make cloud-teardown ACCOUNT=dev-859981975099 AWS_PROFILE=aram-dev
 ```
 
+## Health checks
+
+Backend health endpoints:
+
+```bash
+curl http://localhost:8000/health
+curl http://localhost:8000/health/live
+curl http://localhost:8000/health/ready
+```
+
+Frontend API proxy health endpoints:
+
+```bash
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/health/live
+curl http://localhost:3000/api/health/ready
+```
+
+Tasks API through frontend proxy:
+
+```bash
+curl http://localhost:3000/api/tasks
+
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Created from operations check","status":"open"}'
+```
+
 ## Logs and debugging
 
 Backend logs in local Kubernetes:

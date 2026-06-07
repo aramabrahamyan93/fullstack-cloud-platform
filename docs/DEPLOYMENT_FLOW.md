@@ -48,6 +48,36 @@ global.awsAccountId
 global.awsRegion
 ```
 
+Backend runtime config is rendered into the `backend-config` ConfigMap.
+
+Important backend config values managed through Helm:
+
+```text
+APP_ENV
+APP_NAME
+APP_VERSION
+SQL_ECHO
+DB_INIT_RETRIES
+DB_INIT_RETRY_DELAY_SECONDS
+DATABASE_URL
+```
+
+In local database mode, Helm renders `DATABASE_URL` from PostgreSQL values.
+
+In external database mode, the backend reads `DATABASE_URL` from a Kubernetes Secret.
+
+## Health and probe deployment flow
+
+Backend health endpoints are mapped to Kubernetes probes:
+
+```text
+startupProbe   -> /health/live
+livenessProbe  -> /health/live
+readinessProbe -> /health/ready
+```
+
+The readiness endpoint checks database connectivity. This helps Kubernetes route traffic only to backend pods that can reach the database.
+
 ## Cloud deployment flow
 
 Cloud deployment is script-based and uses Terraform, kubectl, Helm, and addon deployment scripts.
@@ -118,3 +148,17 @@ addons/argocd/applications/app.yaml.tpl
 ```
 
 The intended cloud deployment model is GitOps-oriented: Kubernetes resources are described in Git, and ArgoCD syncs the desired state to the cluster.
+
+The ArgoCD application template is configurable through:
+
+```text
+PROJECT_NAME
+RELEASE_PREFIX
+ENVIRONMENT
+GIT_REPO_URL
+GIT_TARGET_REVISION
+AWS_ACCOUNT_ID
+AWS_REGION
+```
+
+This avoids hardcoded release names and namespaces.

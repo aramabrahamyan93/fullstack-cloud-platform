@@ -2,50 +2,70 @@
 
 ## Current phase: platform foundation
 
-Completed or in progress:
+Completed:
 
 - FastAPI backend foundation
-- Frontend foundation
+- Frontend foundation served by Nginx
 - PostgreSQL integration
 - Docker Compose local workflow
 - Local smoke tests
 - Backend tests
+- Task API with validation
+- Frontend integration with `/tasks` API
+- Frontend `/api` proxy to backend
 - Local Kubernetes with kind
 - Helm chart deployment
 - PostgreSQL readiness handling with init container
+- Backend liveness and readiness health endpoints
+- Kubernetes probes mapped to `/health/live` and `/health/ready`
+- Helm-managed backend runtime configuration
 - Configurable local naming through project name and release prefix
 - One-command local validation
+- ArgoCD GitOps templates made configurable
 - Initial project documentation
 
 ## Next recommended steps
 
-### 1. Project structure cleanup
-
-Review tracked files and remove generated/local-only files from Git where needed, especially Terraform state and `.terraform` directories.
-
-### 2. Documentation improvement
+### 1. Documentation maintenance
 
 Keep README short and maintain detailed docs under `docs/`.
+
+### 2. API foundation
+
+Improve the tasks API:
+
+- update task
+- delete task
+- task status transition
+- pagination
+- filtering
 
 ### 3. Logging and observability
 
 Improve backend logging and document monitoring flow.
 
-### 4. CI/CD cleanup
+Planned improvements:
 
-Review GitHub Actions workflows and remove or consolidate outdated workflows.
+- structured JSON logs
+- request ID / correlation ID
+- better metrics labels
+- dashboard documentation
 
-### 5. Cloud validation
+### 4. CI/CD hardening
 
-When needed, validate cloud deploy/teardown carefully with cost controls.
+Review GitHub Actions workflows and ensure all local checks are represented in CI.
 
-### 6. Authentication and users
+### 5. Authentication and users
 
 Add auth foundation for future SaaS and platform users.
 
-### 7. Organizations and multi-tenancy
+### 6. Organizations and multi-tenancy
 
 Add organization model and tenant-aware application structure.
+
+### 7. Cloud validation
+
+When needed, validate cloud deploy/teardown carefully with cost controls.
 
 ### 8. AI/GenAI capabilities
 
@@ -59,6 +79,56 @@ Future capabilities:
 - job hunter assistant
 - crypto assistant
 - assistant builder MVP
+
+## Medium-term plan
+
+### SaaS foundation
+
+- User accounts
+- Organizations
+- Roles and permissions
+- Tenant-aware database structure
+- Audit logs
+
+### Production database management
+
+Alembic migrations are postponed for now, but should be introduced before the platform becomes more data-heavy.
+
+Planned migration work:
+
+- Alembic initialization
+- First migration for tasks/users/organizations
+- Migration commands in Makefile
+- Migration workflow for Kubernetes/cloud
+
+### Observability and operations
+
+- JSON logs
+- Correlation IDs
+- Prometheus metrics expansion
+- Grafana dashboards
+- Alerts
+- Runbooks
+
+## Long-term vision: GenAI Service Platform
+
+The long-term direction is to evolve the project into a GenAI service platform.
+
+Potential capabilities:
+
+- AI assistant per organization
+- RAG document upload
+- Vector database integration
+- Chat history
+- Agent tools
+- Assistant templates
+- Customer support bot
+- Internal knowledge bot
+- Document search bot
+- Image/document processing
+- Integration connectors
+- Admin dashboard
+- Subscription/billing-ready architecture
 
 ## Postponed items
 

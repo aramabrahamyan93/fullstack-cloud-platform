@@ -38,6 +38,24 @@ KIND_CLUSTER=$(PROJECT_NAME)
 HELM_RELEASE=$(RELEASE_PREFIX)-$(ENV)
 ```
 
+Backend runtime configuration for Docker Compose is stored in:
+
+```text
+.env.local
+```
+
+Important backend runtime values:
+
+```text
+APP_ENV
+APP_NAME
+APP_VERSION
+DATABASE_URL
+SQL_ECHO
+DB_INIT_RETRIES
+DB_INIT_RETRY_DELAY_SECONDS
+```
+
 ## Show commands
 
 ```bash
@@ -122,9 +140,17 @@ scripts/local-smoke-test.sh
 Checks:
 
 - backend `/health`
+- backend `/health/live`
+- backend `/health/ready`
 - backend `/version`
 - backend `/metrics`
-- frontend endpoint
+- backend `/tasks`
+- frontend root endpoint
+- frontend `/api/health` proxy
+- frontend `/api/health/live` proxy
+- frontend `/api/health/ready` proxy
+- frontend `/api/tasks` proxy
+- frontend `/api/tasks` task creation through proxy
 
 Kubernetes smoke test:
 
@@ -132,7 +158,14 @@ Kubernetes smoke test:
 scripts/k8s-smoke-test.sh
 ```
 
-Runs inside the cluster by executing from the backend deployment and checking Kubernetes services.
+The Kubernetes smoke test runs inside the cluster by executing curl commands from the backend deployment.
+
+Checks:
+
+- backend service endpoints
+- frontend service endpoint
+- frontend `/api` proxy to backend
+- task creation through the frontend service proxy
 
 ## Common commands
 
@@ -167,3 +200,13 @@ The kind config should not map host ports 80/443. The Kubernetes smoke test is i
 ### Backend restarts in Kubernetes
 
 The backend should not restart because of PostgreSQL readiness. In local Kubernetes mode, the backend waits for PostgreSQL through an init container.
+
+### Frontend API proxy fails
+
+The frontend Nginx config proxies `/api/*` requests to the backend service. If frontend proxy smoke tests fail, check:
+
+```text
+frontend/nginx.conf
+frontend service DNS inside Kubernetes
+backend service availability
+```
