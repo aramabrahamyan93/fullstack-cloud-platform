@@ -86,16 +86,19 @@ deploy_argocd_repo_credentials() {
 
   echo "ArgoCD repository credentials ExternalSecret applied successfully."
 
-  echo "Waiting for ArgoCD repository secret to be created..."
+  local repo_external_secret_name="argocd-repo-${PROJECT_NAME}"
+  local repo_secret_name="private-repo-${PROJECT_NAME}"
+
+  echo "Waiting for ArgoCD repository ExternalSecret to be ready: ${repo_external_secret_name}"
   kubectl wait \
     --namespace argocd \
     --for=condition=Ready \
-    externalsecret/argocd-repo-fullstack-cloud-platform \
+    "externalsecret/${repo_external_secret_name}" \
     --timeout=300s
 
-  kubectl get secret private-repo-fullstack-cloud-platform -n argocd >/dev/null
+  kubectl get secret "${repo_secret_name}" -n argocd >/dev/null
 
-  echo "ArgoCD repository secret is ready."
+  echo "ArgoCD repository secret is ready: ${repo_secret_name}"
 }
 
 deploy_argocd_application() {
