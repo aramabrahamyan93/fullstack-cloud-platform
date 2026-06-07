@@ -108,24 +108,24 @@ spec:
 
           startupProbe:
             httpGet:
-              path: /health
-              port: {{ .Values.backend.port }}
+              path: /health/live
+              port: { { .Values.backend.port } }
             failureThreshold: 30
             periodSeconds: 5
 
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: {{ .Values.backend.port }}
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            readinessProbe:
+              httpGet:
+                path: /health/ready
+                port: { { .Values.backend.port } }
+              initialDelaySeconds: 5
+              periodSeconds: 5
 
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: {{ .Values.backend.port }}
-            initialDelaySeconds: 15
-            periodSeconds: 10
+            livenessProbe:
+              httpGet:
+                path: /health/live
+                port: { { .Values.backend.port } }
+              initialDelaySeconds: 15
+              periodSeconds: 10
 
 ---
 apiVersion: v1
