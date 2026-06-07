@@ -1,5 +1,6 @@
 import logging
 
+from app.core.errors import NotFoundError
 from app.models.task import Task
 from app.repositories.task_repository import TaskRepository
 from app.schemas.task import TaskCreate
@@ -8,10 +9,14 @@ from app.schemas.task import TaskUpdate
 logger = logging.getLogger(__name__)
 
 
-class TaskNotFoundError(Exception):
+class TaskNotFoundError(NotFoundError):
     def __init__(self, task_id: int):
         self.task_id = task_id
-        super().__init__(f"Task with id={task_id} was not found.")
+
+        super().__init__(
+            message=f"Task with id={task_id} was not found.",
+            error_code="task_not_found",
+        )
 
 
 class TaskService:

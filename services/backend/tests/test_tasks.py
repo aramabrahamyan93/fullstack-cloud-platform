@@ -13,6 +13,15 @@ def setup_function():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
+def assert_task_not_found(response, task_id: int):
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {
+        "error": {
+            "code": "task_not_found",
+            "message": f"Task with id={task_id} was not found.",
+        }
+    }
+
 
 def create_task(
     title: str = "Test task",
@@ -86,7 +95,7 @@ def test_get_task_returns_404_when_task_does_not_exist():
     response = client.get("/tasks/999")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json()["detail"] == "Task with id=999 was not found."
+    assert_task_not_found(response, 999)
 
 
 def test_update_task_updates_existing_task():
@@ -124,7 +133,7 @@ def test_update_task_returns_404_when_task_does_not_exist():
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json()["detail"] == "Task with id=999 was not found."
+    assert_task_not_found(response, 999)
 
 
 def test_update_task_rejects_empty_title():
@@ -175,7 +184,7 @@ def test_delete_task_returns_404_when_task_does_not_exist():
     response = client.delete("/tasks/999")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json()["detail"] == "Task with id=999 was not found."
+    assert_task_not_found(response, 999)
 
 
 def test_create_task_rejects_empty_title():
