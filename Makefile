@@ -11,7 +11,7 @@ APP_NAME ?= $(PROJECT_NAME)-api
 RELEASE_PREFIX ?= fullstack
 ENV ?= local
 
-COMPOSE ?= docker compose --env-file project.env -p $(PROJECT_NAME)
+COMPOSE ?= bash scripts/compose.sh
 
 AWS_ACCOUNT_ID ?=
 AWS_REGION ?= eu-central-1

@@ -12,10 +12,12 @@ on:
       - helm/**
       - scripts/validate-services.py
       - scripts/docker-build-push.sh
+      - scripts/compose.sh
       - docker-compose.yml
       - docker-compose.yaml
       - Makefile
       - services.json
+      - project.env
       - .github/workflows/fullstack-ci.yml
 
   push:
@@ -29,10 +31,12 @@ on:
       - helm/**
       - scripts/validate-services.py
       - scripts/docker-build-push.sh
+      - scripts/compose.sh
       - docker-compose.yml
       - docker-compose.yaml
       - Makefile
       - services.json
+      - project.env
       - .github/workflows/fullstack-ci.yml
 
 permissions:
@@ -54,6 +58,9 @@ jobs:
       - name: Validate service registry
         run: make validate-services
 
+      - name: Validate Docker Compose wrapper syntax
+        run: bash -n scripts/compose.sh
+
       - name: Validate Docker build push script syntax
         run: bash -n scripts/docker-build-push.sh
 
@@ -64,16 +71,16 @@ jobs:
           bash scripts/docker-build-push.sh
 
       - name: Validate Docker Compose config
-        run: docker compose config
+        run: bash scripts/compose.sh config
 
       - name: Build backend Docker image
-        run: docker compose build backend
+        run: bash scripts/compose.sh build backend
 
       - name: Run backend tests
-        run: docker compose run --rm backend pytest
+        run: bash scripts/compose.sh run --rm backend pytest
 
       - name: Build frontend Docker image
-        run: docker compose build frontend
+        run: bash scripts/compose.sh build frontend
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -94,10 +101,10 @@ jobs:
         run: make helm-render ENV=prod PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
 
       - name: Start full stack
-        run: docker compose up -d
+        run: bash scripts/compose.sh up -d
 
       - name: Show containers
-        run: docker compose ps
+        run: bash scripts/compose.sh ps
 
       - name: Wait for backend health
         run: |
@@ -108,12 +115,12 @@ jobs:
             fi
 
             echo "Waiting for backend..."
-            docker compose ps
+            bash scripts/compose.sh ps
             sleep 3
           done
 
           echo "Backend did not become healthy"
-          docker compose logs backend
+          bash scripts/compose.sh logs backend
           exit 1
 
       - name: Wait for frontend
@@ -125,18 +132,18 @@ jobs:
             fi
 
             echo "Waiting for frontend..."
-            docker compose ps
+            bash scripts/compose.sh ps
             sleep 3
           done
 
           echo "Frontend did not become reachable"
-          docker compose logs frontend
+          bash scripts/compose.sh logs frontend
           exit 1
 
       - name: Show logs on failure
         if: failure()
-        run: docker compose logs
+        run: bash scripts/compose.sh logs
 
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: bash scripts/compose.sh down -v
