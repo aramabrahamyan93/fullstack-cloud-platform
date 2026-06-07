@@ -15,12 +15,13 @@ def setup_function():
 
 def assert_task_not_found(response, task_id: int):
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json() == {
-        "error": {
-            "code": "task_not_found",
-            "message": f"Task with id={task_id} was not found.",
-        }
-    }
+
+    error = response.json()["error"]
+
+    assert error["code"] == "task_not_found"
+    assert error["message"] == f"Task with id={task_id} was not found."
+    assert "requestId" in error
+    assert error["requestId"]
 
 
 def create_task(

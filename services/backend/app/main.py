@@ -5,13 +5,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from app.api.exception_handlers import register_exception_handlers
 from app.api.health import router as health_router
 from app.api.tasks import router as tasks_router
 from app.api.version import router as version_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db.init_db import init_db
-from app.api.exception_handlers import register_exception_handlers
+from app.middleware.request_logging import RequestLoggingMiddleware
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -31,6 +32,14 @@ async def lifespan(app: FastAPI):
     logger.info("Stopping application")
 
 
+def get_request_logging_excluded_paths() -> list[str]:
+    return [
+        path.strip()
+        for path in settings.request_logging_excluded_paths.split(",")
+        if path.strip()
+    ]
+
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -38,6 +47,12 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+
+app.add_middleware(
+    RequestLoggingMiddleware,
+    request_id_header=settings.request_id_header,
+    excluded_paths=get_request_logging_excluded_paths(),
+)
 
 app.add_middleware(
     CORSMiddleware,
