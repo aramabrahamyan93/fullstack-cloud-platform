@@ -56,12 +56,16 @@ kubectl rollout status "deployment/${BACKEND_DEPLOYMENT}" \
 
 echo
 run_backend_curl_check "backend health" "${BACKEND_SERVICE_URL}/health"
+run_backend_curl_check "backend liveness" "${BACKEND_SERVICE_URL}/health/live"
+run_backend_curl_check "backend readiness" "${BACKEND_SERVICE_URL}/health/ready"
 run_backend_curl_check "backend version" "${BACKEND_SERVICE_URL}/version"
 run_backend_curl_check "backend metrics" "${BACKEND_SERVICE_URL}/metrics"
 run_backend_curl_check "backend tasks" "${BACKEND_SERVICE_URL}/tasks"
 
 run_backend_curl_check "frontend service" "${FRONTEND_SERVICE_URL}"
 run_backend_curl_check "frontend API proxy health" "${FRONTEND_SERVICE_URL}/api/health"
+run_backend_curl_check "frontend API proxy liveness" "${FRONTEND_SERVICE_URL}/api/health/live"
+run_backend_curl_check "frontend API proxy readiness" "${FRONTEND_SERVICE_URL}/api/health/ready"
 run_backend_curl_check "frontend API proxy tasks" "${FRONTEND_SERVICE_URL}/api/tasks"
 
 run_backend_curl_post_check \

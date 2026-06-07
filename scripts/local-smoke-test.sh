@@ -107,6 +107,8 @@ check_post_json() {
 }
 
 wait_for_endpoint "backend health" "${BACKEND_URL}/health"
+wait_for_endpoint "backend liveness" "${BACKEND_URL}/health/live"
+wait_for_endpoint "backend readiness" "${BACKEND_URL}/health/ready"
 wait_for_endpoint "backend version" "${BACKEND_URL}/version"
 wait_for_endpoint "backend metrics" "${BACKEND_URL}/metrics"
 wait_for_endpoint "backend tasks" "${BACKEND_URL}/tasks"
@@ -116,6 +118,8 @@ if [ "${CHECK_FRONTEND}" = "true" ]; then
 
   if [ "${CHECK_FRONTEND_API_PROXY}" = "true" ]; then
     wait_for_endpoint "frontend API proxy health" "${FRONTEND_URL}/api/health"
+    wait_for_endpoint "frontend API proxy liveness" "${FRONTEND_URL}/api/health/live"
+    wait_for_endpoint "frontend API proxy readiness" "${FRONTEND_URL}/api/health/ready"
     wait_for_endpoint "frontend API proxy tasks" "${FRONTEND_URL}/api/tasks"
 
     check_post_json \
