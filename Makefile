@@ -71,6 +71,7 @@ help:
 	@echo "  make local-k8s-down        Delete local kind cluster"
 	@echo ""
 	@echo "  make validate-services    Validate services.json registry"
+	@echo "  make local-preview         Build and start production-like local preview"
 	@echo ""
 	@echo "Helm:"
 	@echo "  make helm-lint             Lint Helm chart"
@@ -149,6 +150,19 @@ local-smoke-test:
 	FRONTEND_URL="$(FRONTEND_URL)" \
 	CHECK_FRONTEND="$(CHECK_FRONTEND)" \
 	bash scripts/local-smoke-test.sh
+
+.PHONY: local-preview
+local-preview:
+	$(MAKE) local-down || true
+	$(MAKE) local-build
+	$(MAKE) local-up
+	$(MAKE) local-smoke-test
+	@echo ""
+	@echo "Local preview is running:"
+	@echo "  Frontend: $(FRONTEND_URL)"
+	@echo "  Backend:  $(BACKEND_URL)"
+	@echo ""
+	@echo "Use 'make local-down' to stop it."
 
 .PHONY: local-validate
 local-validate:
