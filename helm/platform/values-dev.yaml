@@ -27,6 +27,10 @@ backend:
   image:
     tag: 8864e7b
     pullPolicy: IfNotPresent
+  config:
+    sqlEcho: false
+    dbInitRetries: 30
+    dbInitRetryDelaySeconds: 1
   metrics:
     enabled: true
     path: /metrics

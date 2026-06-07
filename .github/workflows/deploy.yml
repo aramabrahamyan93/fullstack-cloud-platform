@@ -35,6 +35,7 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
   PROJECT_NAME: ${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }}
+  RELEASE_PREFIX: ${{ vars.RELEASE_PREFIX || 'fullstack' }}
 
 concurrency:
   group: deploy-${{ github.event.inputs.environment || inputs.environment }}
@@ -73,7 +74,8 @@ jobs:
 
           ACCOUNT="${ENVIRONMENT}-${AWS_ACCOUNT_ID}"
           CLUSTER_NAME="${PROJECT_NAME}-${ENVIRONMENT}"
-          NAMESPACE="fullstack-${ENVIRONMENT}"
+          NAMESPACE="${RELEASE_PREFIX}-${ENVIRONMENT}"
+          HELM_RELEASE="${RELEASE_PREFIX}-${ENVIRONMENT}"
           APP_HOST="${ENVIRONMENT}.${PROJECT_NAME}.local"
           EXTERNAL_SECRETS_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/${PROJECT_NAME}-${ENVIRONMENT}-external-secrets-role"
 
@@ -82,6 +84,7 @@ jobs:
           echo "account=${ACCOUNT}" >> "$GITHUB_OUTPUT"
           echo "cluster_name=${CLUSTER_NAME}" >> "$GITHUB_OUTPUT"
           echo "namespace=${NAMESPACE}" >> "$GITHUB_OUTPUT"
+          echo "helm_release=${HELM_RELEASE}" >> "$GITHUB_OUTPUT"
           echo "app_host=${APP_HOST}" >> "$GITHUB_OUTPUT"
           echo "external_secrets_role_arn=${EXTERNAL_SECRETS_ROLE_ARN}" >> "$GITHUB_OUTPUT"
 
@@ -90,6 +93,7 @@ jobs:
           echo "ACCOUNT=${ACCOUNT}"
           echo "CLUSTER_NAME=${CLUSTER_NAME}"
           echo "NAMESPACE=${NAMESPACE}"
+          echo "HELM_RELEASE=${HELM_RELEASE}"
           echo "APP_HOST=${APP_HOST}"
           echo "EXTERNAL_SECRETS_ROLE_ARN=${EXTERNAL_SECRETS_ROLE_ARN}"
       - name: Validate config
@@ -167,10 +171,11 @@ jobs:
         run: |
           ENVIRONMENT="${{ steps.context.outputs.environment }}"
 
-          helm upgrade --install "fullstack-${ENVIRONMENT}" helm/platform \
-            --namespace "fullstack-${ENVIRONMENT}" \
+          helm upgrade --install "${{ steps.context.outputs.helm_release }}" helm/platform \
+            --namespace "${{ steps.context.outputs.namespace }}" \
             --create-namespace \
             -f "helm/platform/values-${ENVIRONMENT}.yaml" \
+            --set namespace="${{ steps.context.outputs.namespace }}" \
             --set global.projectName="$PROJECT_NAME" \
             --set global.domain="$PROJECT_NAME.local" \
             --set global.awsAccountId="$AWS_ACCOUNT_ID" \

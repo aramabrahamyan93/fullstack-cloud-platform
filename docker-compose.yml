@@ -1,7 +1,8 @@
 services:
   backend:
+    image: "${PROJECT_NAME:-fullstack-cloud-platform}-backend:latest"
     build:
-      context: ./backend
+      context: ./services/backend
     env_file:
       - .env.local
     ports:
@@ -13,8 +14,9 @@ services:
       - app-network
 
   frontend:
+    image: "${PROJECT_NAME:-fullstack-cloud-platform}-frontend:latest"
     build:
-      context: ./frontend
+      context: ./apps/frontend
     ports:
       - "3000:80"
     depends_on:

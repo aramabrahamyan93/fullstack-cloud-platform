@@ -7,9 +7,11 @@ on:
       - develop
       - staging
     paths:
-      - backend/**
-      - frontend/**
+      - services/backend/**
+      - apps/frontend/**
       - helm/**
+      - scripts/validate-services.py
+      - scripts/docker-build-push.sh
       - docker-compose.yml
       - docker-compose.yaml
       - Makefile
@@ -22,9 +24,11 @@ on:
       - develop
       - staging
     paths:
-      - backend/**
-      - frontend/**
+      - services/backend/**
+      - apps/frontend/**
       - helm/**
+      - scripts/validate-services.py
+      - scripts/docker-build-push.sh
       - docker-compose.yml
       - docker-compose.yaml
       - Makefile
@@ -46,6 +50,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Validate service registry
+        run: make validate-services
+
+      - name: Validate Docker build push script syntax
+        run: bash -n scripts/docker-build-push.sh
+
+      - name: Validate registry-based Docker build push dry run
+        run: |
+          DRY_RUN=true \
+          ACCOUNT=dev-000000000000 \
+          bash scripts/docker-build-push.sh
 
       - name: Validate Docker Compose config
         run: docker compose config

@@ -11,6 +11,16 @@ database:
 
 backend:
   replicas: 1
+
+  waitForDatabase:
+    enabled: true
+    timeoutSeconds: 60
+
+  config:
+    sqlEcho: false
+    dbInitRetries: 30
+    dbInitRetryDelaySeconds: 1
+
   image:
     pullPolicy: Never
 
