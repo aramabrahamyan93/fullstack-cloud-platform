@@ -7,8 +7,8 @@ on:
       - staging
       - main
     paths:
-      - backend/**
-      - frontend/**
+      - services/backend/**
+      - apps/frontend/**
       - services.json
       - helm/platform/values-dev.yaml
       - .github/workflows/publish-images.yml

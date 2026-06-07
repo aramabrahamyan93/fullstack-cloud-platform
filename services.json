@@ -1,14 +1,34 @@
 [
   {
     "name": "backend",
-    "context": "./backend",
-    "port": 8000,
-    "type": "api"
+    "type": "api",
+    "context": "./services/backend",
+    "dockerfile": "Dockerfile",
+    "image": "backend",
+    "internalPort": 8000,
+    "localPort": 8000,
+    "healthPath": "/health",
+    "livenessPath": "/health/live",
+    "readinessPath": "/health/ready",
+    "metricsPath": "/metrics",
+    "dependsOn": ["postgres"],
+    "enabled": true,
+    "build": true,
+    "push": true
   },
   {
     "name": "frontend",
-    "context": "./frontend",
-    "port": 80,
-    "type": "web"
+    "type": "web",
+    "context": "./apps/frontend",
+    "dockerfile": "Dockerfile",
+    "image": "frontend",
+    "internalPort": 80,
+    "localPort": 3000,
+    "healthPath": "/",
+    "apiProxyPrefix": "/api",
+    "dependsOn": ["backend"],
+    "enabled": true,
+    "build": true,
+    "push": true
   }
 ]

@@ -7,8 +7,8 @@ on:
       - develop
       - staging
     paths:
-      - backend/**
-      - frontend/**
+      - services/backend/**
+      - apps/frontend/**
       - helm/**
       - docker-compose.yml
       - docker-compose.yaml
@@ -22,8 +22,8 @@ on:
       - develop
       - staging
     paths:
-      - backend/**
-      - frontend/**
+      - services/backend/**
+      - apps/frontend/**
       - helm/**
       - docker-compose.yml
       - docker-compose.yaml
