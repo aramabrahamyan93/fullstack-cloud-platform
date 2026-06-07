@@ -68,6 +68,7 @@ check_post_json() {
   local name="$1"
   local url="$2"
   local json_body="$3"
+  local expected_status_code="${4:-200}"
 
   echo "Checking ${name}: ${url}"
 
@@ -86,14 +87,14 @@ check_post_json() {
       2>"${SMOKE_TEST_ERROR_FILE}" || true
   )"
 
-  if [ "${status_code}" = "200" ]; then
+  if [ "${status_code}" = "${expected_status_code}" ]; then
     echo "OK: ${name}"
     echo
     return 0
   fi
 
   echo
-  echo "ERROR: ${name} failed. status=${status_code}"
+  echo "ERROR: ${name} failed. status=${status_code}, expected=${expected_status_code}"
   echo "URL: ${url}"
   echo
   echo "Last curl error:"
@@ -125,7 +126,8 @@ if [ "${CHECK_FRONTEND}" = "true" ]; then
     check_post_json \
       "frontend API proxy create task" \
       "${FRONTEND_URL}/api/tasks" \
-      '{"title":"Created by local smoke test","status":"open"}'
+      '{"title":"Created by local smoke test","status":"open"}' \
+      "201"
 
     wait_for_endpoint "frontend API proxy tasks after create" "${FRONTEND_URL}/api/tasks"
   fi

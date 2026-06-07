@@ -10,3 +10,8 @@ export type CreateTaskRequest = {
   title: string;
   status: TaskStatus;
 };
+
+export type UpdateTaskRequest = {
+  title: string;
+  status: TaskStatus;
+};

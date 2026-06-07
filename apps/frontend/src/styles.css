@@ -55,6 +55,10 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button.danger {
+  background: #b91c1c;
+}
+
 .muted {
   color: #6b7280;
 }
@@ -69,6 +73,41 @@ button:disabled {
   font-weight: 600;
 }
 
-li {
-  margin-bottom: 8px;
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-item {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) 180px auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.task-id {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .task-item {
+    grid-template-columns: 1fr;
+  }
+
+  .task-actions {
+    flex-wrap: wrap;
+  }
 }

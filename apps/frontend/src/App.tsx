@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { appConfig } from "./config";
-import { createTask, getTasks } from "./api/tasks";
+import {
+  createTask,
+  deleteTask,
+  getTasks,
+  updateTask
+} from "./api/tasks";
 import { getHealth, getVersion } from "./api/system";
 import { SystemStatus } from "./components/SystemStatus";
 import { TaskForm } from "./components/TaskForm";
@@ -20,6 +25,7 @@ export function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMutating, setIsMutating] = useState(false);
   const [message, setMessage] = useState<Message>({
     text: "",
     type: "muted"
@@ -81,6 +87,44 @@ export function App() {
     }
   }
 
+  async function handleUpdateTask(
+    taskId: number,
+    title: string,
+    status: TaskStatus
+  ) {
+    setIsMutating(true);
+    showMessage(`Updating task #${taskId}...`, "muted");
+
+    try {
+      await updateTask(taskId, {
+        title,
+        status
+      });
+
+      showMessage(`Task #${taskId} updated successfully.`, "success");
+      await loadTasks();
+    } catch (error) {
+      showMessage(getErrorMessage(error), "error");
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
+  async function handleDeleteTask(taskId: number) {
+    setIsMutating(true);
+    showMessage(`Deleting task #${taskId}...`, "muted");
+
+    try {
+      await deleteTask(taskId);
+      showMessage(`Task #${taskId} deleted successfully.`, "success");
+      await loadTasks();
+    } catch (error) {
+      showMessage(getErrorMessage(error), "error");
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
   function showMessage(text: string, type: MessageType) {
     setMessage({
       text,
@@ -109,7 +153,13 @@ export function App() {
 
       {message.text ? <p className={message.type}>{message.text}</p> : null}
 
-      <TaskList tasks={tasks} isLoading={isTasksLoading} />
+      <TaskList
+        tasks={tasks}
+        isLoading={isTasksLoading}
+        isMutating={isMutating}
+        onUpdateTask={handleUpdateTask}
+        onDeleteTask={handleDeleteTask}
+      />
     </main>
   );
 }
