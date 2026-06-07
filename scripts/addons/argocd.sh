@@ -102,7 +102,7 @@ deploy_argocd_repo_credentials() {
 }
 
 deploy_argocd_application() {
-  local template_file="${REPO_ROOT}/addons/argocd/applications/fullstack-app.yaml.tpl"
+  local template_file="${REPO_ROOT}/addons/argocd/applications/app.yaml.tpl"
 
   if [ ! -f "${template_file}" ]; then
     echo "ERROR: ArgoCD application template does not exist: ${template_file}"

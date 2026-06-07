@@ -114,7 +114,7 @@ Supported addon areas:
 ArgoCD application template:
 
 ```text
-addons/argocd/applications/fullstack-app.yaml.tpl
+addons/argocd/applications/app.yaml.tpl
 ```
 
 The intended cloud deployment model is GitOps-oriented: Kubernetes resources are described in Git, and ArgoCD syncs the desired state to the cluster.
