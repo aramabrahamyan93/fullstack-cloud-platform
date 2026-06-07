@@ -7,14 +7,20 @@ from pydantic import Field
 TaskStatus = Literal["open", "in_progress", "done"]
 
 
-class TaskCreate(BaseModel):
+class TaskBase(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     status: TaskStatus
 
 
-class TaskResponse(BaseModel):
+class TaskCreate(TaskBase):
+    pass
+
+
+class TaskUpdate(TaskBase):
+    pass
+
+
+class TaskResponse(TaskBase):
     id: int
-    title: str
-    status: TaskStatus
 
     model_config = ConfigDict(from_attributes=True)
