@@ -1,4 +1,5 @@
 import { appConfig } from "../config";
+import { createApiError } from "./errors";
 
 export const API_BASE_URL = appConfig.apiBaseUrl;
 
@@ -9,10 +10,7 @@ export async function fetchJson<T>(
   const response = await fetch(`${API_BASE_URL}${path}`, options);
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Request failed with status ${response.status}: ${errorText}`
-    );
+    throw await createApiError(response);
   }
 
   if (response.status === 204) {

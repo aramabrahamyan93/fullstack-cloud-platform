@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from fastapi import Depends
-from fastapi import HTTPException
 from fastapi import status
 
 from sqlalchemy.orm import Session
@@ -10,7 +9,6 @@ from app.repositories.task_repository import TaskRepository
 from app.schemas.task import TaskCreate
 from app.schemas.task import TaskResponse
 from app.schemas.task import TaskUpdate
-from app.services.task_service import TaskNotFoundError
 from app.services.task_service import TaskService
 from app.services.task_service import create_task_service
 
@@ -25,13 +23,6 @@ def get_task_service(
 ) -> TaskService:
     repository = TaskRepository(db)
     return create_task_service(repository)
-
-
-def raise_task_not_found(error: TaskNotFoundError) -> None:
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=str(error),
-    )
 
 
 @router.get(
@@ -64,10 +55,7 @@ def get_existing_task(
     task_id: int,
     service: TaskService = Depends(get_task_service),
 ):
-    try:
-        return service.get_task(task_id)
-    except TaskNotFoundError as error:
-        raise_task_not_found(error)
+    return service.get_task(task_id)
 
 
 @router.put(
@@ -79,10 +67,7 @@ def update_existing_task(
     task: TaskUpdate,
     service: TaskService = Depends(get_task_service),
 ):
-    try:
-        return service.update_task(task_id, task)
-    except TaskNotFoundError as error:
-        raise_task_not_found(error)
+    return service.update_task(task_id, task)
 
 
 @router.delete(
@@ -93,7 +78,4 @@ def delete_existing_task(
     task_id: int,
     service: TaskService = Depends(get_task_service),
 ):
-    try:
-        service.delete_task(task_id)
-    except TaskNotFoundError as error:
-        raise_task_not_found(error)
+    service.delete_task(task_id)

@@ -6,18 +6,13 @@ import {
   getTasks,
   updateTask
 } from "./api/tasks";
+import { getErrorMessage } from "./api/errors";
 import { getHealth, getVersion } from "./api/system";
+import { Message, type MessageState, type MessageType } from "./components/Message";
 import { SystemStatus } from "./components/SystemStatus";
 import { TaskForm } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
 import type { Task, TaskStatus } from "./types/task";
-
-type MessageType = "muted" | "success" | "error";
-
-type Message = {
-  text: string;
-  type: MessageType;
-};
 
 export function App() {
   const [health, setHealth] = useState("loading...");
@@ -26,7 +21,7 @@ export function App() {
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-  const [message, setMessage] = useState<Message>({
+  const [message, setMessage] = useState<MessageState>({
     text: "",
     type: "muted"
   });
@@ -132,14 +127,6 @@ export function App() {
     });
   }
 
-  function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-
-    return "Unexpected error.";
-  }
-
   return (
     <main className="page">
       <h1>{appConfig.appTitle}</h1>
@@ -151,7 +138,7 @@ export function App() {
         onCreateTask={handleCreateTask}
       />
 
-      {message.text ? <p className={message.type}>{message.text}</p> : null}
+      <Message message={message} />
 
       <TaskList
         tasks={tasks}

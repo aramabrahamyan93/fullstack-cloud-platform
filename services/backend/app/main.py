@@ -11,6 +11,7 @@ from app.api.version import router as version_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db.init_db import init_db
+from app.api.exception_handlers import register_exception_handlers
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -35,6 +36,8 @@ app = FastAPI(
     version=settings.app_version,
     lifespan=lifespan,
 )
+
+register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
