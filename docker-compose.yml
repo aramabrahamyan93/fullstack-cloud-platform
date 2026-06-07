@@ -1,5 +1,6 @@
 services:
   backend:
+    image: "${PROJECT_NAME:-fullstack-cloud-platform}-backend:latest"
     build:
       context: ./backend
     env_file:
@@ -13,6 +14,7 @@ services:
       - app-network
 
   frontend:
+    image: "${PROJECT_NAME:-fullstack-cloud-platform}-frontend:latest"
     build:
       context: ./frontend
     ports:

@@ -11,6 +11,11 @@ database:
 
 backend:
   replicas: 1
+
+  waitForDatabase:
+    enabled: true
+    timeoutSeconds: 60
+
   image:
     pullPolicy: Never
 

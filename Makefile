@@ -5,13 +5,13 @@ endif
 
 .DEFAULT_GOAL := help
 
-COMPOSE ?= docker compose --env-file project.env
-
 PROJECT_NAME ?= platform
 PROJECT_DOMAIN ?= $(PROJECT_NAME).local
 APP_NAME ?= $(PROJECT_NAME)-api
 RELEASE_PREFIX ?= fullstack
 ENV ?= local
+
+COMPOSE ?= docker compose --env-file project.env -p $(PROJECT_NAME)
 
 AWS_ACCOUNT_ID ?=
 AWS_REGION ?= eu-central-1
@@ -27,6 +27,7 @@ BACKEND_URL ?= http://localhost:8000
 FRONTEND_URL ?= http://localhost:3000
 
 HELM_SET_ARGS = \
+	--set namespace=$(K8S_NAMESPACE) \
 	--set global.projectName=$(PROJECT_NAME) \
 	--set global.domain=$(PROJECT_DOMAIN) \
 	--set global.awsAccountId=$(AWS_ACCOUNT_ID) \
@@ -39,7 +40,15 @@ HELM_SET_ARGS = \
 .PHONY: help
 help:
 	@echo ""
-	@echo "Fullstack Cloud Platform"
+	@echo "$(PROJECT_NAME)"
+	@echo ""
+	@echo "Environment:"
+	@echo "  PROJECT_NAME=$(PROJECT_NAME)"
+	@echo "  RELEASE_PREFIX=$(RELEASE_PREFIX)"
+	@echo "  ENV=$(ENV)"
+	@echo "  K8S_NAMESPACE=$(K8S_NAMESPACE)"
+	@echo "  KIND_CLUSTER=$(KIND_CLUSTER)"
+	@echo "  HELM_RELEASE=$(HELM_RELEASE)"
 	@echo ""
 	@echo "Local Docker Compose:"
 	@echo "  make local-up              Start backend, frontend, postgres in background"
@@ -56,6 +65,8 @@ help:
 	@echo "  make local-k8s-build       Build backend/frontend images"
 	@echo "  make local-k8s-load        Load images into kind"
 	@echo "  make local-k8s-deploy      Build, load, and Helm deploy to kind"
+	@echo "  make local-k8s-wait        Wait for backend/frontend rollouts"
+	@echo "  make local-k8s-smoke-test  Run in-cluster smoke tests"
 	@echo "  make local-k8s-status      Show local Kubernetes resources"
 	@echo "  make local-k8s-down        Delete local kind cluster"
 	@echo ""
@@ -76,10 +87,6 @@ help:
 	@echo "  make tf-apply STACK=platform"
 	@echo "  make tf-destroy STACK=platform"
 	@echo ""
-
-# ----------------------------
-# Docker Compose
-# ----------------------------
 
 .PHONY: up
 up:
@@ -147,7 +154,7 @@ local-smoke-test:
 
 .PHONY: k8s-create
 k8s-create:
-	kind create cluster --config k8s/kind-config.yaml
+	kind create cluster --name $(KIND_CLUSTER) --config k8s/kind-config.yaml
 
 .PHONY: k8s-delete
 k8s-delete:
@@ -204,6 +211,16 @@ local-k8s-deploy:
 .PHONY: local-k8s-status
 local-k8s-status:
 	$(MAKE) k8s-status ENV=local
+
+.PHONY: local-k8s-wait
+local-k8s-wait:
+	kubectl rollout status deployment/backend -n $(K8S_NAMESPACE) --timeout=120s
+	kubectl rollout status deployment/frontend -n $(K8S_NAMESPACE) --timeout=120s
+
+.PHONY: local-k8s-smoke-test
+local-k8s-smoke-test:
+	K8S_NAMESPACE="$(K8S_NAMESPACE)" \
+	bash scripts/k8s-smoke-test.sh
 
 .PHONY: local-k8s-down
 local-k8s-down: k8s-delete
@@ -303,6 +320,7 @@ cloud-deploy:
 	AWS_PROFILE="$(AWS_PROFILE)" \
 	AWS_REGION="$(AWS_REGION)" \
 	PROJECT_NAME="$(PROJECT_NAME)" \
+	RELEASE_PREFIX="$(RELEASE_PREFIX)"
 	IMAGE_TAG="$(IMAGE_TAG)" \
 	bash scripts/cloud-deploy.sh
 
@@ -312,6 +330,7 @@ cloud-teardown:
 	AWS_PROFILE="$(AWS_PROFILE)" \
 	AWS_REGION="$(AWS_REGION)" \
 	PROJECT_NAME="$(PROJECT_NAME)" \
+	RELEASE_PREFIX="$(RELEASE_PREFIX)" \
 	bash scripts/cloud-teardown.sh
 
 # ----------------------------
