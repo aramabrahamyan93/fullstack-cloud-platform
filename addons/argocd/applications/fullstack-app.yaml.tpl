@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: fullstack-${ENVIRONMENT}
+  name: ${RELEASE_PREFIX}-${ENVIRONMENT}
   namespace: argocd
 
 spec:
@@ -18,6 +18,9 @@ spec:
         - values-${ENVIRONMENT}.yaml
 
       parameters:
+        - name: namespace
+          value: ${RELEASE_PREFIX}-${ENVIRONMENT}
+
         - name: global.projectName
           value: ${PROJECT_NAME}
 
@@ -32,7 +35,7 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: fullstack-${ENVIRONMENT}
+    namespace: ${RELEASE_PREFIX}-${ENVIRONMENT}
 
   syncPolicy:
     automated:

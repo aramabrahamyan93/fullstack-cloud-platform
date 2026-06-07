@@ -113,6 +113,7 @@ deploy_argocd_application() {
 
   export ENVIRONMENT="${ACCOUNT_ENV}"
   export PROJECT_NAME
+  export RELEASE_PREFIX
   export AWS_REGION
   export AWS_ACCOUNT_ID
   export GIT_REPO_URL

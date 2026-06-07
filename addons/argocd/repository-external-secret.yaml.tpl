@@ -1,21 +1,26 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
+
 metadata:
-  name: argocd-repo-fullstack-cloud-platform
+  name: argocd-repo-${PROJECT_NAME}
   namespace: argocd
+
 spec:
   refreshInterval: 1h
+
   secretStoreRef:
     name: aws-secrets-manager
     kind: ClusterSecretStore
 
   target:
-    name: private-repo-fullstack-cloud-platform
+    name: private-repo-${PROJECT_NAME}
     creationPolicy: Owner
+
     template:
       metadata:
         labels:
           argocd.argoproj.io/secret-type: repository
+
       data:
         type: git
         url: ${GIT_REPO_URL}

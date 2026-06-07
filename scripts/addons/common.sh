@@ -4,6 +4,7 @@ ACCOUNT="${ACCOUNT:-}"
 AWS_PROFILE="${AWS_PROFILE:-}"
 AWS_REGION="${AWS_REGION:-eu-central-1}"
 PROJECT_NAME="${PROJECT_NAME:-fullstack-cloud-platform}"
+RELEASE_PREFIX="${RELEASE_PREFIX:-fullstack}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ACCOUNT_ENV="${ACCOUNT%%-*}"
@@ -37,6 +38,7 @@ load_addons_config() {
   export AWS_PROFILE
   export AWS_REGION
   export PROJECT_NAME
+  export RELEASE_PREFIX
   export REPO_ROOT
   export ACCOUNT_ENV
   export AWS_ACCOUNT_ID
@@ -64,6 +66,7 @@ print_addons_summary() {
   echo "AWS Region:               ${AWS_REGION}"
   echo "AWS Account ID:           ${AWS_ACCOUNT_ID}"
   echo "Project Name:             ${PROJECT_NAME}"
+  echo "Release Prefix:           ${RELEASE_PREFIX}"
   echo "Addons config:            ${ADDONS_ENV_FILE}"
   echo "Git repo URL:             ${GIT_REPO_URL}"
   echo "Git target revision:      ${GIT_TARGET_REVISION}"
@@ -100,6 +103,11 @@ validate_common_config() {
 
   if [ -z "${PROJECT_NAME}" ]; then
     echo "ERROR: PROJECT_NAME is required."
+    exit 1
+  fi
+
+  if [ -z "${RELEASE_PREFIX}" ]; then
+    echo "ERROR: RELEASE_PREFIX is required."
     exit 1
   fi
 
