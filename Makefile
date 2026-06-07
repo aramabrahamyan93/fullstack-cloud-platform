@@ -148,6 +148,16 @@ local-smoke-test:
 	CHECK_FRONTEND="$(CHECK_FRONTEND)" \
 	bash scripts/local-smoke-test.sh
 
+.PHONY: local-validate
+local-validate:
+	$(MAKE) local-down || true
+	$(MAKE) local-clean || true
+	$(MAKE) local-build
+	$(MAKE) local-up
+	$(MAKE) local-smoke-test
+	$(MAKE) local-test
+	$(MAKE) local-down
+
 # ----------------------------
 # kind / Kubernetes local helpers
 # ----------------------------
@@ -189,6 +199,7 @@ k8s-restart-backend:
 k8s-restart-frontend:
 	kubectl rollout restart deployment/frontend -n $(K8S_NAMESPACE)
 
+
 # ----------------------------
 # Local Kubernetes / kind aliases
 # ----------------------------
@@ -224,6 +235,21 @@ local-k8s-smoke-test:
 
 .PHONY: local-k8s-down
 local-k8s-down: k8s-delete
+
+.PHONY: local-k8s-validate
+local-k8s-validate:
+	$(MAKE) local-k8s-down || true
+	$(MAKE) local-k8s-up
+	$(MAKE) local-k8s-deploy
+	$(MAKE) local-k8s-wait
+	$(MAKE) local-k8s-smoke-test
+	$(MAKE) local-k8s-status
+
+
+.PHONY: validate-local-all
+validate-local-all:
+	$(MAKE) local-validate
+	$(MAKE) local-k8s-validate
 
 # ----------------------------
 # Helm
