@@ -70,6 +70,8 @@ help:
 	@echo "  make local-k8s-status      Show local Kubernetes resources"
 	@echo "  make local-k8s-down        Delete local kind cluster"
 	@echo ""
+	@echo "  make validate-services    Validate services.json registry"
+	@echo ""
 	@echo "Helm:"
 	@echo "  make helm-lint             Lint Helm chart"
 	@echo "  make helm-render           Render Helm chart"
@@ -246,8 +248,14 @@ local-k8s-validate:
 	$(MAKE) local-k8s-status
 
 
+
+.PHONY: validate-services
+validate-services:
+	python scripts/validate-services.py
+
 .PHONY: validate-local-all
 validate-local-all:
+	$(MAKE) validate-services
 	$(MAKE) local-validate
 	$(MAKE) local-k8s-validate
 
