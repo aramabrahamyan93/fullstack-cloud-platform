@@ -7,11 +7,20 @@ class TaskRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def list_tasks(self) -> list[Task]:
-        return self.db.query(Task).order_by(Task.id.asc()).all()
+    def list_tasks(self, owner_id: int) -> list[Task]:
+        return (
+            self.db.query(Task)
+            .filter(Task.owner_id == owner_id)
+            .order_by(Task.id.asc())
+            .all()
+        )
 
-    def get_by_id(self, task_id: int) -> Task | None:
-        return self.db.query(Task).filter(Task.id == task_id).first()
+    def get_by_id(self, task_id: int, owner_id: int) -> Task | None:
+        return (
+            self.db.query(Task)
+            .filter(Task.id == task_id, Task.owner_id == owner_id)
+            .first()
+        )
 
     def add(self, task: Task) -> Task:
         self.db.add(task)

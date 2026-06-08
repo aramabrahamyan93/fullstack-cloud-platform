@@ -11,7 +11,7 @@ from app.schemas.auth import UserCreate
 from app.models.user import User
 
 try:
-    from app.core.exceptions import AppError
+    from app.core.errors import AppError
 except ImportError:
     AppError = None
 

@@ -12,7 +12,7 @@ from app.models.user import User
 from app.services.auth_service import AuthService
 
 try:
-    from app.core.exceptions import AppError
+    from app.core.errors import AppError
 except ImportError:
     AppError = None
 

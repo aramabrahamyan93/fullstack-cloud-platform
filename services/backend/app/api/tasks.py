@@ -1,10 +1,13 @@
+from typing import Annotated
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import status
-
 from sqlalchemy.orm import Session
 
+from app.db.dependencies import get_current_user
 from app.db.dependencies import get_db
+from app.models.user import User
 from app.repositories.task_repository import TaskRepository
 from app.schemas.task import TaskCreate
 from app.schemas.task import TaskResponse
@@ -30,9 +33,10 @@ def get_task_service(
     response_model=list[TaskResponse],
 )
 def list_tasks(
-    service: TaskService = Depends(get_task_service),
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[TaskService, Depends(get_task_service)],
 ):
-    return service.get_tasks()
+    return service.get_tasks(owner_id=current_user.id)
 
 
 @router.post(
@@ -42,9 +46,10 @@ def list_tasks(
 )
 def create_new_task(
     task: TaskCreate,
-    service: TaskService = Depends(get_task_service),
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[TaskService, Depends(get_task_service)],
 ):
-    return service.create_task(task)
+    return service.create_task(task=task, owner_id=current_user.id)
 
 
 @router.get(
@@ -53,9 +58,10 @@ def create_new_task(
 )
 def get_existing_task(
     task_id: int,
-    service: TaskService = Depends(get_task_service),
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[TaskService, Depends(get_task_service)],
 ):
-    return service.get_task(task_id)
+    return service.get_task(task_id=task_id, owner_id=current_user.id)
 
 
 @router.put(
@@ -65,9 +71,14 @@ def get_existing_task(
 def update_existing_task(
     task_id: int,
     task: TaskUpdate,
-    service: TaskService = Depends(get_task_service),
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[TaskService, Depends(get_task_service)],
 ):
-    return service.update_task(task_id, task)
+    return service.update_task(
+        task_id=task_id,
+        task=task,
+        owner_id=current_user.id,
+    )
 
 
 @router.delete(
@@ -76,6 +87,7 @@ def update_existing_task(
 )
 def delete_existing_task(
     task_id: int,
-    service: TaskService = Depends(get_task_service),
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[TaskService, Depends(get_task_service)],
 ):
-    service.delete_task(task_id)
+    service.delete_task(task_id=task_id, owner_id=current_user.id)
