@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import type { AuthCredentials, User } from "../types/auth";
 
 type AuthMode = "login" | "register";
@@ -26,7 +26,7 @@ export function AuthPanel({
 
   const isAuthenticated = Boolean(currentUser);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const credentials: AuthCredentials = {

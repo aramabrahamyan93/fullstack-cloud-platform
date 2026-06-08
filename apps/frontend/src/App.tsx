@@ -8,32 +8,21 @@ import {
 } from "./api/tasks";
 import { getErrorMessage } from "./api/errors";
 import { getHealth, getVersion } from "./api/system";
-import {
-  getCurrentUser,
-  loginUser,
-  registerUser
-} from "./api/auth";
-import {
-  clearAccessToken,
-  saveAccessToken
-} from "./auth/tokenStorage";
+import { useAuth } from "./auth/useAuth";
 import { AuthPanel } from "./components/AuthPanel";
 import { Message, type MessageState, type MessageType } from "./components/Message";
 import { SystemStatus } from "./components/SystemStatus";
 import { TaskForm } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
-import type { AuthCredentials, User } from "./types/auth";
+import type { AuthCredentials } from "./types/auth";
 import type { Task, TaskStatus } from "./types/task";
 
 export function App() {
   const [health, setHealth] = useState("loading...");
   const [version, setVersion] = useState("loading...");
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [isTasksLoading, setIsTasksLoading] = useState(true);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
 
@@ -42,12 +31,22 @@ export function App() {
     type: "muted"
   });
 
+  const {
+    currentUser,
+    isAuthLoading,
+    isAuthSubmitting,
+    loadCurrentUser,
+    login,
+    register,
+    logout
+  } = useAuth();
+
   useEffect(() => {
     void loadDashboard();
   }, []);
 
   async function loadDashboard() {
-    await Promise.all([loadSystemStatus(), loadCurrentUser()]);
+    await Promise.all([loadSystemStatus(), restoreCurrentUser()]);
   }
 
   async function loadSystemStatus() {
@@ -66,71 +65,53 @@ export function App() {
     }
   }
 
-  async function loadCurrentUser() {
-      setIsAuthLoading(true);
+  async function restoreCurrentUser() {
+    const user = await loadCurrentUser();
 
-      try {
-        const user = await getCurrentUser();
-        setCurrentUser(user);
-        await loadTasks();
-      } catch {
-        clearAccessToken();
-        setCurrentUser(null);
-        setTasks([]);
-        setIsTasksLoading(false);
-      } finally {
-        setIsAuthLoading(false);
-      }
+    if (!user) {
+      setTasks([]);
+      setIsTasksLoading(false);
+      return;
     }
+
+    await loadTasks();
+  }
 
   async function handleLogin(credentials: AuthCredentials) {
-    setIsAuthSubmitting(true);
     showMessage("Logging in...", "muted");
 
-    try {
-      const tokenResponse = await loginUser(credentials);
-      saveAccessToken(tokenResponse.access_token);
+    const result = await login(credentials);
 
-      const user = await getCurrentUser();
-      setCurrentUser(user);
-      await loadTasks();
-
-      showMessage("Logged in successfully.", "success");
-    } catch (error) {
-      clearAccessToken();
-      setCurrentUser(null);
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsAuthSubmitting(false);
+    if (!result.success) {
+      setTasks([]);
+      showMessage(result.message, "error");
+      return;
     }
+
+    await loadTasks();
+    showMessage(result.message, "success");
   }
 
   async function handleRegister(credentials: AuthCredentials) {
-    setIsAuthSubmitting(true);
     showMessage("Registering user...", "muted");
 
-    try {
-      await registerUser(credentials);
-      const tokenResponse = await loginUser(credentials);
-      saveAccessToken(tokenResponse.access_token);
+    const result = await register(credentials);
 
-      const user = await getCurrentUser();
-      setCurrentUser(user);
-      await loadTasks();
-
-      showMessage("Registered and logged in successfully.", "success");
-    } catch (error) {
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsAuthSubmitting(false);
+    if (!result.success) {
+      showMessage(result.message, "error");
+      return;
     }
+
+    await loadTasks();
+    showMessage(result.message, "success");
   }
 
   function handleLogout() {
-    clearAccessToken();
-    setCurrentUser(null);
+    const result = logout();
+
     setTasks([]);
-    showMessage("Logged out successfully.", "success");
+    setIsTasksLoading(false);
+    showMessage(result.message, "success");
   }
 
   async function loadTasks() {
@@ -240,33 +221,33 @@ export function App() {
         onLogout={handleLogout}
       />
 
-    {currentUser ? (
-      <>
-        <TaskForm
-          isSubmitting={isSubmitting}
-          onCreateTask={handleCreateTask}
-        />
+      {currentUser ? (
+        <>
+          <TaskForm
+            isSubmitting={isSubmitting}
+            onCreateTask={handleCreateTask}
+          />
 
-        <Message message={message} />
+          <Message message={message} />
 
-        <TaskList
-          tasks={tasks}
-          isLoading={isTasksLoading}
-          isMutating={isMutating}
-          onUpdateTask={handleUpdateTask}
-          onDeleteTask={handleDeleteTask}
-        />
-      </>
-    ) : (
-      <>
-        <Message message={message} />
+          <TaskList
+            tasks={tasks}
+            isLoading={isTasksLoading}
+            isMutating={isMutating}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={handleDeleteTask}
+          />
+        </>
+      ) : (
+        <>
+          <Message message={message} />
 
-        <section className="card">
-          <h2>Tasks</h2>
-          <p>Please login or register to manage your tasks.</p>
-        </section>
-      </>
-    )}
+          <section className="card">
+            <h2>Tasks</h2>
+            <p>Please login or register to manage your tasks.</p>
+          </section>
+        </>
+      )}
     </main>
   );
 }
