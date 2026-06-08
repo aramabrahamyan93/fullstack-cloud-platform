@@ -47,7 +47,7 @@ export function App() {
   }, []);
 
   async function loadDashboard() {
-    await Promise.all([loadSystemStatus(), loadCurrentUser(), loadTasks()]);
+    await Promise.all([loadSystemStatus(), loadCurrentUser()]);
   }
 
   async function loadSystemStatus() {
@@ -67,18 +67,21 @@ export function App() {
   }
 
   async function loadCurrentUser() {
-    setIsAuthLoading(true);
+      setIsAuthLoading(true);
 
-    try {
-      const user = await getCurrentUser();
-      setCurrentUser(user);
-    } catch {
-      clearAccessToken();
-      setCurrentUser(null);
-    } finally {
-      setIsAuthLoading(false);
+      try {
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+        await loadTasks();
+      } catch {
+        clearAccessToken();
+        setCurrentUser(null);
+        setTasks([]);
+        setIsTasksLoading(false);
+      } finally {
+        setIsAuthLoading(false);
+      }
     }
-  }
 
   async function handleLogin(credentials: AuthCredentials) {
     setIsAuthSubmitting(true);
@@ -90,6 +93,7 @@ export function App() {
 
       const user = await getCurrentUser();
       setCurrentUser(user);
+      await loadTasks();
 
       showMessage("Logged in successfully.", "success");
     } catch (error) {
@@ -112,6 +116,7 @@ export function App() {
 
       const user = await getCurrentUser();
       setCurrentUser(user);
+      await loadTasks();
 
       showMessage("Registered and logged in successfully.", "success");
     } catch (error) {
@@ -124,6 +129,7 @@ export function App() {
   function handleLogout() {
     clearAccessToken();
     setCurrentUser(null);
+    setTasks([]);
     showMessage("Logged out successfully.", "success");
   }
 
@@ -234,20 +240,33 @@ export function App() {
         onLogout={handleLogout}
       />
 
-      <TaskForm
-        isSubmitting={isSubmitting}
-        onCreateTask={handleCreateTask}
-      />
+    {currentUser ? (
+      <>
+        <TaskForm
+          isSubmitting={isSubmitting}
+          onCreateTask={handleCreateTask}
+        />
 
-      <Message message={message} />
+        <Message message={message} />
 
-      <TaskList
-        tasks={tasks}
-        isLoading={isTasksLoading}
-        isMutating={isMutating}
-        onUpdateTask={handleUpdateTask}
-        onDeleteTask={handleDeleteTask}
-      />
+        <TaskList
+          tasks={tasks}
+          isLoading={isTasksLoading}
+          isMutating={isMutating}
+          onUpdateTask={handleUpdateTask}
+          onDeleteTask={handleDeleteTask}
+        />
+      </>
+    ) : (
+      <>
+        <Message message={message} />
+
+        <section className="card">
+          <h2>Tasks</h2>
+          <p>Please login or register to manage your tasks.</p>
+        </section>
+      </>
+    )}
     </main>
   );
 }
