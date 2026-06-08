@@ -8,19 +8,35 @@ import {
 } from "./api/tasks";
 import { getErrorMessage } from "./api/errors";
 import { getHealth, getVersion } from "./api/system";
+import {
+  getCurrentUser,
+  loginUser,
+  registerUser
+} from "./api/auth";
+import {
+  clearAccessToken,
+  saveAccessToken
+} from "./auth/tokenStorage";
+import { AuthPanel } from "./components/AuthPanel";
 import { Message, type MessageState, type MessageType } from "./components/Message";
 import { SystemStatus } from "./components/SystemStatus";
 import { TaskForm } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
+import type { AuthCredentials, User } from "./types/auth";
 import type { Task, TaskStatus } from "./types/task";
 
 export function App() {
   const [health, setHealth] = useState("loading...");
   const [version, setVersion] = useState("loading...");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
   const [isTasksLoading, setIsTasksLoading] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
+
   const [message, setMessage] = useState<MessageState>({
     text: "",
     type: "muted"
@@ -31,7 +47,7 @@ export function App() {
   }, []);
 
   async function loadDashboard() {
-    await Promise.all([loadSystemStatus(), loadTasks()]);
+    await Promise.all([loadSystemStatus(), loadCurrentUser(), loadTasks()]);
   }
 
   async function loadSystemStatus() {
@@ -50,6 +66,67 @@ export function App() {
     }
   }
 
+  async function loadCurrentUser() {
+    setIsAuthLoading(true);
+
+    try {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+    } catch {
+      clearAccessToken();
+      setCurrentUser(null);
+    } finally {
+      setIsAuthLoading(false);
+    }
+  }
+
+  async function handleLogin(credentials: AuthCredentials) {
+    setIsAuthSubmitting(true);
+    showMessage("Logging in...", "muted");
+
+    try {
+      const tokenResponse = await loginUser(credentials);
+      saveAccessToken(tokenResponse.access_token);
+
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+
+      showMessage("Logged in successfully.", "success");
+    } catch (error) {
+      clearAccessToken();
+      setCurrentUser(null);
+      showMessage(getErrorMessage(error), "error");
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  }
+
+  async function handleRegister(credentials: AuthCredentials) {
+    setIsAuthSubmitting(true);
+    showMessage("Registering user...", "muted");
+
+    try {
+      await registerUser(credentials);
+      const tokenResponse = await loginUser(credentials);
+      saveAccessToken(tokenResponse.access_token);
+
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+
+      showMessage("Registered and logged in successfully.", "success");
+    } catch (error) {
+      showMessage(getErrorMessage(error), "error");
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  }
+
+  function handleLogout() {
+    clearAccessToken();
+    setCurrentUser(null);
+    showMessage("Logged out successfully.", "success");
+  }
+
   async function loadTasks() {
     setIsTasksLoading(true);
 
@@ -64,6 +141,11 @@ export function App() {
   }
 
   async function handleCreateTask(title: string, status: TaskStatus) {
+    if (!currentUser) {
+      showMessage("Please login before creating tasks.", "error");
+      return;
+    }
+
     setIsSubmitting(true);
     showMessage("Creating task...", "muted");
 
@@ -87,6 +169,11 @@ export function App() {
     title: string,
     status: TaskStatus
   ) {
+    if (!currentUser) {
+      showMessage("Please login before updating tasks.", "error");
+      return;
+    }
+
     setIsMutating(true);
     showMessage(`Updating task #${taskId}...`, "muted");
 
@@ -106,6 +193,11 @@ export function App() {
   }
 
   async function handleDeleteTask(taskId: number) {
+    if (!currentUser) {
+      showMessage("Please login before deleting tasks.", "error");
+      return;
+    }
+
     setIsMutating(true);
     showMessage(`Deleting task #${taskId}...`, "muted");
 
@@ -132,6 +224,15 @@ export function App() {
       <h1>{appConfig.appTitle}</h1>
 
       <SystemStatus health={health} version={version} />
+
+      <AuthPanel
+        currentUser={currentUser}
+        isLoading={isAuthLoading}
+        isSubmitting={isAuthSubmitting}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onLogout={handleLogout}
+      />
 
       <TaskForm
         isSubmitting={isSubmitting}
