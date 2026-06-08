@@ -1,19 +1,16 @@
-from fastapi import status
 from sqlalchemy.orm import Session
 
+from app.core.errors import ConflictError
+from app.core.errors import ForbiddenError
+from app.core.errors import UnauthorizedError
 from app.core.security import create_access_token
 from app.core.security import hash_password
 from app.core.security import verify_password
+from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import LoginRequest
 from app.schemas.auth import TokenResponse
 from app.schemas.auth import UserCreate
-from app.models.user import User
-
-try:
-    from app.core.errors import AppError
-except ImportError:
-    AppError = None
 
 
 class AuthService:
@@ -24,10 +21,7 @@ class AuthService:
         existing_user = self.user_repository.get_by_email(db, str(payload.email))
 
         if existing_user:
-            self._raise_error(
-                status_code=status.HTTP_409_CONFLICT,
-                message="User with this email already exists.",
-            )
+            raise ConflictError("User with this email already exists.")
 
         return self.user_repository.create(
             db=db,
@@ -39,16 +33,10 @@ class AuthService:
         user = self.user_repository.get_by_email(db, str(payload.email))
 
         if not user or not verify_password(payload.password, user.hashed_password):
-            self._raise_error(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                message="Invalid email or password.",
-            )
+            raise UnauthorizedError("Invalid email or password.")
 
         if not user.is_active:
-            self._raise_error(
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="User is inactive.",
-            )
+            raise ForbiddenError("User is inactive.")
 
         access_token = create_access_token(subject=str(user.id))
 
@@ -58,29 +46,9 @@ class AuthService:
         user = self.user_repository.get_by_id(db, user_id)
 
         if not user:
-            self._raise_error(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                message="Invalid authentication credentials.",
-            )
+            raise UnauthorizedError("Invalid authentication credentials.")
 
         if not user.is_active:
-            self._raise_error(
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="User is inactive.",
-            )
+            raise ForbiddenError("User is inactive.")
 
         return user
-
-    def _raise_error(self, status_code: int, message: str) -> None:
-        if AppError:
-            raise AppError(
-                status_code=status_code,
-                message=message,
-            )
-
-        from fastapi import HTTPException
-
-        raise HTTPException(
-            status_code=status_code,
-            detail=message,
-        )

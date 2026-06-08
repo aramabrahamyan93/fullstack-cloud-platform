@@ -1,6 +1,12 @@
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+
 from fastapi import status
 from fastapi.testclient import TestClient
+from jose import jwt
 
+from app.core.config import settings
 from app.db.database import Base
 from app.db.database import engine
 from app.main import app
@@ -14,14 +20,42 @@ def setup_function():
     Base.metadata.create_all(bind=engine)
 
 
-def test_register_user_successfully():
-    response = client.post(
+def register_user(
+    email: str = "user@example.com",
+    password: str = "strong-password",
+):
+    return client.post(
         "/auth/register",
         json={
-            "email": "user@example.com",
-            "password": "strong-password",
+            "email": email,
+            "password": password,
         },
     )
+
+
+def login_user(
+    email: str = "user@example.com",
+    password: str = "strong-password",
+):
+    return client.post(
+        "/auth/login",
+        json={
+            "email": email,
+            "password": password,
+        },
+    )
+
+
+def create_test_token(payload: dict) -> str:
+    return jwt.encode(
+        payload,
+        settings.auth_secret_key,
+        algorithm=settings.auth_algorithm,
+    )
+
+
+def test_register_user_successfully():
+    response = register_user()
 
     assert response.status_code == status.HTTP_201_CREATED
 
@@ -35,34 +69,18 @@ def test_register_user_successfully():
 
 
 def test_register_duplicate_email_returns_conflict():
-    payload = {
-        "email": "user@example.com",
-        "password": "strong-password",
-    }
-
-    first_response = client.post("/auth/register", json=payload)
-    second_response = client.post("/auth/register", json=payload)
+    first_response = register_user()
+    second_response = register_user()
 
     assert first_response.status_code == status.HTTP_201_CREATED
     assert second_response.status_code == status.HTTP_409_CONFLICT
+    assert second_response.json()["error"]["code"] == "conflict"
 
 
 def test_login_returns_access_token():
-    client.post(
-        "/auth/register",
-        json={
-            "email": "user@example.com",
-            "password": "strong-password",
-        },
-    )
+    register_user()
 
-    response = client.post(
-        "/auth/login",
-        json={
-            "email": "user@example.com",
-            "password": "strong-password",
-        },
-    )
+    response = login_user()
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -73,41 +91,17 @@ def test_login_returns_access_token():
 
 
 def test_login_with_wrong_password_returns_unauthorized():
-    client.post(
-        "/auth/register",
-        json={
-            "email": "user@example.com",
-            "password": "strong-password",
-        },
-    )
+    register_user()
 
-    response = client.post(
-        "/auth/login",
-        json={
-            "email": "user@example.com",
-            "password": "wrong-password",
-        },
-    )
+    response = login_user(password="wrong-password")
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["error"]["code"] == "unauthorized"
 
 
 def test_me_returns_current_user():
-    client.post(
-        "/auth/register",
-        json={
-            "email": "user@example.com",
-            "password": "strong-password",
-        },
-    )
-
-    login_response = client.post(
-        "/auth/login",
-        json={
-            "email": "user@example.com",
-            "password": "strong-password",
-        },
-    )
+    register_user()
+    login_response = login_user()
 
     token = login_response.json()["access_token"]
 
@@ -130,3 +124,76 @@ def test_me_without_token_returns_unauthorized():
     response = client.get("/auth/me")
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["error"]["code"] == "unauthorized"
+
+
+def test_me_with_invalid_token_returns_unauthorized():
+    response = client.get(
+        "/auth/me",
+        headers={
+            "Authorization": "Bearer invalid-token",
+        },
+    )
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["error"]["code"] == "unauthorized"
+
+
+def test_me_with_expired_token_returns_unauthorized():
+    token = create_test_token(
+        {
+            "sub": "1",
+            "type": "access",
+            "exp": datetime.now(timezone.utc) - timedelta(minutes=1),
+        }
+    )
+
+    response = client.get(
+        "/auth/me",
+        headers={
+            "Authorization": f"Bearer {token}",
+        },
+    )
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["error"]["code"] == "unauthorized"
+
+
+def test_me_with_non_numeric_subject_returns_unauthorized():
+    token = create_test_token(
+        {
+            "sub": "not-a-number",
+            "type": "access",
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+        }
+    )
+
+    response = client.get(
+        "/auth/me",
+        headers={
+            "Authorization": f"Bearer {token}",
+        },
+    )
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["error"]["code"] == "unauthorized"
+
+
+def test_me_with_wrong_token_type_returns_unauthorized():
+    token = create_test_token(
+        {
+            "sub": "1",
+            "type": "refresh",
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+        }
+    )
+
+    response = client.get(
+        "/auth/me",
+        headers={
+            "Authorization": f"Bearer {token}",
+        },
+    )
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["error"]["code"] == "unauthorized"

@@ -27,6 +27,7 @@ def create_access_token(subject: str) -> str:
     payload = {
         "sub": subject,
         "exp": expires_at,
+        "type": "access",
     }
 
     return jwt.encode(
@@ -43,9 +44,11 @@ def decode_access_token(token: str) -> str | None:
             settings.auth_secret_key,
             algorithms=[settings.auth_algorithm],
         )
+
+        token_type = payload.get("type")
         subject = payload.get("sub")
 
-        if subject is None:
+        if token_type != "access" or subject is None:
             return None
 
         return str(subject)
