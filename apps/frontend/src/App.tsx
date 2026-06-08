@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
 import { appConfig } from "./config";
-import {
-  createTask,
-  deleteTask,
-  getTasks,
-  updateTask
-} from "./api/tasks";
 import { getErrorMessage } from "./api/errors";
 import { getHealth, getVersion } from "./api/system";
 import { useAuth } from "./auth/useAuth";
@@ -14,17 +8,13 @@ import { Message, type MessageState, type MessageType } from "./components/Messa
 import { SystemStatus } from "./components/SystemStatus";
 import { TaskForm } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
+import { useTasks } from "./tasks/useTasks";
 import type { AuthCredentials } from "./types/auth";
-import type { Task, TaskStatus } from "./types/task";
+import type { TaskStatus } from "./types/task";
 
 export function App() {
   const [health, setHealth] = useState("loading...");
   const [version, setVersion] = useState("loading...");
-  const [tasks, setTasks] = useState<Task[]>([]);
-
-  const [isTasksLoading, setIsTasksLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMutating, setIsMutating] = useState(false);
 
   const [message, setMessage] = useState<MessageState>({
     text: "",
@@ -40,6 +30,18 @@ export function App() {
     register,
     logout
   } = useAuth();
+
+  const {
+    tasks,
+    isTasksLoading,
+    isSubmitting,
+    isMutating,
+    loadTasks,
+    clearTasks,
+    createUserTask,
+    updateUserTask,
+    deleteUserTask
+  } = useTasks();
 
   useEffect(() => {
     void loadDashboard();
@@ -69,12 +71,15 @@ export function App() {
     const user = await loadCurrentUser();
 
     if (!user) {
-      setTasks([]);
-      setIsTasksLoading(false);
+      clearTasks();
       return;
     }
 
-    await loadTasks();
+    const result = await loadTasks();
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
   }
 
   async function handleLogin(credentials: AuthCredentials) {
@@ -83,12 +88,18 @@ export function App() {
     const result = await login(credentials);
 
     if (!result.success) {
-      setTasks([]);
+      clearTasks();
       showMessage(result.message, "error");
       return;
     }
 
-    await loadTasks();
+    const tasksResult = await loadTasks();
+
+    if (!tasksResult.success) {
+      showMessage(tasksResult.message, "error");
+      return;
+    }
+
     showMessage(result.message, "success");
   }
 
@@ -102,29 +113,21 @@ export function App() {
       return;
     }
 
-    await loadTasks();
+    const tasksResult = await loadTasks();
+
+    if (!tasksResult.success) {
+      showMessage(tasksResult.message, "error");
+      return;
+    }
+
     showMessage(result.message, "success");
   }
 
   function handleLogout() {
     const result = logout();
 
-    setTasks([]);
-    setIsTasksLoading(false);
+    clearTasks();
     showMessage(result.message, "success");
-  }
-
-  async function loadTasks() {
-    setIsTasksLoading(true);
-
-    try {
-      const taskList = await getTasks();
-      setTasks(taskList);
-    } catch (error) {
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsTasksLoading(false);
-    }
   }
 
   async function handleCreateTask(title: string, status: TaskStatus) {
@@ -133,22 +136,11 @@ export function App() {
       return;
     }
 
-    setIsSubmitting(true);
     showMessage("Creating task...", "muted");
 
-    try {
-      await createTask({
-        title,
-        status
-      });
+    const result = await createUserTask(title, status);
 
-      showMessage("Task created successfully.", "success");
-      await loadTasks();
-    } catch (error) {
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsSubmitting(false);
-    }
+    showMessage(result.message, result.success ? "success" : "error");
   }
 
   async function handleUpdateTask(
@@ -161,22 +153,11 @@ export function App() {
       return;
     }
 
-    setIsMutating(true);
     showMessage(`Updating task #${taskId}...`, "muted");
 
-    try {
-      await updateTask(taskId, {
-        title,
-        status
-      });
+    const result = await updateUserTask(taskId, title, status);
 
-      showMessage(`Task #${taskId} updated successfully.`, "success");
-      await loadTasks();
-    } catch (error) {
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsMutating(false);
-    }
+    showMessage(result.message, result.success ? "success" : "error");
   }
 
   async function handleDeleteTask(taskId: number) {
@@ -185,18 +166,11 @@ export function App() {
       return;
     }
 
-    setIsMutating(true);
     showMessage(`Deleting task #${taskId}...`, "muted");
 
-    try {
-      await deleteTask(taskId);
-      showMessage(`Task #${taskId} deleted successfully.`, "success");
-      await loadTasks();
-    } catch (error) {
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsMutating(false);
-    }
+    const result = await deleteUserTask(taskId);
+
+    showMessage(result.message, result.success ? "success" : "error");
   }
 
   function showMessage(text: string, type: MessageType) {
@@ -243,17 +217,19 @@ export function App() {
           <Message message={message} />
 
           <section className="card">
-              <div className="card-header">
-                <div>
-                  <h2>Tasks</h2>
-                  <p className="card-subtitle">Protected task management is available after login.</p>
-                </div>
+            <div className="card-header">
+              <div>
+                <h2>Tasks</h2>
+                <p className="card-subtitle">
+                  Protected task management is available after login.
+                </p>
               </div>
+            </div>
 
-              <div className="empty-state">
-                Please login or register to manage your tasks.
-              </div>
-            </section>
+            <div className="empty-state">
+              Please login or register to manage your tasks.
+            </div>
+          </section>
         </>
       )}
     </main>
