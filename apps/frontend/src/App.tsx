@@ -243,9 +243,17 @@ export function App() {
           <Message message={message} />
 
           <section className="card">
-            <h2>Tasks</h2>
-            <p>Please login or register to manage your tasks.</p>
-          </section>
+              <div className="card-header">
+                <div>
+                  <h2>Tasks</h2>
+                  <p className="card-subtitle">Protected task management is available after login.</p>
+                </div>
+              </div>
+
+              <div className="empty-state">
+                Please login or register to manage your tasks.
+              </div>
+            </section>
         </>
       )}
     </main>

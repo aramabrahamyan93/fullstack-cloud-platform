@@ -23,7 +23,13 @@ export function TaskList({
   if (isLoading) {
     return (
       <section className="card">
-        <h2>Tasks</h2>
+        <div className="card-header">
+          <div>
+            <h2>Tasks</h2>
+            <p className="card-subtitle">Loading your protected task list...</p>
+          </div>
+        </div>
+
         <p className="muted">Loading tasks...</p>
       </section>
     );
@@ -31,10 +37,19 @@ export function TaskList({
 
   return (
     <section className="card">
-      <h2>Tasks</h2>
+      <div className="card-header">
+        <div>
+          <h2>Tasks</h2>
+          <p className="card-subtitle">
+            Only tasks owned by the signed-in user are shown here.
+          </p>
+        </div>
+      </div>
 
       {tasks.length === 0 ? (
-        <p className="muted">No tasks yet.</p>
+        <div className="empty-state">
+          No tasks yet. Create your first protected task above.
+        </div>
       ) : (
         <ul className="task-list">
           {tasks.map((task) => (

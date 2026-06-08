@@ -45,8 +45,14 @@ export function AuthPanel({
   if (isLoading) {
     return (
       <section className="card">
-        <h2>Authentication</h2>
-        <p>Loading current user...</p>
+        <div className="auth-header">
+          <div>
+            <h2>Authentication</h2>
+            <p className="auth-subtitle">Restoring your local session...</p>
+          </div>
+        </div>
+
+        <p className="muted">Loading current user...</p>
       </section>
     );
   }
@@ -54,25 +60,39 @@ export function AuthPanel({
   if (isAuthenticated && currentUser) {
     return (
       <section className="card">
-        <h2>Authentication</h2>
-        <p>
-          Logged in as <strong>{currentUser.email}</strong>
-        </p>
+        <div className="auth-header">
+          <div>
+            <h2>Authentication</h2>
+            <p className="auth-subtitle">You are authenticated with a JWT access token.</p>
+          </div>
+        </div>
 
-        <button type="button" onClick={onLogout}>
-          Logout
-        </button>
+        <div className="authenticated-user">
+          <span className="user-badge">Signed in: {currentUser.email}</span>
+
+          <button type="button" className="secondary" onClick={onLogout}>
+            Logout
+          </button>
+        </div>
       </section>
     );
   }
 
   return (
     <section className="card">
-      <h2>Authentication</h2>
+      <div className="auth-header">
+        <div>
+          <h2>Authentication</h2>
+          <p className="auth-subtitle">
+            Login or create a local account to manage protected tasks.
+          </p>
+        </div>
+      </div>
 
-      <div className="button-row">
+      <div className="auth-tabs" aria-label="Authentication mode">
         <button
           type="button"
+          className={`auth-tab ${mode === "login" ? "active" : ""}`}
           disabled={mode === "login" || isSubmitting}
           onClick={() => setMode("login")}
         >
@@ -81,6 +101,7 @@ export function AuthPanel({
 
         <button
           type="button"
+          className={`auth-tab ${mode === "register" ? "active" : ""}`}
           disabled={mode === "register" || isSubmitting}
           onClick={() => setMode("register")}
         >
@@ -88,8 +109,8 @@ export function AuthPanel({
         </button>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <label>
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <label className="form-field">
           Email
           <input
             type="email"
@@ -100,7 +121,7 @@ export function AuthPanel({
           />
         </label>
 
-        <label>
+        <label className="form-field">
           Password
           <input
             type="password"
@@ -117,7 +138,7 @@ export function AuthPanel({
             ? "Please wait..."
             : mode === "login"
               ? "Login"
-              : "Register"}
+              : "Create account"}
         </button>
       </form>
     </section>

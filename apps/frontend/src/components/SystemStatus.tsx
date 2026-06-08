@@ -8,15 +8,29 @@ type SystemStatusProps = {
 export function SystemStatus({ health, version }: SystemStatusProps) {
   return (
     <section className="card">
-      <p>
-        <strong>API URL:</strong> <span>{API_BASE_URL}</span>
-      </p>
-      <p>
-        <strong>Backend Health:</strong> <span>{health}</span>
-      </p>
-      <p>
-        <strong>Backend Version:</strong> <span>{version}</span>
-      </p>
+      <div className="card-header">
+        <div>
+          <h2>System Status</h2>
+          <p className="card-subtitle">Local frontend and backend connectivity.</p>
+        </div>
+      </div>
+
+      <div className="status-grid">
+        <div className="status-item">
+          <span className="status-label">API URL</span>
+          <span className="status-value">{API_BASE_URL}</span>
+        </div>
+
+        <div className="status-item">
+          <span className="status-label">Backend Health</span>
+          <span className="status-value">{health}</span>
+        </div>
+
+        <div className="status-item">
+          <span className="status-label">Backend Version</span>
+          <span className="status-value">{version}</span>
+        </div>
+      </div>
     </section>
   );
 }
