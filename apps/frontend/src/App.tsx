@@ -11,7 +11,7 @@ import { TaskList } from "./components/TaskList";
 import { TaskDashboard } from "./components/TaskDashboard";
 import { useTasks } from "./tasks/useTasks";
 import type { AuthCredentials } from "./types/auth";
-import type { TaskStatus, TaskStatusFilter } from "./types/task";
+import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "./types/task";
 
 export function App() {
   const [health, setHealth] = useState("loading...");
@@ -38,6 +38,7 @@ export function App() {
     taskCounters,
     currentPage,
     pageSize,
+    pageSizeOptions,
     totalItems,
     totalPages,
     hasPreviousPage,
@@ -46,6 +47,7 @@ export function App() {
     isSubmitting,
     isMutating,
     changeTaskStatusFilter,
+    changeTaskPageSize,
     goToPreviousTaskPage,
     goToNextTaskPage,
     loadTasks,
@@ -143,6 +145,14 @@ export function App() {
 
   async function handleTaskStatusFilterChange(statusFilter: TaskStatusFilter) {
     const result = await changeTaskStatusFilter(statusFilter);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleTaskPageSizeChange(nextPageSize: number) {
+    const result = await changeTaskPageSize(nextPageSize);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -250,6 +260,7 @@ export function App() {
             activeFilter={taskStatusFilter}
             currentPage={currentPage}
             pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
             totalItems={totalItems}
             totalPages={totalPages}
             hasPreviousPage={hasPreviousPage}
@@ -258,6 +269,7 @@ export function App() {
             isMutating={isMutating}
             onPreviousPage={handlePreviousTaskPage}
             onNextPage={handleNextTaskPage}
+            onPageSizeChange={handleTaskPageSizeChange}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
           />

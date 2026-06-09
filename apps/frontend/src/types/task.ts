@@ -2,6 +2,8 @@ export type TaskStatus = "open" | "in_progress" | "done";
 
 export type TaskStatusFilter = "all" | TaskStatus;
 
+export type TaskPageSize = 5 | 10 | 20;
+
 export type Task = {
   id: number;
   title: string;

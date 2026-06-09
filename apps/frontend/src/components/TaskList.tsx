@@ -1,11 +1,17 @@
 import { TaskItem } from "./TaskItem";
-import type { Task, TaskStatus, TaskStatusFilter } from "../types/task";
+import type {
+  Task,
+  TaskPageSize,
+  TaskStatus,
+  TaskStatusFilter
+} from "../types/task";
 
 type TaskListProps = {
   tasks: Task[];
   activeFilter: TaskStatusFilter;
   currentPage: number;
-  pageSize: number;
+  pageSize: TaskPageSize;
+  pageSizeOptions: TaskPageSize[];
   totalItems: number;
   totalPages: number;
   hasPreviousPage: boolean;
@@ -14,6 +20,7 @@ type TaskListProps = {
   isMutating: boolean;
   onPreviousPage: () => Promise<void>;
   onNextPage: () => Promise<void>;
+  onPageSizeChange: (pageSize: TaskPageSize) => Promise<void>;
   onUpdateTask: (
     taskId: number,
     title: string,
@@ -34,6 +41,7 @@ export function TaskList({
   activeFilter,
   currentPage,
   pageSize,
+  pageSizeOptions,
   totalItems,
   totalPages,
   hasPreviousPage,
@@ -42,6 +50,7 @@ export function TaskList({
   isMutating,
   onPreviousPage,
   onNextPage,
+  onPageSizeChange,
   onUpdateTask,
   onDeleteTask
 }: TaskListProps) {
@@ -66,6 +75,12 @@ export function TaskList({
     totalItems
   );
 
+  function handlePageSizeChange(value: string) {
+    const nextPageSize = Number(value) as TaskPageSize;
+
+    void onPageSizeChange(nextPageSize);
+  }
+
   return (
     <section className="card">
       <div className="card-header">
@@ -82,6 +97,23 @@ export function TaskList({
             ? ` · items ${firstVisibleItemNumber}-${lastVisibleItemNumber} of ${totalItems}`
             : ` · ${totalItems} items`}
         </div>
+      </div>
+
+      <div className="pagination-toolbar">
+        <label className="page-size-selector">
+          <span>Page size</span>
+          <select
+            value={pageSize}
+            disabled={isMutating}
+            onChange={(event) => handlePageSizeChange(event.target.value)}
+          >
+            {pageSizeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {tasks.length === 0 ? (
