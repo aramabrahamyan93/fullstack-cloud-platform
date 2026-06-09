@@ -4,8 +4,14 @@ import type { Task, TaskStatus, TaskStatusFilter } from "../types/task";
 type TaskListProps = {
   tasks: Task[];
   activeFilter: TaskStatusFilter;
+  currentPage: number;
+  pageSize: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
   isLoading: boolean;
   isMutating: boolean;
+  onPreviousPage: () => Promise<void>;
+  onNextPage: () => Promise<void>;
   onUpdateTask: (
     taskId: number,
     title: string,
@@ -24,8 +30,14 @@ const FILTER_LABELS: Record<TaskStatusFilter, string> = {
 export function TaskList({
   tasks,
   activeFilter,
+  currentPage,
+  pageSize,
+  hasPreviousPage,
+  hasNextPage,
   isLoading,
   isMutating,
+  onPreviousPage,
+  onNextPage,
   onUpdateTask,
   onDeleteTask
 }: TaskListProps) {
@@ -44,6 +56,9 @@ export function TaskList({
     );
   }
 
+  const firstVisibleItemNumber = (currentPage - 1) * pageSize + 1;
+  const lastVisibleItemNumber = firstVisibleItemNumber + tasks.length - 1;
+
   return (
     <section className="card">
       <div className="card-header">
@@ -52,6 +67,13 @@ export function TaskList({
           <p className="card-subtitle">
             Showing {FILTER_LABELS[activeFilter]} tasks owned by the signed-in user.
           </p>
+        </div>
+
+        <div className="pagination-summary">
+          Page {currentPage}
+          {tasks.length > 0
+            ? ` · items ${firstVisibleItemNumber}-${lastVisibleItemNumber}`
+            : ""}
         </div>
       </div>
 
@@ -72,6 +94,26 @@ export function TaskList({
           ))}
         </ul>
       )}
+
+      <div className="pagination-actions">
+        <button
+          type="button"
+          className="secondary"
+          disabled={!hasPreviousPage || isMutating}
+          onClick={onPreviousPage}
+        >
+          Previous
+        </button>
+
+        <button
+          type="button"
+          className="secondary"
+          disabled={!hasNextPage || isMutating}
+          onClick={onNextPage}
+        >
+          Next
+        </button>
+      </div>
     </section>
   );
 }

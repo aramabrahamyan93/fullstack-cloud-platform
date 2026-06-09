@@ -22,14 +22,22 @@ export type UseTasksResult = {
   tasks: Task[];
   taskStatusFilter: TaskStatusFilter;
   taskCounters: TaskStatusCounters;
+  currentPage: number;
+  pageSize: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
   isTasksLoading: boolean;
   isSubmitting: boolean;
   isMutating: boolean;
   changeTaskStatusFilter: (
     statusFilter: TaskStatusFilter
   ) => Promise<TaskActionResult>;
+  goToPreviousTaskPage: () => Promise<TaskActionResult>;
+  goToNextTaskPage: () => Promise<TaskActionResult>;
   loadTasks: (
-    statusFilter?: TaskStatusFilter
+    statusFilter?: TaskStatusFilter,
+    page?: number,
+    refreshCounters?: boolean
   ) => Promise<TaskActionResult>;
   clearTasks: () => void;
   createUserTask: (
@@ -51,11 +59,15 @@ const INITIAL_TASK_COUNTERS: TaskStatusCounters = {
   done: 0
 };
 
+const DEFAULT_PAGE_SIZE = 5;
+const COUNTER_TASK_LIMIT = 100;
+
 export function useTasks(): UseTasksResult {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskStatusFilter, setTaskStatusFilter] =
     useState<TaskStatusFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
@@ -72,18 +84,42 @@ export function useTasks(): UseTasksResult {
     );
   }, [allTasks]);
 
+  const hasPreviousPage = currentPage > 1;
+  const hasNextPage = tasks.length === DEFAULT_PAGE_SIZE;
+
   async function loadTasks(
-    statusFilter: TaskStatusFilter = taskStatusFilter
+    statusFilter: TaskStatusFilter = taskStatusFilter,
+    page: number = currentPage,
+    refreshCounters: boolean = true
   ): Promise<TaskActionResult> {
     setIsTasksLoading(true);
 
     try {
-      const allTaskList = await getTasks("all");
-      const visibleTaskList =
-        statusFilter === "all" ? allTaskList : await getTasks(statusFilter);
+      const offset = (page - 1) * DEFAULT_PAGE_SIZE;
 
-      setAllTasks(allTaskList);
+      const visibleTaskListPromise = getTasks({
+        statusFilter,
+        limit: DEFAULT_PAGE_SIZE,
+        offset
+      });
+
+      const allTaskListPromise = refreshCounters
+        ? getTasks({
+            statusFilter: "all",
+            limit: COUNTER_TASK_LIMIT,
+            offset: 0
+          })
+        : Promise.resolve(allTasks);
+
+      const [visibleTaskList, allTaskList] = await Promise.all([
+        visibleTaskListPromise,
+        allTaskListPromise
+      ]);
+
       setTasks(visibleTaskList);
+      setAllTasks(allTaskList);
+      setTaskStatusFilter(statusFilter);
+      setCurrentPage(page);
 
       return {
         success: true,
@@ -102,35 +138,36 @@ export function useTasks(): UseTasksResult {
   async function changeTaskStatusFilter(
     statusFilter: TaskStatusFilter
   ): Promise<TaskActionResult> {
-    setTaskStatusFilter(statusFilter);
-    setIsTasksLoading(true);
+    return loadTasks(statusFilter, 1, false);
+  }
 
-    try {
-      if (statusFilter === "all") {
-        setTasks(allTasks);
-      } else {
-        const filteredTaskList = await getTasks(statusFilter);
-        setTasks(filteredTaskList);
-      }
-
+  async function goToPreviousTaskPage(): Promise<TaskActionResult> {
+    if (!hasPreviousPage) {
       return {
         success: true,
-        message: "Task filter updated successfully."
+        message: "Already on the first page."
       };
-    } catch (error) {
-      return {
-        success: false,
-        message: getErrorMessage(error)
-      };
-    } finally {
-      setIsTasksLoading(false);
     }
+
+    return loadTasks(taskStatusFilter, currentPage - 1, false);
+  }
+
+  async function goToNextTaskPage(): Promise<TaskActionResult> {
+    if (!hasNextPage) {
+      return {
+        success: true,
+        message: "Already on the last loaded page."
+      };
+    }
+
+    return loadTasks(taskStatusFilter, currentPage + 1, false);
   }
 
   function clearTasks(): void {
     setAllTasks([]);
     setTasks([]);
     setTaskStatusFilter("all");
+    setCurrentPage(1);
     setIsTasksLoading(false);
   }
 
@@ -146,7 +183,7 @@ export function useTasks(): UseTasksResult {
         status
       });
 
-      await loadTasks(taskStatusFilter);
+      await loadTasks(taskStatusFilter, currentPage, true);
 
       return {
         success: true,
@@ -175,7 +212,7 @@ export function useTasks(): UseTasksResult {
         status
       });
 
-      await loadTasks(taskStatusFilter);
+      await loadTasks(taskStatusFilter, currentPage, true);
 
       return {
         success: true,
@@ -196,7 +233,7 @@ export function useTasks(): UseTasksResult {
 
     try {
       await deleteTask(taskId);
-      await loadTasks(taskStatusFilter);
+      await loadTasks(taskStatusFilter, currentPage, true);
 
       return {
         success: true,
@@ -216,10 +253,16 @@ export function useTasks(): UseTasksResult {
     tasks,
     taskStatusFilter,
     taskCounters,
+    currentPage,
+    pageSize: DEFAULT_PAGE_SIZE,
+    hasPreviousPage,
+    hasNextPage,
     isTasksLoading,
     isSubmitting,
     isMutating,
     changeTaskStatusFilter,
+    goToPreviousTaskPage,
+    goToNextTaskPage,
     loadTasks,
     clearTasks,
     createUserTask,

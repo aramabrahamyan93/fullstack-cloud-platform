@@ -361,6 +361,20 @@ button.danger:hover:not(:disabled) {
   justify-content: flex-end;
 }
 
+.pagination-summary {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pagination-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 @media (max-width: 760px) {
   .page {
     width: min(100% - 24px, 1120px);
@@ -391,5 +405,14 @@ button.danger:hover:not(:disabled) {
   input,
   select {
     width: 100%;
+  }
+
+  .pagination-actions {
+    justify-content: stretch;
+    flex-direction: column;
+  }
+
+  .pagination-summary {
+    white-space: normal;
   }
 }

@@ -6,10 +6,35 @@ import type {
   UpdateTaskRequest
 } from "../types/task";
 
-export function getTasks(statusFilter: TaskStatusFilter = "all"): Promise<Task[]> {
-  const query = statusFilter === "all" ? "" : `?status=${statusFilter}`;
+export type GetTasksParams = {
+  statusFilter?: TaskStatusFilter;
+  limit?: number;
+  offset?: number;
+};
 
-  return fetchJson<Task[]>(`/tasks${query}`);
+export function getTasks({
+  statusFilter = "all",
+  limit,
+  offset
+}: GetTasksParams = {}): Promise<Task[]> {
+  const queryParams = new URLSearchParams();
+
+  if (statusFilter !== "all") {
+    queryParams.set("status", statusFilter);
+  }
+
+  if (limit !== undefined) {
+    queryParams.set("limit", String(limit));
+  }
+
+  if (offset !== undefined) {
+    queryParams.set("offset", String(offset));
+  }
+
+  const query = queryParams.toString();
+  const path = query ? `/tasks?${query}` : "/tasks";
+
+  return fetchJson<Task[]>(path);
 }
 
 export function getTask(taskId: number): Promise<Task> {

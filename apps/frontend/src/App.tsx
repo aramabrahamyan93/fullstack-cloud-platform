@@ -36,17 +36,22 @@ export function App() {
     tasks,
     taskStatusFilter,
     taskCounters,
+    currentPage,
+    pageSize,
+    hasPreviousPage,
+    hasNextPage,
     isTasksLoading,
     isSubmitting,
     isMutating,
     changeTaskStatusFilter,
+    goToPreviousTaskPage,
+    goToNextTaskPage,
     loadTasks,
     clearTasks,
     createUserTask,
     updateUserTask,
     deleteUserTask
   } = useTasks();
-
   useEffect(() => {
     void loadDashboard();
   }, []);
@@ -142,6 +147,22 @@ export function App() {
     }
   }
 
+  async function handlePreviousTaskPage() {
+    const result = await goToPreviousTaskPage();
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleNextTaskPage() {
+    const result = await goToNextTaskPage();
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
   async function handleCreateTask(title: string, status: TaskStatus) {
     if (!currentUser) {
       showMessage("Please login before creating tasks.", "error");
@@ -225,8 +246,14 @@ export function App() {
           <TaskList
             tasks={tasks}
             activeFilter={taskStatusFilter}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            hasPreviousPage={hasPreviousPage}
+            hasNextPage={hasNextPage}
             isLoading={isTasksLoading}
             isMutating={isMutating}
+            onPreviousPage={handlePreviousTaskPage}
+            onNextPage={handleNextTaskPage}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
           />
