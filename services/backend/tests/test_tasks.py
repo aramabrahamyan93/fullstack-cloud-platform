@@ -689,3 +689,67 @@ def test_list_paginated_tasks_rejects_negative_offset():
     response = client.get("/tasks/paginated?offset=-1", headers=headers)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_get_task_stats_requires_authentication():
+    response = client.get("/tasks/stats")
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_get_task_stats_returns_zero_counts_initially():
+    headers = register_and_login()
+
+    response = client.get("/tasks/stats", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "all": 0,
+        "open": 0,
+        "in_progress": 0,
+        "done": 0,
+    }
+
+
+def test_get_task_stats_returns_counts_by_status():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task 1", task_status="open")
+    create_task(headers=headers, title="Open task 2", task_status="open")
+    create_task(headers=headers, title="In progress task", task_status="in_progress")
+    create_task(headers=headers, title="Done task", task_status="done")
+
+    response = client.get("/tasks/stats", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "all": 4,
+        "open": 2,
+        "in_progress": 1,
+        "done": 1,
+    }
+
+
+def test_get_task_stats_keeps_user_ownership_scope():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_task(headers=user_a_headers, title="User A open", task_status="open")
+    create_task(headers=user_a_headers, title="User A done", task_status="done")
+
+    create_task(headers=user_b_headers, title="User B open", task_status="open")
+    create_task(
+        headers=user_b_headers,
+        title="User B in progress",
+        task_status="in_progress",
+    )
+
+    response = client.get("/tasks/stats", headers=user_b_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "all": 2,
+        "open": 1,
+        "in_progress": 1,
+        "done": 0,
+    }

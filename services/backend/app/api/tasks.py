@@ -11,6 +11,7 @@ from app.db.dependencies import get_db
 from app.models.user import User
 from app.repositories.task_repository import TaskRepository
 from app.schemas.task import PaginatedTaskResponse
+from app.schemas.task import TaskStatsResponse
 from app.schemas.task import TaskCreate
 from app.schemas.task import TaskResponse
 from app.schemas.task import TaskStatus
@@ -66,6 +67,16 @@ def list_paginated_tasks(
         limit=limit,
         offset=offset,
     )
+
+@router.get(
+    "/stats",
+    response_model=TaskStatsResponse,
+)
+def get_task_stats(
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[TaskService, Depends(get_task_service)],
+):
+    return service.get_task_stats(owner_id=current_user.id)
 
 
 @router.post(

@@ -4,6 +4,7 @@ from app.core.errors import NotFoundError
 from app.models.task import Task
 from app.repositories.task_repository import TaskRepository
 from app.schemas.task import PaginatedTaskResponse
+from app.schemas.task import TaskStatsResponse
 from app.schemas.task import TaskCreate
 from app.schemas.task import TaskStatus
 from app.schemas.task import TaskUpdate
@@ -112,6 +113,25 @@ class TaskService:
             limit=limit,
             offset=offset,
         )
+
+    def get_task_stats(self, owner_id: int) -> TaskStatsResponse:
+        logger.info("Fetching task stats for owner_id=%s", owner_id)
+
+        stats = self.repository.count_tasks_by_status(owner_id=owner_id)
+
+        logger.info(
+            (
+                "Fetched task stats for owner_id=%s "
+                "all=%s open=%s in_progress=%s done=%s"
+            ),
+            owner_id,
+            stats["all"],
+            stats["open"],
+            stats["in_progress"],
+            stats["done"],
+        )
+
+        return TaskStatsResponse(**stats)
 
     def get_task(self, task_id: int, owner_id: int) -> Task:
         logger.info("Fetching task with id=%s owner_id=%s", task_id, owner_id)

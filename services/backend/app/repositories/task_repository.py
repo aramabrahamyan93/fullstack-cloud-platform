@@ -40,6 +40,17 @@ class TaskRepository:
 
         return query.count()
 
+    def count_tasks_by_status(self, owner_id: int) -> dict[str, int]:
+        return {
+            "all": self.count_tasks(owner_id=owner_id),
+            "open": self.count_tasks(owner_id=owner_id, status_filter="open"),
+            "in_progress": self.count_tasks(
+                owner_id=owner_id,
+                status_filter="in_progress",
+            ),
+            "done": self.count_tasks(owner_id=owner_id, status_filter="done"),
+        }
+
     def get_by_id(self, task_id: int, owner_id: int) -> Task | None:
         return (
             self.db.query(Task)
