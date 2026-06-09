@@ -29,8 +29,14 @@ class Settings(BaseSettings):
     def validate_security_settings(self):
         normalized_env = self.app_env.lower()
 
+        is_local_like_environment = (
+            normalized_env == "test"
+            or normalized_env == "local"
+            or normalized_env.startswith("local-")
+        )
+
         if (
-            normalized_env not in {"local", "test"}
+            not is_local_like_environment
             and self.auth_secret_key == LOCAL_AUTH_SECRET_KEY
         ):
             raise ValueError(

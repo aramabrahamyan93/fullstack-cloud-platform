@@ -13,6 +13,8 @@ on:
       - scripts/validate-services.py
       - scripts/docker-build-push.sh
       - scripts/compose.sh
+      - scripts/local-smoke-test.sh
+      - scripts/k8s-smoke-test.sh
       - docker-compose.yml
       - docker-compose.yaml
       - Makefile
@@ -32,6 +34,8 @@ on:
       - scripts/validate-services.py
       - scripts/docker-build-push.sh
       - scripts/compose.sh
+      - scripts/local-smoke-test.sh
+      - scripts/k8s-smoke-test.sh
       - docker-compose.yml
       - docker-compose.yaml
       - Makefile
@@ -60,6 +64,12 @@ jobs:
 
       - name: Validate Docker Compose wrapper syntax
         run: bash -n scripts/compose.sh
+
+      - name: Validate local smoke test syntax
+        run: bash -n scripts/local-smoke-test.sh
+
+      - name: Validate Kubernetes smoke test syntax
+        run: bash -n scripts/k8s-smoke-test.sh
 
       - name: Validate Docker build push script syntax
         run: bash -n scripts/docker-build-push.sh
@@ -139,6 +149,9 @@ jobs:
           echo "Frontend did not become reachable"
           bash scripts/compose.sh logs frontend
           exit 1
+
+      - name: Run auth-aware local smoke test
+        run: make local-smoke-test
 
       - name: Show logs on failure
         if: failure()
