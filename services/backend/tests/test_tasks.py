@@ -478,3 +478,90 @@ def test_list_tasks_rejects_invalid_status_filter():
     response = client.get("/tasks?status=invalid", headers=headers)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+def test_list_tasks_supports_limit_pagination():
+    headers = register_and_login()
+
+    for index in range(1, 6):
+        create_task(
+            headers=headers,
+            title=f"Task {index}",
+            task_status="open",
+        )
+
+    response = client.get("/tasks?limit=2", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 2
+    assert data[0]["title"] == "Task 1"
+    assert data[1]["title"] == "Task 2"
+
+
+def test_list_tasks_supports_offset_pagination():
+    headers = register_and_login()
+
+    for index in range(1, 6):
+        create_task(
+            headers=headers,
+            title=f"Task {index}",
+            task_status="open",
+        )
+
+    response = client.get("/tasks?limit=2&offset=2", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 2
+    assert data[0]["title"] == "Task 3"
+    assert data[1]["title"] == "Task 4"
+
+
+def test_list_tasks_pagination_works_with_status_filter():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task 1", task_status="open")
+    create_task(headers=headers, title="Done task 1", task_status="done")
+    create_task(headers=headers, title="Open task 2", task_status="open")
+    create_task(headers=headers, title="Open task 3", task_status="open")
+
+    response = client.get(
+        "/tasks?status=open&limit=2&offset=1",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 2
+    assert data[0]["title"] == "Open task 2"
+    assert data[1]["title"] == "Open task 3"
+
+
+def test_list_tasks_rejects_zero_limit():
+    headers = register_and_login()
+
+    response = client.get("/tasks?limit=0", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_tasks_rejects_limit_above_maximum():
+    headers = register_and_login()
+
+    response = client.get("/tasks?limit=101", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_tasks_rejects_negative_offset():
+    headers = register_and_login()
+
+    response = client.get("/tasks?offset=-1", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

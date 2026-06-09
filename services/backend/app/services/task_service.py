@@ -28,23 +28,37 @@ class TaskService:
         self,
         owner_id: int,
         status_filter: TaskStatus | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Task]:
         logger.info(
-            "Fetching tasks from database for owner_id=%s status_filter=%s",
+            (
+                "Fetching tasks from database for owner_id=%s "
+                "status_filter=%s limit=%s offset=%s"
+            ),
             owner_id,
             status_filter,
+            limit,
+            offset,
         )
 
         tasks = self.repository.list_tasks(
             owner_id=owner_id,
             status_filter=status_filter,
+            limit=limit,
+            offset=offset,
         )
 
         logger.info(
-            "Fetched %s tasks for owner_id=%s status_filter=%s",
+            (
+                "Fetched %s tasks for owner_id=%s "
+                "status_filter=%s limit=%s offset=%s"
+            ),
             len(tasks),
             owner_id,
             status_filter,
+            limit,
+            offset,
         )
 
         return tasks

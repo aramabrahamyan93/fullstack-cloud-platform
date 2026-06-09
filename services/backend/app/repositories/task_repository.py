@@ -12,13 +12,20 @@ class TaskRepository:
         self,
         owner_id: int,
         status_filter: TaskStatus | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Task]:
         query = self.db.query(Task).filter(Task.owner_id == owner_id)
 
         if status_filter is not None:
             query = query.filter(Task.status == status_filter)
 
-        return query.order_by(Task.id.asc()).all()
+        return (
+            query.order_by(Task.id.asc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
 
     def get_by_id(self, task_id: int, owner_id: int) -> Task | None:
         return (

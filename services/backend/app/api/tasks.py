@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter
 from fastapi import Depends
+from fastapi import Query
 from fastapi import status
 from sqlalchemy.orm import Session
 
@@ -37,10 +38,14 @@ def list_tasks(
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     status: TaskStatus | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ):
     return service.get_tasks(
         owner_id=current_user.id,
         status_filter=status,
+        limit=limit,
+        offset=offset,
     )
 
 
