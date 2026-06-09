@@ -4,6 +4,7 @@ import type {
   PaginatedTasksResponse,
   Task,
   TaskQueryParams,
+  TaskStatsResponse,
   UpdateTaskRequest
 } from "../types/task";
 
@@ -43,6 +44,10 @@ export function getPaginatedTasks(
   const path = query ? `/tasks/paginated?${query}` : "/tasks/paginated";
 
   return fetchJson<PaginatedTasksResponse>(path);
+}
+
+export function getTaskStats(): Promise<TaskStatsResponse> {
+  return fetchJson<TaskStatsResponse>("/tasks/stats");
 }
 
 export function getTask(taskId: number): Promise<Task> {

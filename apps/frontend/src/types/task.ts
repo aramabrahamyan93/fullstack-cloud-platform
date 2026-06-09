@@ -17,6 +17,8 @@ export type PaginatedTasksResponse = {
 
 export type TaskStatusCounters = Record<TaskStatusFilter, number>;
 
+export type TaskStatsResponse = TaskStatusCounters;
+
 export type TaskPagination = {
   page: number;
   pageSize: number;

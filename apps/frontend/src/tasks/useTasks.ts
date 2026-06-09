@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   createTask,
   deleteTask,
   getPaginatedTasks,
-  getTasks,
+  getTaskStats,
   updateTask
 } from "../api/tasks";
 import { getErrorMessage } from "../api/errors";
@@ -63,11 +63,11 @@ const INITIAL_TASK_COUNTERS: TaskStatusCounters = {
 };
 
 const DEFAULT_PAGE_SIZE = 5;
-const COUNTER_TASK_LIMIT = 100;
 
 export function useTasks(): UseTasksResult {
-  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskCounters, setTaskCounters] =
+    useState<TaskStatusCounters>(INITIAL_TASK_COUNTERS);
   const [taskStatusFilter, setTaskStatusFilter] =
     useState<TaskStatusFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,18 +75,6 @@ export function useTasks(): UseTasksResult {
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
-
-  const taskCounters = useMemo(() => {
-    return allTasks.reduce<TaskStatusCounters>(
-      (counters, task) => {
-        counters.all += 1;
-        counters[task.status] += 1;
-
-        return counters;
-      },
-      { ...INITIAL_TASK_COUNTERS }
-    );
-  }, [allTasks]);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / DEFAULT_PAGE_SIZE));
   const hasPreviousPage = currentPage > 1;
@@ -109,21 +97,17 @@ export function useTasks(): UseTasksResult {
         offset
       });
 
-      const allTaskListPromise = refreshCounters
-        ? getTasks({
-            statusFilter: "all",
-            limit: COUNTER_TASK_LIMIT,
-            offset: 0
-          })
-        : Promise.resolve(allTasks);
+      const taskStatsPromise = refreshCounters
+        ? getTaskStats()
+        : Promise.resolve(taskCounters);
 
-      const [paginatedTasks, allTaskList] = await Promise.all([
+      const [paginatedTasks, stats] = await Promise.all([
         paginatedTasksPromise,
-        allTaskListPromise
+        taskStatsPromise
       ]);
 
       setTasks(paginatedTasks.items);
-      setAllTasks(allTaskList);
+      setTaskCounters(stats);
       setTaskStatusFilter(statusFilter);
       setCurrentPage(normalizedPage);
       setTotalItems(paginatedTasks.total);
@@ -171,8 +155,8 @@ export function useTasks(): UseTasksResult {
   }
 
   function clearTasks(): void {
-    setAllTasks([]);
     setTasks([]);
+    setTaskCounters(INITIAL_TASK_COUNTERS);
     setTaskStatusFilter("all");
     setCurrentPage(1);
     setTotalItems(0);
