@@ -11,7 +11,7 @@ import { TaskList } from "./components/TaskList";
 import { TaskDashboard } from "./components/TaskDashboard";
 import { useTasks } from "./tasks/useTasks";
 import type { AuthCredentials } from "./types/auth";
-import type { TaskStatus } from "./types/task";
+import type { TaskStatus, TaskStatusFilter } from "./types/task";
 
 export function App() {
   const [health, setHealth] = useState("loading...");
@@ -33,13 +33,13 @@ export function App() {
   } = useAuth();
 
   const {
-    filteredTasks,
+    tasks,
     taskStatusFilter,
     taskCounters,
     isTasksLoading,
     isSubmitting,
     isMutating,
-    setTaskStatusFilter,
+    changeTaskStatusFilter,
     loadTasks,
     clearTasks,
     createUserTask,
@@ -134,6 +134,14 @@ export function App() {
     showMessage(result.message, "success");
   }
 
+  async function handleTaskStatusFilterChange(statusFilter: TaskStatusFilter) {
+    const result = await changeTaskStatusFilter(statusFilter);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
   async function handleCreateTask(title: string, status: TaskStatus) {
     if (!currentUser) {
       showMessage("Please login before creating tasks.", "error");
@@ -209,13 +217,13 @@ export function App() {
           <TaskDashboard
             counters={taskCounters}
             activeFilter={taskStatusFilter}
-            onFilterChange={setTaskStatusFilter}
+            onFilterChange={handleTaskStatusFilterChange}
           />
 
           <Message message={message} />
 
           <TaskList
-            tasks={filteredTasks}
+            tasks={tasks}
             activeFilter={taskStatusFilter}
             isLoading={isTasksLoading}
             isMutating={isMutating}

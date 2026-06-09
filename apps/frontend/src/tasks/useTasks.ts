@@ -20,14 +20,17 @@ export type TaskActionResult = {
 
 export type UseTasksResult = {
   tasks: Task[];
-  filteredTasks: Task[];
   taskStatusFilter: TaskStatusFilter;
   taskCounters: TaskStatusCounters;
   isTasksLoading: boolean;
   isSubmitting: boolean;
   isMutating: boolean;
-  setTaskStatusFilter: (statusFilter: TaskStatusFilter) => void;
-  loadTasks: () => Promise<TaskActionResult>;
+  changeTaskStatusFilter: (
+    statusFilter: TaskStatusFilter
+  ) => Promise<TaskActionResult>;
+  loadTasks: (
+    statusFilter?: TaskStatusFilter
+  ) => Promise<TaskActionResult>;
   clearTasks: () => void;
   createUserTask: (
     title: string,
@@ -49,6 +52,7 @@ const INITIAL_TASK_COUNTERS: TaskStatusCounters = {
 };
 
 export function useTasks(): UseTasksResult {
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskStatusFilter, setTaskStatusFilter] =
     useState<TaskStatusFilter>("all");
@@ -57,7 +61,7 @@ export function useTasks(): UseTasksResult {
   const [isMutating, setIsMutating] = useState(false);
 
   const taskCounters = useMemo(() => {
-    return tasks.reduce<TaskStatusCounters>(
+    return allTasks.reduce<TaskStatusCounters>(
       (counters, task) => {
         counters.all += 1;
         counters[task.status] += 1;
@@ -66,22 +70,20 @@ export function useTasks(): UseTasksResult {
       },
       { ...INITIAL_TASK_COUNTERS }
     );
-  }, [tasks]);
+  }, [allTasks]);
 
-  const filteredTasks = useMemo(() => {
-    if (taskStatusFilter === "all") {
-      return tasks;
-    }
-
-    return tasks.filter((task) => task.status === taskStatusFilter);
-  }, [tasks, taskStatusFilter]);
-
-  async function loadTasks(): Promise<TaskActionResult> {
+  async function loadTasks(
+    statusFilter: TaskStatusFilter = taskStatusFilter
+  ): Promise<TaskActionResult> {
     setIsTasksLoading(true);
 
     try {
-      const taskList = await getTasks();
-      setTasks(taskList);
+      const allTaskList = await getTasks("all");
+      const visibleTaskList =
+        statusFilter === "all" ? allTaskList : await getTasks(statusFilter);
+
+      setAllTasks(allTaskList);
+      setTasks(visibleTaskList);
 
       return {
         success: true,
@@ -97,7 +99,36 @@ export function useTasks(): UseTasksResult {
     }
   }
 
+  async function changeTaskStatusFilter(
+    statusFilter: TaskStatusFilter
+  ): Promise<TaskActionResult> {
+    setTaskStatusFilter(statusFilter);
+    setIsTasksLoading(true);
+
+    try {
+      if (statusFilter === "all") {
+        setTasks(allTasks);
+      } else {
+        const filteredTaskList = await getTasks(statusFilter);
+        setTasks(filteredTaskList);
+      }
+
+      return {
+        success: true,
+        message: "Task filter updated successfully."
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: getErrorMessage(error)
+      };
+    } finally {
+      setIsTasksLoading(false);
+    }
+  }
+
   function clearTasks(): void {
+    setAllTasks([]);
     setTasks([]);
     setTaskStatusFilter("all");
     setIsTasksLoading(false);
@@ -115,7 +146,7 @@ export function useTasks(): UseTasksResult {
         status
       });
 
-      await loadTasks();
+      await loadTasks(taskStatusFilter);
 
       return {
         success: true,
@@ -144,7 +175,7 @@ export function useTasks(): UseTasksResult {
         status
       });
 
-      await loadTasks();
+      await loadTasks(taskStatusFilter);
 
       return {
         success: true,
@@ -165,7 +196,7 @@ export function useTasks(): UseTasksResult {
 
     try {
       await deleteTask(taskId);
-      await loadTasks();
+      await loadTasks(taskStatusFilter);
 
       return {
         success: true,
@@ -183,13 +214,12 @@ export function useTasks(): UseTasksResult {
 
   return {
     tasks,
-    filteredTasks,
     taskStatusFilter,
     taskCounters,
     isTasksLoading,
     isSubmitting,
     isMutating,
-    setTaskStatusFilter,
+    changeTaskStatusFilter,
     loadTasks,
     clearTasks,
     createUserTask,

@@ -6,7 +6,7 @@ import type {
 type TaskDashboardProps = {
   counters: TaskStatusCounters;
   activeFilter: TaskStatusFilter;
-  onFilterChange: (statusFilter: TaskStatusFilter) => void;
+  onFilterChange: (statusFilter: TaskStatusFilter) => Promise<void>;
 };
 
 const FILTERS: Array<{

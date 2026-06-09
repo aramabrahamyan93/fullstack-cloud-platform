@@ -2,11 +2,14 @@ import { fetchJson } from "./client";
 import type {
   CreateTaskRequest,
   Task,
+  TaskStatusFilter,
   UpdateTaskRequest
 } from "../types/task";
 
-export function getTasks(): Promise<Task[]> {
-  return fetchJson<Task[]>("/tasks");
+export function getTasks(statusFilter: TaskStatusFilter = "all"): Promise<Task[]> {
+  const query = statusFilter === "all" ? "" : `?status=${statusFilter}`;
+
+  return fetchJson<Task[]>(`/tasks${query}`);
 }
 
 export function getTask(taskId: number): Promise<Task> {
