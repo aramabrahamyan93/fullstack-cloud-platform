@@ -112,8 +112,15 @@ build:
 	$(COMPOSE) build
 
 .PHONY: test
-test:
+test: backend-test
+
+.PHONY: backend-test
+backend-test:
 	$(COMPOSE) run --rm backend pytest
+
+.PHONY: frontend-validate
+frontend-validate:
+	$(COMPOSE) build frontend
 
 .PHONY: clean
 clean:
@@ -169,6 +176,7 @@ local-validate:
 	$(MAKE) local-down || true
 	$(MAKE) local-clean || true
 	$(MAKE) local-build
+	$(MAKE) frontend-validate
 	$(MAKE) local-up
 	$(MAKE) local-smoke-test
 	$(MAKE) local-test

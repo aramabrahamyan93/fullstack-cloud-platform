@@ -89,8 +89,8 @@ jobs:
       - name: Run backend tests
         run: bash scripts/compose.sh run --rm backend pytest
 
-      - name: Build frontend Docker image
-        run: bash scripts/compose.sh build frontend
+      - name: Validate frontend TypeScript and production build
+        run: make frontend-validate
 
       - name: Install Helm
         uses: azure/setup-helm@v4
