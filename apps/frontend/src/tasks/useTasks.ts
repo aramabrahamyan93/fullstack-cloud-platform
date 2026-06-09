@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   createTask,
   deleteTask,
@@ -6,7 +6,12 @@ import {
   updateTask
 } from "../api/tasks";
 import { getErrorMessage } from "../api/errors";
-import type { Task, TaskStatus } from "../types/task";
+import type {
+  Task,
+  TaskStatus,
+  TaskStatusCounters,
+  TaskStatusFilter
+} from "../types/task";
 
 export type TaskActionResult = {
   success: boolean;
@@ -15,9 +20,13 @@ export type TaskActionResult = {
 
 export type UseTasksResult = {
   tasks: Task[];
+  filteredTasks: Task[];
+  taskStatusFilter: TaskStatusFilter;
+  taskCounters: TaskStatusCounters;
   isTasksLoading: boolean;
   isSubmitting: boolean;
   isMutating: boolean;
+  setTaskStatusFilter: (statusFilter: TaskStatusFilter) => void;
   loadTasks: () => Promise<TaskActionResult>;
   clearTasks: () => void;
   createUserTask: (
@@ -32,11 +41,40 @@ export type UseTasksResult = {
   deleteUserTask: (taskId: number) => Promise<TaskActionResult>;
 };
 
+const INITIAL_TASK_COUNTERS: TaskStatusCounters = {
+  all: 0,
+  open: 0,
+  in_progress: 0,
+  done: 0
+};
+
 export function useTasks(): UseTasksResult {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskStatusFilter, setTaskStatusFilter] =
+    useState<TaskStatusFilter>("all");
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
+
+  const taskCounters = useMemo(() => {
+    return tasks.reduce<TaskStatusCounters>(
+      (counters, task) => {
+        counters.all += 1;
+        counters[task.status] += 1;
+
+        return counters;
+      },
+      { ...INITIAL_TASK_COUNTERS }
+    );
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    if (taskStatusFilter === "all") {
+      return tasks;
+    }
+
+    return tasks.filter((task) => task.status === taskStatusFilter);
+  }, [tasks, taskStatusFilter]);
 
   async function loadTasks(): Promise<TaskActionResult> {
     setIsTasksLoading(true);
@@ -61,6 +99,7 @@ export function useTasks(): UseTasksResult {
 
   function clearTasks(): void {
     setTasks([]);
+    setTaskStatusFilter("all");
     setIsTasksLoading(false);
   }
 
@@ -144,9 +183,13 @@ export function useTasks(): UseTasksResult {
 
   return {
     tasks,
+    filteredTasks,
+    taskStatusFilter,
+    taskCounters,
     isTasksLoading,
     isSubmitting,
     isMutating,
+    setTaskStatusFilter,
     loadTasks,
     clearTasks,
     createUserTask,

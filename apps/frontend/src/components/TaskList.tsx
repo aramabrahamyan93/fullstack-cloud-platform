@@ -1,8 +1,9 @@
 import { TaskItem } from "./TaskItem";
-import type { Task, TaskStatus } from "../types/task";
+import type { Task, TaskStatus, TaskStatusFilter } from "../types/task";
 
 type TaskListProps = {
   tasks: Task[];
+  activeFilter: TaskStatusFilter;
   isLoading: boolean;
   isMutating: boolean;
   onUpdateTask: (
@@ -13,8 +14,16 @@ type TaskListProps = {
   onDeleteTask: (taskId: number) => Promise<void>;
 };
 
+const FILTER_LABELS: Record<TaskStatusFilter, string> = {
+  all: "all",
+  open: "open",
+  in_progress: "in progress",
+  done: "done"
+};
+
 export function TaskList({
   tasks,
+  activeFilter,
   isLoading,
   isMutating,
   onUpdateTask,
@@ -41,14 +50,14 @@ export function TaskList({
         <div>
           <h2>Tasks</h2>
           <p className="card-subtitle">
-            Only tasks owned by the signed-in user are shown here.
+            Showing {FILTER_LABELS[activeFilter]} tasks owned by the signed-in user.
           </p>
         </div>
       </div>
 
       {tasks.length === 0 ? (
         <div className="empty-state">
-          No tasks yet. Create your first protected task above.
+          No tasks found for this filter.
         </div>
       ) : (
         <ul className="task-list">

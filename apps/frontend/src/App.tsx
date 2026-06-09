@@ -8,6 +8,7 @@ import { Message, type MessageState, type MessageType } from "./components/Messa
 import { SystemStatus } from "./components/SystemStatus";
 import { TaskForm } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
+import { TaskDashboard } from "./components/TaskDashboard";
 import { useTasks } from "./tasks/useTasks";
 import type { AuthCredentials } from "./types/auth";
 import type { TaskStatus } from "./types/task";
@@ -32,10 +33,13 @@ export function App() {
   } = useAuth();
 
   const {
-    tasks,
+    filteredTasks,
+    taskStatusFilter,
+    taskCounters,
     isTasksLoading,
     isSubmitting,
     isMutating,
+    setTaskStatusFilter,
     loadTasks,
     clearTasks,
     createUserTask,
@@ -202,10 +206,17 @@ export function App() {
             onCreateTask={handleCreateTask}
           />
 
+          <TaskDashboard
+            counters={taskCounters}
+            activeFilter={taskStatusFilter}
+            onFilterChange={setTaskStatusFilter}
+          />
+
           <Message message={message} />
 
           <TaskList
-            tasks={tasks}
+            tasks={filteredTasks}
+            activeFilter={taskStatusFilter}
             isLoading={isTasksLoading}
             isMutating={isMutating}
             onUpdateTask={handleUpdateTask}
