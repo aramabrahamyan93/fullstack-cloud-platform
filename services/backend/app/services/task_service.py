@@ -3,6 +3,7 @@ import logging
 from app.core.errors import NotFoundError
 from app.models.task import Task
 from app.repositories.task_repository import TaskRepository
+from app.schemas.task import PaginatedTaskResponse
 from app.schemas.task import TaskCreate
 from app.schemas.task import TaskStatus
 from app.schemas.task import TaskUpdate
@@ -62,6 +63,55 @@ class TaskService:
         )
 
         return tasks
+
+    def get_paginated_tasks(
+        self,
+        owner_id: int,
+        status_filter: TaskStatus | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> PaginatedTaskResponse:
+        logger.info(
+            (
+                "Fetching paginated tasks from database for owner_id=%s "
+                "status_filter=%s limit=%s offset=%s"
+            ),
+            owner_id,
+            status_filter,
+            limit,
+            offset,
+        )
+
+        tasks = self.repository.list_tasks(
+            owner_id=owner_id,
+            status_filter=status_filter,
+            limit=limit,
+            offset=offset,
+        )
+        total = self.repository.count_tasks(
+            owner_id=owner_id,
+            status_filter=status_filter,
+        )
+
+        logger.info(
+            (
+                "Fetched %s/%s paginated tasks for owner_id=%s "
+                "status_filter=%s limit=%s offset=%s"
+            ),
+            len(tasks),
+            total,
+            owner_id,
+            status_filter,
+            limit,
+            offset,
+        )
+
+        return PaginatedTaskResponse(
+            items=tasks,
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
 
     def get_task(self, task_id: int, owner_id: int) -> Task:
         logger.info("Fetching task with id=%s owner_id=%s", task_id, owner_id)

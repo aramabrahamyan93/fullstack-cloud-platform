@@ -10,6 +10,7 @@ from app.db.dependencies import get_current_user
 from app.db.dependencies import get_db
 from app.models.user import User
 from app.repositories.task_repository import TaskRepository
+from app.schemas.task import PaginatedTaskResponse
 from app.schemas.task import TaskCreate
 from app.schemas.task import TaskResponse
 from app.schemas.task import TaskStatus
@@ -42,6 +43,24 @@ def list_tasks(
     offset: int = Query(default=0, ge=0),
 ):
     return service.get_tasks(
+        owner_id=current_user.id,
+        status_filter=status,
+        limit=limit,
+        offset=offset,
+    )
+
+@router.get(
+    "/paginated",
+    response_model=PaginatedTaskResponse,
+)
+def list_paginated_tasks(
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[TaskService, Depends(get_task_service)],
+    status: TaskStatus | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    return service.get_paginated_tasks(
         owner_id=current_user.id,
         status_filter=status,
         limit=limit,

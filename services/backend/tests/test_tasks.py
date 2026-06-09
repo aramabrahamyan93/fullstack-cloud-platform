@@ -565,3 +565,127 @@ def test_list_tasks_rejects_negative_offset():
     response = client.get("/tasks?offset=-1", headers=headers)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+def test_list_paginated_tasks_returns_metadata():
+    headers = register_and_login()
+
+    for index in range(1, 6):
+        create_task(
+            headers=headers,
+            title=f"Task {index}",
+            task_status="open",
+        )
+
+    response = client.get("/tasks/paginated?limit=2&offset=0", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 0
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Task 1"
+    assert data["items"][1]["title"] == "Task 2"
+
+
+def test_list_paginated_tasks_supports_offset():
+    headers = register_and_login()
+
+    for index in range(1, 6):
+        create_task(
+            headers=headers,
+            title=f"Task {index}",
+            task_status="open",
+        )
+
+    response = client.get("/tasks/paginated?limit=2&offset=2", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 2
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Task 3"
+    assert data["items"][1]["title"] == "Task 4"
+
+
+def test_list_paginated_tasks_supports_status_filter():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task 1", task_status="open")
+    create_task(headers=headers, title="Done task 1", task_status="done")
+    create_task(headers=headers, title="Open task 2", task_status="open")
+    create_task(headers=headers, title="Open task 3", task_status="open")
+
+    response = client.get(
+        "/tasks/paginated?status=open&limit=2&offset=1",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 3
+    assert data["limit"] == 2
+    assert data["offset"] == 1
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Open task 2"
+    assert data["items"][1]["title"] == "Open task 3"
+
+
+def test_list_paginated_tasks_keeps_user_ownership_scope():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_task(headers=user_a_headers, title="User A task", task_status="open")
+    create_task(headers=user_b_headers, title="User B task 1", task_status="open")
+    create_task(headers=user_b_headers, title="User B task 2", task_status="done")
+
+    response = client.get("/tasks/paginated?limit=10&offset=0", headers=user_b_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 2
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "User B task 1"
+    assert data["items"][1]["title"] == "User B task 2"
+
+
+def test_list_paginated_tasks_rejects_invalid_status_filter():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?status=invalid", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_paginated_tasks_rejects_zero_limit():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?limit=0", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_paginated_tasks_rejects_limit_above_maximum():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?limit=101", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_paginated_tasks_rejects_negative_offset():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?offset=-1", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
