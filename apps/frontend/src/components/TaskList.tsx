@@ -6,6 +6,8 @@ type TaskListProps = {
   activeFilter: TaskStatusFilter;
   currentPage: number;
   pageSize: number;
+  totalItems: number;
+  totalPages: number;
   hasPreviousPage: boolean;
   hasNextPage: boolean;
   isLoading: boolean;
@@ -32,6 +34,8 @@ export function TaskList({
   activeFilter,
   currentPage,
   pageSize,
+  totalItems,
+  totalPages,
   hasPreviousPage,
   hasNextPage,
   isLoading,
@@ -57,7 +61,10 @@ export function TaskList({
   }
 
   const firstVisibleItemNumber = (currentPage - 1) * pageSize + 1;
-  const lastVisibleItemNumber = firstVisibleItemNumber + tasks.length - 1;
+  const lastVisibleItemNumber = Math.min(
+    firstVisibleItemNumber + tasks.length - 1,
+    totalItems
+  );
 
   return (
     <section className="card">
@@ -70,10 +77,10 @@ export function TaskList({
         </div>
 
         <div className="pagination-summary">
-          Page {currentPage}
+          Page {currentPage} of {totalPages}
           {tasks.length > 0
-            ? ` · items ${firstVisibleItemNumber}-${lastVisibleItemNumber}`
-            : ""}
+            ? ` · items ${firstVisibleItemNumber}-${lastVisibleItemNumber} of ${totalItems}`
+            : ` · ${totalItems} items`}
         </div>
       </div>
 

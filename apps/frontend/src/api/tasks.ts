@@ -1,22 +1,17 @@
 import { fetchJson } from "./client";
 import type {
   CreateTaskRequest,
+  PaginatedTasksResponse,
   Task,
-  TaskStatusFilter,
+  TaskQueryParams,
   UpdateTaskRequest
 } from "../types/task";
 
-export type GetTasksParams = {
-  statusFilter?: TaskStatusFilter;
-  limit?: number;
-  offset?: number;
-};
-
-export function getTasks({
+function buildTaskQueryString({
   statusFilter = "all",
   limit,
   offset
-}: GetTasksParams = {}): Promise<Task[]> {
+}: TaskQueryParams = {}): string {
   const queryParams = new URLSearchParams();
 
   if (statusFilter !== "all") {
@@ -31,10 +26,23 @@ export function getTasks({
     queryParams.set("offset", String(offset));
   }
 
-  const query = queryParams.toString();
+  return queryParams.toString();
+}
+
+export function getTasks(params: TaskQueryParams = {}): Promise<Task[]> {
+  const query = buildTaskQueryString(params);
   const path = query ? `/tasks?${query}` : "/tasks";
 
   return fetchJson<Task[]>(path);
+}
+
+export function getPaginatedTasks(
+  params: TaskQueryParams = {}
+): Promise<PaginatedTasksResponse> {
+  const query = buildTaskQueryString(params);
+  const path = query ? `/tasks/paginated?${query}` : "/tasks/paginated";
+
+  return fetchJson<PaginatedTasksResponse>(path);
 }
 
 export function getTask(taskId: number): Promise<Task> {

@@ -38,6 +38,8 @@ export function App() {
     taskCounters,
     currentPage,
     pageSize,
+    totalItems,
+    totalPages,
     hasPreviousPage,
     hasNextPage,
     isTasksLoading,
@@ -248,6 +250,8 @@ export function App() {
             activeFilter={taskStatusFilter}
             currentPage={currentPage}
             pageSize={pageSize}
+            totalItems={totalItems}
+            totalPages={totalPages}
             hasPreviousPage={hasPreviousPage}
             hasNextPage={hasNextPage}
             isLoading={isTasksLoading}

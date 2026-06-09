@@ -8,12 +8,21 @@ export type Task = {
   status: TaskStatus;
 };
 
+export type PaginatedTasksResponse = {
+  items: Task[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export type TaskStatusCounters = Record<TaskStatusFilter, number>;
 
 export type TaskPagination = {
   page: number;
   pageSize: number;
   offset: number;
+  totalItems: number;
+  totalPages: number;
   hasPreviousPage: boolean;
   hasNextPage: boolean;
 };
