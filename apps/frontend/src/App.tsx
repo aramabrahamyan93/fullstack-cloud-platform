@@ -151,13 +151,13 @@ export function App() {
     }
   }
 
-  async function handleTaskPageSizeChange(nextPageSize: number) {
-    const result = await changeTaskPageSize(nextPageSize);
+    async function handleTaskPageSizeChange(nextPageSize: TaskPageSize) {
+      const result = await changeTaskPageSize(nextPageSize);
 
-    if (!result.success) {
-      showMessage(result.message, "error");
+      if (!result.success) {
+        showMessage(result.message, "error");
+      }
     }
-  }
 
   async function handlePreviousTaskPage() {
     const result = await goToPreviousTaskPage();
