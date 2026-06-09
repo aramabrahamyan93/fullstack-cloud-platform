@@ -13,12 +13,14 @@ class TaskRepository:
         self,
         owner_id: int,
         status_filter: TaskStatus | None = None,
+        search: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Task]:
         query = self._build_owned_tasks_query(
             owner_id=owner_id,
             status_filter=status_filter,
+            search=search,
         )
 
         return (
@@ -32,10 +34,12 @@ class TaskRepository:
         self,
         owner_id: int,
         status_filter: TaskStatus | None = None,
+        search: str | None = None,
     ) -> int:
         query = self._build_owned_tasks_query(
             owner_id=owner_id,
             status_filter=status_filter,
+            search=search,
         )
 
         return query.count()
@@ -75,10 +79,16 @@ class TaskRepository:
         self,
         owner_id: int,
         status_filter: TaskStatus | None = None,
+        search: str | None = None,
     ) -> Query:
         query = self.db.query(Task).filter(Task.owner_id == owner_id)
 
         if status_filter is not None:
             query = query.filter(Task.status == status_filter)
+
+        normalized_search = search.strip() if search is not None else None
+
+        if normalized_search:
+            query = query.filter(Task.title.ilike(f"%{normalized_search}%"))
 
         return query

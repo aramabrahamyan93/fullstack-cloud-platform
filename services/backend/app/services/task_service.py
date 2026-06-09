@@ -30,16 +30,18 @@ class TaskService:
         self,
         owner_id: int,
         status_filter: TaskStatus | None = None,
+        search: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Task]:
         logger.info(
             (
                 "Fetching tasks from database for owner_id=%s "
-                "status_filter=%s limit=%s offset=%s"
+                "status_filter=%s search=%s limit=%s offset=%s"
             ),
             owner_id,
             status_filter,
+            search,
             limit,
             offset,
         )
@@ -47,6 +49,7 @@ class TaskService:
         tasks = self.repository.list_tasks(
             owner_id=owner_id,
             status_filter=status_filter,
+            search=search,
             limit=limit,
             offset=offset,
         )
@@ -54,11 +57,12 @@ class TaskService:
         logger.info(
             (
                 "Fetched %s tasks for owner_id=%s "
-                "status_filter=%s limit=%s offset=%s"
+                "status_filter=%s search=%s limit=%s offset=%s"
             ),
             len(tasks),
             owner_id,
             status_filter,
+            search,
             limit,
             offset,
         )
@@ -69,16 +73,18 @@ class TaskService:
         self,
         owner_id: int,
         status_filter: TaskStatus | None = None,
+        search: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> PaginatedTaskResponse:
         logger.info(
             (
                 "Fetching paginated tasks from database for owner_id=%s "
-                "status_filter=%s limit=%s offset=%s"
+                "status_filter=%s search=%s limit=%s offset=%s"
             ),
             owner_id,
             status_filter,
+            search,
             limit,
             offset,
         )
@@ -86,23 +92,26 @@ class TaskService:
         tasks = self.repository.list_tasks(
             owner_id=owner_id,
             status_filter=status_filter,
+            search=search,
             limit=limit,
             offset=offset,
         )
         total = self.repository.count_tasks(
             owner_id=owner_id,
             status_filter=status_filter,
+            search=search,
         )
 
         logger.info(
             (
                 "Fetched %s/%s paginated tasks for owner_id=%s "
-                "status_filter=%s limit=%s offset=%s"
+                "status_filter=%s search=%s limit=%s offset=%s"
             ),
             len(tasks),
             total,
             owner_id,
             status_filter,
+            search,
             limit,
             offset,
         )

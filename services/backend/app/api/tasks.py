@@ -40,12 +40,14 @@ def list_tasks(
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     status: TaskStatus | None = None,
+    search: str | None = Query(default=None, min_length=1, max_length=100),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ):
     return service.get_tasks(
         owner_id=current_user.id,
         status_filter=status,
+        search=search,
         limit=limit,
         offset=offset,
     )
@@ -58,12 +60,14 @@ def list_paginated_tasks(
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     status: TaskStatus | None = None,
+    search: str | None = Query(default=None, min_length=1, max_length=100),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ):
     return service.get_paginated_tasks(
         owner_id=current_user.id,
         status_filter=status,
+        search=search,
         limit=limit,
         offset=offset,
     )

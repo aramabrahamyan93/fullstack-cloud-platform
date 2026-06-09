@@ -753,3 +753,154 @@ def test_get_task_stats_keeps_user_ownership_scope():
         "in_progress": 1,
         "done": 0,
     }
+
+def test_list_tasks_can_search_by_title():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker setup", task_status="open")
+    create_task(headers=headers, title="Kubernetes ingress", task_status="open")
+    create_task(headers=headers, title="Docker compose cleanup", task_status="done")
+
+    response = client.get("/tasks?search=docker", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 2
+    assert data[0]["title"] == "Docker setup"
+    assert data[1]["title"] == "Docker compose cleanup"
+
+
+def test_list_tasks_search_is_case_insensitive():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker setup", task_status="open")
+    create_task(headers=headers, title="Kubernetes ingress", task_status="open")
+
+    response = client.get("/tasks?search=DOCKER", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Docker setup"
+
+
+def test_list_tasks_search_keeps_user_ownership_scope():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_task(headers=user_a_headers, title="Docker private task", task_status="open")
+    create_task(headers=user_b_headers, title="Docker visible task", task_status="open")
+
+    response = client.get("/tasks?search=docker", headers=user_b_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Docker visible task"
+
+
+def test_list_tasks_search_works_with_status_filter():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker open task", task_status="open")
+    create_task(headers=headers, title="Docker done task", task_status="done")
+    create_task(headers=headers, title="Kubernetes open task", task_status="open")
+
+    response = client.get("/tasks?status=open&search=docker", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Docker open task"
+    assert data[0]["status"] == "open"
+
+
+def test_list_tasks_rejects_empty_search():
+    headers = register_and_login()
+
+    response = client.get("/tasks?search=", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_paginated_tasks_can_search_by_title():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker setup", task_status="open")
+    create_task(headers=headers, title="Kubernetes ingress", task_status="open")
+    create_task(headers=headers, title="Docker compose cleanup", task_status="done")
+
+    response = client.get(
+        "/tasks/paginated?search=docker&limit=10&offset=0",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 2
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Docker setup"
+    assert data["items"][1]["title"] == "Docker compose cleanup"
+
+
+def test_list_paginated_tasks_search_works_with_status_filter():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker open task", task_status="open")
+    create_task(headers=headers, title="Docker done task", task_status="done")
+    create_task(headers=headers, title="Kubernetes open task", task_status="open")
+
+    response = client.get(
+        "/tasks/paginated?status=open&search=docker&limit=10&offset=0",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["title"] == "Docker open task"
+    assert data["items"][0]["status"] == "open"
+
+
+def test_list_paginated_tasks_search_supports_pagination():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker task 1", task_status="open")
+    create_task(headers=headers, title="Docker task 2", task_status="open")
+    create_task(headers=headers, title="Docker task 3", task_status="open")
+    create_task(headers=headers, title="Kubernetes task", task_status="open")
+
+    response = client.get(
+        "/tasks/paginated?search=docker&limit=2&offset=1",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 3
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Docker task 2"
+    assert data["items"][1]["title"] == "Docker task 3"
+
+
+def test_list_paginated_tasks_rejects_empty_search():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?search=", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
