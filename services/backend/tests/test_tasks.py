@@ -398,3 +398,83 @@ def test_user_cannot_delete_other_users_task():
     owner_response = client.get(f"/tasks/{task_id}", headers=user_a_headers)
 
     assert owner_response.status_code == status.HTTP_200_OK
+
+def test_list_tasks_can_filter_by_open_status():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task", task_status="open")
+    create_task(headers=headers, title="In progress task", task_status="in_progress")
+    create_task(headers=headers, title="Done task", task_status="done")
+
+    response = client.get("/tasks?status=open", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Open task"
+    assert data[0]["status"] == "open"
+
+
+def test_list_tasks_can_filter_by_in_progress_status():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task", task_status="open")
+    create_task(headers=headers, title="In progress task", task_status="in_progress")
+    create_task(headers=headers, title="Done task", task_status="done")
+
+    response = client.get("/tasks?status=in_progress", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "In progress task"
+    assert data[0]["status"] == "in_progress"
+
+
+def test_list_tasks_can_filter_by_done_status():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task", task_status="open")
+    create_task(headers=headers, title="In progress task", task_status="in_progress")
+    create_task(headers=headers, title="Done task", task_status="done")
+
+    response = client.get("/tasks?status=done", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Done task"
+    assert data[0]["status"] == "done"
+
+
+def test_list_tasks_status_filter_keeps_user_ownership_scope():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_task(headers=user_a_headers, title="User A open task", task_status="open")
+    create_task(headers=user_b_headers, title="User B open task", task_status="open")
+    create_task(headers=user_b_headers, title="User B done task", task_status="done")
+
+    response = client.get("/tasks?status=open", headers=user_b_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "User B open task"
+    assert data[0]["status"] == "open"
+
+
+def test_list_tasks_rejects_invalid_status_filter():
+    headers = register_and_login()
+
+    response = client.get("/tasks?status=invalid", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

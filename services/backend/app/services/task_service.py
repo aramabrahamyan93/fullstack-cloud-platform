@@ -4,6 +4,7 @@ from app.core.errors import NotFoundError
 from app.models.task import Task
 from app.repositories.task_repository import TaskRepository
 from app.schemas.task import TaskCreate
+from app.schemas.task import TaskStatus
 from app.schemas.task import TaskUpdate
 
 logger = logging.getLogger(__name__)
@@ -23,10 +24,29 @@ class TaskService:
     def __init__(self, repository: TaskRepository):
         self.repository = repository
 
-    def get_tasks(self, owner_id: int) -> list[Task]:
-        logger.info("Fetching tasks from database for owner_id=%s", owner_id)
-        tasks = self.repository.list_tasks(owner_id=owner_id)
-        logger.info("Fetched %s tasks for owner_id=%s", len(tasks), owner_id)
+    def get_tasks(
+        self,
+        owner_id: int,
+        status_filter: TaskStatus | None = None,
+    ) -> list[Task]:
+        logger.info(
+            "Fetching tasks from database for owner_id=%s status_filter=%s",
+            owner_id,
+            status_filter,
+        )
+
+        tasks = self.repository.list_tasks(
+            owner_id=owner_id,
+            status_filter=status_filter,
+        )
+
+        logger.info(
+            "Fetched %s tasks for owner_id=%s status_filter=%s",
+            len(tasks),
+            owner_id,
+            status_filter,
+        )
+
         return tasks
 
     def get_task(self, task_id: int, owner_id: int) -> Task:

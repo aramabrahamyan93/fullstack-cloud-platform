@@ -11,6 +11,7 @@ from app.models.user import User
 from app.repositories.task_repository import TaskRepository
 from app.schemas.task import TaskCreate
 from app.schemas.task import TaskResponse
+from app.schemas.task import TaskStatus
 from app.schemas.task import TaskUpdate
 from app.services.task_service import TaskService
 from app.services.task_service import create_task_service
@@ -35,8 +36,12 @@ def get_task_service(
 def list_tasks(
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
+    status: TaskStatus | None = None,
 ):
-    return service.get_tasks(owner_id=current_user.id)
+    return service.get_tasks(
+        owner_id=current_user.id,
+        status_filter=status,
+    )
 
 
 @router.post(
