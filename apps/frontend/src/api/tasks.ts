@@ -10,13 +10,19 @@ import type {
 
 function buildTaskQueryString({
   statusFilter = "all",
+  search,
   limit,
   offset
 }: TaskQueryParams = {}): string {
   const queryParams = new URLSearchParams();
+  const normalizedSearch = search?.trim();
 
   if (statusFilter !== "all") {
     queryParams.set("status", statusFilter);
+  }
+
+  if (normalizedSearch) {
+    queryParams.set("search", normalizedSearch);
   }
 
   if (limit !== undefined) {

@@ -23,6 +23,7 @@ export type TaskActionResult = {
 export type UseTasksResult = {
   tasks: Task[];
   taskStatusFilter: TaskStatusFilter;
+  taskSearch: string;
   taskCounters: TaskStatusCounters;
   currentPage: number;
   pageSize: TaskPageSize;
@@ -38,13 +39,16 @@ export type UseTasksResult = {
     statusFilter: TaskStatusFilter
   ) => Promise<TaskActionResult>;
   changeTaskPageSize: (pageSize: TaskPageSize) => Promise<TaskActionResult>;
+  changeTaskSearch: (search: string) => Promise<TaskActionResult>;
+  clearTaskSearch: () => Promise<TaskActionResult>;
   goToPreviousTaskPage: () => Promise<TaskActionResult>;
   goToNextTaskPage: () => Promise<TaskActionResult>;
   loadTasks: (
     statusFilter?: TaskStatusFilter,
     page?: number,
     refreshCounters?: boolean,
-    nextPageSize?: TaskPageSize
+    nextPageSize?: TaskPageSize,
+    search?: string
   ) => Promise<TaskActionResult>;
   clearTasks: () => void;
   createUserTask: (
@@ -75,6 +79,7 @@ export function useTasks(): UseTasksResult {
     useState<TaskStatusCounters>(INITIAL_TASK_COUNTERS);
   const [taskStatusFilter, setTaskStatusFilter] =
     useState<TaskStatusFilter>("all");
+  const [taskSearch, setTaskSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<TaskPageSize>(DEFAULT_PAGE_SIZE);
   const [totalItems, setTotalItems] = useState(0);
@@ -90,16 +95,19 @@ export function useTasks(): UseTasksResult {
     statusFilter: TaskStatusFilter = taskStatusFilter,
     page: number = currentPage,
     refreshCounters: boolean = true,
-    nextPageSize: TaskPageSize = pageSize
+    nextPageSize: TaskPageSize = pageSize,
+    search: string = taskSearch
   ): Promise<TaskActionResult> {
     setIsTasksLoading(true);
 
     try {
       const normalizedPage = Math.max(1, page);
+      const normalizedSearch = search.trim();
       const offset = (normalizedPage - 1) * nextPageSize;
 
       const paginatedTasksPromise = getPaginatedTasks({
         statusFilter,
+        search: normalizedSearch,
         limit: nextPageSize,
         offset
       });
@@ -116,6 +124,7 @@ export function useTasks(): UseTasksResult {
       setTasks(paginatedTasks.items);
       setTaskCounters(stats);
       setTaskStatusFilter(statusFilter);
+      setTaskSearch(normalizedSearch);
       setCurrentPage(normalizedPage);
       setPageSize(nextPageSize);
       setTotalItems(paginatedTasks.total);
@@ -137,13 +146,21 @@ export function useTasks(): UseTasksResult {
   async function changeTaskStatusFilter(
     statusFilter: TaskStatusFilter
   ): Promise<TaskActionResult> {
-    return loadTasks(statusFilter, 1, false, pageSize);
+    return loadTasks(statusFilter, 1, false, pageSize, taskSearch);
   }
 
   async function changeTaskPageSize(
     nextPageSize: TaskPageSize
   ): Promise<TaskActionResult> {
-    return loadTasks(taskStatusFilter, 1, false, nextPageSize);
+    return loadTasks(taskStatusFilter, 1, false, nextPageSize, taskSearch);
+  }
+
+  async function changeTaskSearch(search: string): Promise<TaskActionResult> {
+    return loadTasks(taskStatusFilter, 1, false, pageSize, search);
+  }
+
+  async function clearTaskSearch(): Promise<TaskActionResult> {
+    return loadTasks(taskStatusFilter, 1, false, pageSize, "");
   }
 
   async function goToPreviousTaskPage(): Promise<TaskActionResult> {
@@ -154,7 +171,7 @@ export function useTasks(): UseTasksResult {
       };
     }
 
-    return loadTasks(taskStatusFilter, currentPage - 1, false, pageSize);
+    return loadTasks(taskStatusFilter, currentPage - 1, false, pageSize, taskSearch);
   }
 
   async function goToNextTaskPage(): Promise<TaskActionResult> {
@@ -165,13 +182,14 @@ export function useTasks(): UseTasksResult {
       };
     }
 
-    return loadTasks(taskStatusFilter, currentPage + 1, false, pageSize);
+    return loadTasks(taskStatusFilter, currentPage + 1, false, pageSize, taskSearch);
   }
 
   function clearTasks(): void {
     setTasks([]);
     setTaskCounters(INITIAL_TASK_COUNTERS);
     setTaskStatusFilter("all");
+    setTaskSearch("");
     setCurrentPage(1);
     setPageSize(DEFAULT_PAGE_SIZE);
     setTotalItems(0);
@@ -190,7 +208,7 @@ export function useTasks(): UseTasksResult {
         status
       });
 
-      await loadTasks(taskStatusFilter, currentPage, true, pageSize);
+      await loadTasks(taskStatusFilter, currentPage, true, pageSize, taskSearch);
 
       return {
         success: true,
@@ -219,7 +237,7 @@ export function useTasks(): UseTasksResult {
         status
       });
 
-      await loadTasks(taskStatusFilter, currentPage, true, pageSize);
+      await loadTasks(taskStatusFilter, currentPage, true, pageSize, taskSearch);
 
       return {
         success: true,
@@ -248,7 +266,8 @@ export function useTasks(): UseTasksResult {
         taskStatusFilter,
         shouldMoveToPreviousPage ? currentPage - 1 : currentPage,
         true,
-        pageSize
+        pageSize,
+        taskSearch
       );
 
       return {
@@ -268,6 +287,7 @@ export function useTasks(): UseTasksResult {
   return {
     tasks,
     taskStatusFilter,
+    taskSearch,
     taskCounters,
     currentPage,
     pageSize,
@@ -281,6 +301,8 @@ export function useTasks(): UseTasksResult {
     isMutating,
     changeTaskStatusFilter,
     changeTaskPageSize,
+    changeTaskSearch,
+    clearTaskSearch,
     goToPreviousTaskPage,
     goToNextTaskPage,
     loadTasks,

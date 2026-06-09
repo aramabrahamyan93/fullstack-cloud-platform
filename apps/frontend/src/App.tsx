@@ -35,6 +35,7 @@ export function App() {
   const {
     tasks,
     taskStatusFilter,
+    taskSearch,
     taskCounters,
     currentPage,
     pageSize,
@@ -48,6 +49,8 @@ export function App() {
     isMutating,
     changeTaskStatusFilter,
     changeTaskPageSize,
+    changeTaskSearch,
+    clearTaskSearch,
     goToPreviousTaskPage,
     goToNextTaskPage,
     loadTasks,
@@ -151,13 +154,29 @@ export function App() {
     }
   }
 
-    async function handleTaskPageSizeChange(nextPageSize: TaskPageSize) {
-      const result = await changeTaskPageSize(nextPageSize);
+  async function handleTaskPageSizeChange(nextPageSize: TaskPageSize) {
+    const result = await changeTaskPageSize(nextPageSize);
 
-      if (!result.success) {
-        showMessage(result.message, "error");
-      }
+    if (!result.success) {
+      showMessage(result.message, "error");
     }
+  }
+
+  async function handleTaskSearch(search: string) {
+    const result = await changeTaskSearch(search);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleClearTaskSearch() {
+    const result = await clearTaskSearch();
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
 
   async function handlePreviousTaskPage() {
     const result = await goToPreviousTaskPage();
@@ -258,6 +277,7 @@ export function App() {
           <TaskList
             tasks={tasks}
             activeFilter={taskStatusFilter}
+            search={taskSearch}
             currentPage={currentPage}
             pageSize={pageSize}
             pageSizeOptions={pageSizeOptions}
@@ -270,6 +290,8 @@ export function App() {
             onPreviousPage={handlePreviousTaskPage}
             onNextPage={handleNextTaskPage}
             onPageSizeChange={handleTaskPageSizeChange}
+            onSearch={handleTaskSearch}
+            onClearSearch={handleClearTaskSearch}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
           />

@@ -33,6 +33,7 @@ export type TaskPagination = {
 
 export type TaskQueryParams = {
   statusFilter?: TaskStatusFilter;
+  search?: string;
   limit?: number;
   offset?: number;
 };
