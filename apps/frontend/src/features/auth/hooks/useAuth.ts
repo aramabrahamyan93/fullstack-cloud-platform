@@ -3,13 +3,13 @@ import {
   getCurrentUser,
   loginUser,
   registerUser
-} from "../api/auth";
-import { getErrorMessage } from "../api/errors";
+} from "../api";
+import { getErrorMessage } from "../../../api/errors";
 import {
   clearAccessToken,
   saveAccessToken
-} from "./tokenStorage";
-import type { AuthCredentials, User } from "../types/auth";
+} from "../tokenStorage";
+import type { AuthCredentials, User } from "../types";
 
 export type AuthResult = {
   success: boolean;

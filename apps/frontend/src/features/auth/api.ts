@@ -1,9 +1,9 @@
-import { fetchJson } from "./client";
+import { fetchJson } from "../../api/client";
 import type {
   AuthCredentials,
   TokenResponse,
   User
-} from "../types/auth";
+} from "./types";
 
 export async function registerUser(
   credentials: AuthCredentials

@@ -1,4 +1,4 @@
-import { getAccessToken } from "../auth/tokenStorage";
+import { getAccessToken } from "../features/auth/tokenStorage";
 import { appConfig } from "../config";
 import { createApiError } from "./errors";
 

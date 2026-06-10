@@ -2,15 +2,15 @@ import { useEffect, useState } from "react";
 import { appConfig } from "./config";
 import { getErrorMessage } from "./api/errors";
 import { getHealth, getVersion } from "./api/system";
-import { useAuth } from "./auth/useAuth";
-import { AuthPanel } from "./components/AuthPanel";
+import { useAuth } from "./features/auth/hooks/useAuth";
+import { AuthPanel } from "./features/auth/components/AuthPanel";
 import { Message, type MessageState, type MessageType } from "./components/Message";
 import { SystemStatus } from "./components/SystemStatus";
 import { TaskForm } from "./features/tasks/components/TaskForm";
 import { TaskList } from "./features/tasks/components/TaskList";
 import { TaskDashboard } from "./features/tasks/components/TaskDashboard";
 import { useTasks } from "./features/tasks/hooks/useTasks";
-import type { AuthCredentials } from "./types/auth";
+import type { AuthCredentials } from "./features/auth/types";
 import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "./features/tasks/types";
 
 export function App() {

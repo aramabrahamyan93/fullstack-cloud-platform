@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import type { AuthCredentials, User } from "../types/auth";
+import type { AuthCredentials, User } from "../types";
 
 type AuthMode = "login" | "register";
 
