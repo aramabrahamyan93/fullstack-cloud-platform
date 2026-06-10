@@ -4,9 +4,9 @@ from app.core.errors import NotFoundError
 from app.models.task import Task
 from app.repositories.task_repository import TaskRepository
 from app.schemas.task import PaginatedTaskResponse
-from app.schemas.task import TaskStatsResponse
 from app.schemas.task import TaskCreate
-from app.schemas.task import TaskStatus
+from app.schemas.task import TaskListQuery
+from app.schemas.task import TaskStatsResponse
 from app.schemas.task import TaskUpdate
 
 logger = logging.getLogger(__name__)
@@ -29,42 +29,36 @@ class TaskService:
     def get_tasks(
         self,
         owner_id: int,
-        status_filter: TaskStatus | None = None,
-        search: str | None = None,
-        limit: int = 50,
-        offset: int = 0,
+        query: TaskListQuery,
     ) -> list[Task]:
         logger.info(
             (
                 "Fetching tasks from database for owner_id=%s "
-                "status_filter=%s search=%s limit=%s offset=%s"
+                "status=%s search=%s limit=%s offset=%s"
             ),
             owner_id,
-            status_filter,
-            search,
-            limit,
-            offset,
+            query.status,
+            query.search,
+            query.limit,
+            query.offset,
         )
 
         tasks = self.repository.list_tasks(
             owner_id=owner_id,
-            status_filter=status_filter,
-            search=search,
-            limit=limit,
-            offset=offset,
+            query=query,
         )
 
         logger.info(
             (
                 "Fetched %s tasks for owner_id=%s "
-                "status_filter=%s search=%s limit=%s offset=%s"
+                "status=%s search=%s limit=%s offset=%s"
             ),
             len(tasks),
             owner_id,
-            status_filter,
-            search,
-            limit,
-            offset,
+            query.status,
+            query.search,
+            query.limit,
+            query.offset,
         )
 
         return tasks
@@ -72,55 +66,48 @@ class TaskService:
     def get_paginated_tasks(
         self,
         owner_id: int,
-        status_filter: TaskStatus | None = None,
-        search: str | None = None,
-        limit: int = 50,
-        offset: int = 0,
+        query: TaskListQuery,
     ) -> PaginatedTaskResponse:
         logger.info(
             (
                 "Fetching paginated tasks from database for owner_id=%s "
-                "status_filter=%s search=%s limit=%s offset=%s"
+                "status=%s search=%s limit=%s offset=%s"
             ),
             owner_id,
-            status_filter,
-            search,
-            limit,
-            offset,
+            query.status,
+            query.search,
+            query.limit,
+            query.offset,
         )
 
         tasks = self.repository.list_tasks(
             owner_id=owner_id,
-            status_filter=status_filter,
-            search=search,
-            limit=limit,
-            offset=offset,
+            query=query,
         )
         total = self.repository.count_tasks(
             owner_id=owner_id,
-            status_filter=status_filter,
-            search=search,
+            query=query,
         )
 
         logger.info(
             (
                 "Fetched %s/%s paginated tasks for owner_id=%s "
-                "status_filter=%s search=%s limit=%s offset=%s"
+                "status=%s search=%s limit=%s offset=%s"
             ),
             len(tasks),
             total,
             owner_id,
-            status_filter,
-            search,
-            limit,
-            offset,
+            query.status,
+            query.search,
+            query.limit,
+            query.offset,
         )
 
         return PaginatedTaskResponse(
             items=tasks,
             total=total,
-            limit=limit,
-            offset=offset,
+            limit=query.limit,
+            offset=query.offset,
         )
 
     def get_task_stats(self, owner_id: int) -> TaskStatsResponse:

@@ -2,7 +2,7 @@ from sqlalchemy.orm import Query
 from sqlalchemy.orm import Session
 
 from app.models.task import Task
-from app.schemas.task import TaskStatus
+from app.schemas.task import TaskListQuery
 
 
 class TaskRepository:
@@ -12,47 +12,50 @@ class TaskRepository:
     def list_tasks(
         self,
         owner_id: int,
-        status_filter: TaskStatus | None = None,
-        search: str | None = None,
-        limit: int = 50,
-        offset: int = 0,
+        query: TaskListQuery,
     ) -> list[Task]:
-        query = self._build_owned_tasks_query(
+        db_query = self._build_owned_tasks_query(
             owner_id=owner_id,
-            status_filter=status_filter,
-            search=search,
+            query=query,
         )
 
         return (
-            query.order_by(Task.id.asc())
-            .offset(offset)
-            .limit(limit)
+            db_query.order_by(Task.id.asc())
+            .offset(query.offset)
+            .limit(query.limit)
             .all()
         )
 
     def count_tasks(
         self,
         owner_id: int,
-        status_filter: TaskStatus | None = None,
-        search: str | None = None,
+        query: TaskListQuery,
     ) -> int:
-        query = self._build_owned_tasks_query(
+        db_query = self._build_owned_tasks_query(
             owner_id=owner_id,
-            status_filter=status_filter,
-            search=search,
+            query=query,
         )
 
-        return query.count()
+        return db_query.count()
 
     def count_tasks_by_status(self, owner_id: int) -> dict[str, int]:
         return {
-            "all": self.count_tasks(owner_id=owner_id),
-            "open": self.count_tasks(owner_id=owner_id, status_filter="open"),
+            "all": self.count_tasks(
+                owner_id=owner_id,
+                query=TaskListQuery(),
+            ),
+            "open": self.count_tasks(
+                owner_id=owner_id,
+                query=TaskListQuery(status="open"),
+            ),
             "in_progress": self.count_tasks(
                 owner_id=owner_id,
-                status_filter="in_progress",
+                query=TaskListQuery(status="in_progress"),
             ),
-            "done": self.count_tasks(owner_id=owner_id, status_filter="done"),
+            "done": self.count_tasks(
+                owner_id=owner_id,
+                query=TaskListQuery(status="done"),
+            ),
         }
 
     def get_by_id(self, task_id: int, owner_id: int) -> Task | None:
@@ -78,17 +81,16 @@ class TaskRepository:
     def _build_owned_tasks_query(
         self,
         owner_id: int,
-        status_filter: TaskStatus | None = None,
-        search: str | None = None,
+        query: TaskListQuery,
     ) -> Query:
-        query = self.db.query(Task).filter(Task.owner_id == owner_id)
+        db_query = self.db.query(Task).filter(Task.owner_id == owner_id)
 
-        if status_filter is not None:
-            query = query.filter(Task.status == status_filter)
+        if query.status is not None:
+            db_query = db_query.filter(Task.status == query.status)
 
-        normalized_search = search.strip() if search is not None else None
+        normalized_search = query.search.strip() if query.search is not None else None
 
         if normalized_search:
-            query = query.filter(Task.title.ilike(f"%{normalized_search}%"))
+            db_query = db_query.filter(Task.title.ilike(f"%{normalized_search}%"))
 
-        return query
+        return db_query
