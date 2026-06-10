@@ -318,24 +318,60 @@ make local-preview
 
 The frontend is built with React, TypeScript, and Vite.
 
-Current frontend structure includes:
+Current frontend structure follows an application/features/shared layout:
 
-- API clients under `apps/frontend/src/api`
-- Auth token storage under `apps/frontend/src/auth`
-- Auth state hook: `useAuth`
-- Task state hook: `useTasks`
-- Reusable UI components under `apps/frontend/src/components`
-- Shared types under `apps/frontend/src/types`
+- Application shell under `apps/frontend/src/app`
+- Auth feature under `apps/frontend/src/features/auth`
+- Task feature under `apps/frontend/src/features/tasks`
+- System API feature under `apps/frontend/src/features/system`
+- Shared API utilities under `apps/frontend/src/shared/api`
+- Shared UI components under `apps/frontend/src/shared/components`
+
+Current frontend source tree:
+
+```text
+apps/frontend/src/
+├── app/
+│   ├── App.tsx
+│   └── config.ts
+├── features/
+│   ├── auth/
+│   │   ├── api.ts
+│   │   ├── components/AuthPanel.tsx
+│   │   ├── hooks/useAuth.ts
+│   │   ├── tokenStorage.ts
+│   │   └── types.ts
+│   ├── system/
+│   │   └── api.ts
+│   └── tasks/
+│       ├── api.ts
+│       ├── components/
+│       │   ├── TaskDashboard.tsx
+│       │   ├── TaskForm.tsx
+│       │   ├── TaskItem.tsx
+│       │   └── TaskList.tsx
+│       ├── hooks/useTasks.ts
+│       └── types.ts
+├── shared/
+│   ├── api/
+│   │   ├── client.ts
+│   │   └── errors.ts
+│   └── components/
+│       ├── Message.tsx
+│       └── SystemStatus.tsx
+├── main.tsx
+└── styles.css
+```
 
 Current auth/task flow:
 
 ```text
-App
- ├─ useAuth
+app/App
+ ├─ features/auth/hooks/useAuth
  │   ├─ login/register/logout
  │   ├─ token storage
  │   └─ current user restore
- ├─ useTasks
+ ├─ features/tasks/hooks/useTasks
  │   ├─ load paginated tasks
  │   ├─ load task stats
  │   ├─ status filter
@@ -344,31 +380,68 @@ App
  │   ├─ create task
  │   ├─ update task
  │   └─ delete task
- ├─ AuthPanel
- ├─ TaskForm
- ├─ TaskDashboard
- └─ TaskList
+ ├─ features/auth/components/AuthPanel
+ ├─ features/tasks/components/TaskForm
+ ├─ features/tasks/components/TaskDashboard
+ ├─ features/tasks/components/TaskList
+ ├─ shared/components/Message
+ └─ shared/components/SystemStatus
 ```
 
 ## Backend structure
 
 The backend is built with FastAPI and SQLAlchemy.
 
-Current backend structure includes:
+Current backend structure follows a feature-based modular monolith layout:
 
-- API routers under `services/backend/app/api`
+- API router aggregation and system endpoints under `services/backend/app/api`
 - Core config/security/error handling under `services/backend/app/core`
 - Database setup under `services/backend/app/db`
-- Models under `services/backend/app/models`
-- Repositories under `services/backend/app/repositories`
-- Services under `services/backend/app/services`
-- Schemas under `services/backend/app/schemas`
+- Auth API/service/schemas under `services/backend/app/features/auth`
+- User model/repository under `services/backend/app/features/users`
+- Task API/model/repository/service/schemas/constants under `services/backend/app/features/tasks`
 - Tests under `services/backend/tests`
+
+Current backend application tree:
+
+```text
+services/backend/app/
+├── api/
+│   ├── exception_handlers.py
+│   ├── health.py
+│   ├── router.py
+│   └── version.py
+├── core/
+│   ├── config.py
+│   ├── errors.py
+│   ├── logging.py
+│   └── security.py
+├── db/
+│   ├── database.py
+│   ├── dependencies.py
+│   └── init_db.py
+├── features/
+│   ├── auth/
+│   │   ├── router.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│   ├── tasks/
+│   │   ├── constants.py
+│   │   ├── models.py
+│   │   ├── repository.py
+│   │   ├── router.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│   └── users/
+│       ├── models.py
+│       └── repository.py
+└── main.py
+```
 
 Task API follows this flow:
 
 ```text
-router -> service -> repository -> database
+feature router -> feature service -> feature repository -> database
 ```
 
 Auth API includes:
