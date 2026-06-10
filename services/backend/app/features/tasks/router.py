@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_current_user
 from app.db.dependencies import get_db
-from app.models.user import User
+from app.features.users.models import User
 from app.features.tasks.repository import TaskRepository
 from app.features.tasks.schemas import PaginatedTaskResponse
 from app.features.tasks.schemas import TaskCreate

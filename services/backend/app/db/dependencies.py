@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.errors import UnauthorizedError
 from app.core.security import decode_access_token
 from app.db.database import SessionLocal
-from app.models.user import User
-from app.services.auth_service import AuthService
+from app.features.users.models import User
+from app.features.auth.service import AuthService
 
 bearer_scheme = HTTPBearer(auto_error=False)
 

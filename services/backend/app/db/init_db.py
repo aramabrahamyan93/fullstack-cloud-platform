@@ -10,7 +10,7 @@ from app.db.database import engine
 
 # Import models so SQLAlchemy registers them before create_all().
 from app.features.tasks.models import Task  # noqa: F401
-from app.models.user import User  # noqa: F401
+from app.features.users.models import User  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

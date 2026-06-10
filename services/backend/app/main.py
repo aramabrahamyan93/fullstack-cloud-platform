@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db.init_db import init_db
 from app.api.exception_handlers import register_exception_handlers
-from app.api.auth import router as auth_router
+from app.features.auth.router import router as auth_router
 
 configure_logging()
 logger = logging.getLogger(__name__)

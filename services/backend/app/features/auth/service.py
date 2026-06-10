@@ -6,11 +6,11 @@ from app.core.errors import UnauthorizedError
 from app.core.security import create_access_token
 from app.core.security import hash_password
 from app.core.security import verify_password
-from app.models.user import User
-from app.repositories.user_repository import UserRepository
-from app.schemas.auth import LoginRequest
-from app.schemas.auth import TokenResponse
-from app.schemas.auth import UserCreate
+from app.features.users.models import User
+from app.features.users.repository import UserRepository
+from app.features.auth.schemas import LoginRequest
+from app.features.auth.schemas import TokenResponse
+from app.features.auth.schemas import UserCreate
 
 
 class AuthService:
