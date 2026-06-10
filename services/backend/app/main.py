@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.api.health import router as health_router
-from app.api.tasks import router as tasks_router
+from app.features.tasks.router import router as tasks_router
 from app.api.version import router as version_router
 from app.core.config import settings
 from app.core.logging import configure_logging

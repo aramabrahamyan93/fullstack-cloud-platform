@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Query
 from sqlalchemy.orm import Session
 
-from app.models.task import Task
-from app.schemas.task import TaskListQuery
+from app.features.tasks.models import Task
+from app.features.tasks.schemas import TaskListQuery
 
 
 class TaskRepository:

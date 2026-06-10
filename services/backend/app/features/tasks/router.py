@@ -9,16 +9,16 @@ from sqlalchemy.orm import Session
 from app.db.dependencies import get_current_user
 from app.db.dependencies import get_db
 from app.models.user import User
-from app.repositories.task_repository import TaskRepository
-from app.schemas.task import PaginatedTaskResponse
-from app.schemas.task import TaskCreate
-from app.schemas.task import TaskListQuery
-from app.schemas.task import TaskResponse
-from app.schemas.task import TaskStatsResponse
-from app.schemas.task import TaskStatus
-from app.schemas.task import TaskUpdate
-from app.services.task_service import TaskService
-from app.services.task_service import create_task_service
+from app.features.tasks.repository import TaskRepository
+from app.features.tasks.schemas import PaginatedTaskResponse
+from app.features.tasks.schemas import TaskCreate
+from app.features.tasks.schemas import TaskListQuery
+from app.features.tasks.schemas import TaskResponse
+from app.features.tasks.schemas import TaskStatsResponse
+from app.features.tasks.schemas import TaskStatus
+from app.features.tasks.schemas import TaskUpdate
+from app.features.tasks.service import TaskService
+from app.features.tasks.service import create_task_service
 
 router = APIRouter(
     prefix="/tasks",

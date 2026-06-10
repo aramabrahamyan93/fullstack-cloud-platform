@@ -1,13 +1,13 @@
 import logging
 
 from app.core.errors import NotFoundError
-from app.models.task import Task
-from app.repositories.task_repository import TaskRepository
-from app.schemas.task import PaginatedTaskResponse
-from app.schemas.task import TaskCreate
-from app.schemas.task import TaskListQuery
-from app.schemas.task import TaskStatsResponse
-from app.schemas.task import TaskUpdate
+from app.features.tasks.models import Task
+from app.features.tasks.repository import TaskRepository
+from app.features.tasks.schemas import PaginatedTaskResponse
+from app.features.tasks.schemas import TaskCreate
+from app.features.tasks.schemas import TaskListQuery
+from app.features.tasks.schemas import TaskStatsResponse
+from app.features.tasks.schemas import TaskUpdate
 
 logger = logging.getLogger(__name__)
 
