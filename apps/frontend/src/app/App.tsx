@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { appConfig } from "./config";
-import { getErrorMessage } from "./shared/api/errors";
-import { getHealth, getVersion } from "./features/system/api";
-import { useAuth } from "./features/auth/hooks/useAuth";
-import { AuthPanel } from "./features/auth/components/AuthPanel";
-import { Message, type MessageState, type MessageType } from "./shared/components/Message";
-import { SystemStatus } from "./shared/components/SystemStatus";
-import { TaskForm } from "./features/tasks/components/TaskForm";
-import { TaskList } from "./features/tasks/components/TaskList";
-import { TaskDashboard } from "./features/tasks/components/TaskDashboard";
-import { useTasks } from "./features/tasks/hooks/useTasks";
-import type { AuthCredentials } from "./features/auth/types";
-import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "./features/tasks/types";
+import { getErrorMessage } from "../shared/api/errors";
+import { getHealth, getVersion } from "../features/system/api";
+import { useAuth } from "../features/auth/hooks/useAuth";
+import { AuthPanel } from "../features/auth/components/AuthPanel";
+import { Message, type MessageState, type MessageType } from "../shared/components/Message";
+import { SystemStatus } from "../shared/components/SystemStatus";
+import { TaskForm } from "../features/tasks/components/TaskForm";
+import { TaskList } from "../features/tasks/components/TaskList";
+import { TaskDashboard } from "../features/tasks/components/TaskDashboard";
+import { useTasks } from "../features/tasks/hooks/useTasks";
+import type { AuthCredentials } from "../features/auth/types";
+import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "../features/tasks/types";
 
 export function App() {
   const [health, setHealth] = useState("loading...");
