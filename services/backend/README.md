@@ -160,21 +160,54 @@ Response example:
 ## Backend structure
 
 ```text
-services/backend/app
-├── api
-├── core
-├── db
-├── middleware
-├── models
-├── repositories
-├── schemas
-└── services
+services/backend/app/
+├── api/
+│   ├── exception_handlers.py
+│   ├── health.py
+│   ├── router.py
+│   └── version.py
+├── core/
+│   ├── config.py
+│   ├── errors.py
+│   ├── logging.py
+│   └── security.py
+├── db/
+│   ├── database.py
+│   ├── dependencies.py
+│   └── init_db.py
+├── features/
+│   ├── auth/
+│   │   ├── router.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│   ├── tasks/
+│   │   ├── constants.py
+│   │   ├── models.py
+│   │   ├── repository.py
+│   │   ├── router.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│   └── users/
+│       ├── models.py
+│       └── repository.py
+└── main.py
 ```
+
+The backend follows a feature-based modular monolith structure.
+
+Main areas:
+
+- `api` contains application-level router aggregation, health/version endpoints, and exception handlers.
+- `core` contains shared configuration, logging, security helpers, and application errors.
+- `db` contains SQLAlchemy database setup, dependencies, and local table initialization.
+- `features/auth` contains authentication API, schemas, and service logic.
+- `features/users` contains the user model and user repository.
+- `features/tasks` contains task API, task model, repository, service, schemas, and constants.
 
 Task API flow:
 
 ```text
-router -> service -> repository -> database
+features/tasks/router -> features/tasks/service -> features/tasks/repository -> database
 ```
 
 Task listing uses an internal `TaskListQuery` schema to group:

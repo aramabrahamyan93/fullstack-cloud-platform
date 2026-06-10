@@ -5,14 +5,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.api.health import router as health_router
-from app.api.tasks import router as tasks_router
-from app.api.version import router as version_router
+from app.api.exception_handlers import register_exception_handlers
+from app.api.router import api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db.init_db import init_db
-from app.api.exception_handlers import register_exception_handlers
-from app.api.auth import router as auth_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -51,10 +48,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(health_router)
-app.include_router(version_router)
-app.include_router(auth_router)
-app.include_router(tasks_router)
+app.include_router(api_router)
 
 # Prometheus Metrics
 Instrumentator().instrument(app).expose(

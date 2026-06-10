@@ -1,88 +1,251 @@
-# Project structure
+# Project Structure
 
-## Root files
+This document describes the current repository structure of the Fullstack Cloud Platform project.
+
+The project is organized as a fullstack cloud-native application with:
+
+- FastAPI backend
+- React frontend
+- PostgreSQL database
+- Docker Compose local development
+- Kubernetes and Helm deployment
+- Terraform-based infrastructure
+- GitHub Actions CI/CD
+- operational documentation under `docs/`
+
+## Root structure
 
 ```text
-Makefile
-project.env
-docker-compose.yml
-README.md
-PROJECT_DOCUMENTATION.md
-services.json
-.github/
-backend/
-frontend/
-helm/
-k8s/
-infra/
-addons/
-scripts/
-config/
+.
+├── .github/
+├── addons/
+├── apps/
+├── config/
+├── docs/
+├── helm/
+├── infra/
+├── k8s/
+├── scripts/
+├── services/
+├── shared/
+├── docker-compose.yml
+├── Makefile
+├── project.env
+├── README.md
+└── services.json
 ```
 
 ## Backend
 
+Backend code lives under:
+
 ```text
-backend/
-  Dockerfile
-  requirements.txt
-  README.md
-  app/
-    main.py
-    api/
-      health.py
-      version.py
-      tasks.py
-    core/
-      config.py
-      logging.py
-    db/
-      database.py
-      dependencies.py
-      init_db.py
-    models/
-      task.py
-    schemas/
-      task.py
-    services/
-      task_service.py
-  tests/
-    test_health.py
-    test_version.py
+services/backend/
 ```
 
-The backend contains the FastAPI application, API routes, database initialization, SQLAlchemy models, schemas, services, and tests.
+Current backend application structure:
+
+```text
+services/backend/app/
+├── api/
+│   ├── exception_handlers.py
+│   ├── health.py
+│   ├── router.py
+│   └── version.py
+├── core/
+│   ├── config.py
+│   ├── errors.py
+│   ├── logging.py
+│   └── security.py
+├── db/
+│   ├── database.py
+│   ├── dependencies.py
+│   └── init_db.py
+├── features/
+│   ├── auth/
+│   │   ├── router.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│   ├── tasks/
+│   │   ├── constants.py
+│   │   ├── models.py
+│   │   ├── repository.py
+│   │   ├── router.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│   └── users/
+│       ├── models.py
+│       └── repository.py
+└── main.py
+```
+
+### Backend responsibilities
+
+`app/main.py`
+
+Application entrypoint. Creates the FastAPI application and registers middleware, exception handlers, and the main API router.
+
+`app/api/`
+
+Application-level API wiring and system endpoints.
+
+- `router.py` aggregates all routers.
+- `health.py` provides health, readiness, and liveness endpoints.
+- `version.py` provides version information.
+- `exception_handlers.py` registers centralized exception handling.
+
+`app/core/`
+
+Shared backend foundation.
+
+- configuration
+- logging
+- custom application errors
+- security helpers
+
+`app/db/`
+
+Database setup and dependency wiring.
+
+- SQLAlchemy engine/session setup
+- database dependencies
+- local database initialization helpers
+
+`app/features/`
+
+Feature-based backend modules.
+
+Each feature owns its related router, schemas, service logic, repository logic, models, and constants where applicable.
+
+Current backend features:
+
+- `auth` — registration, login, current-user endpoint, authentication service, auth schemas
+- `users` — user model and user repository
+- `tasks` — task model, task API, task service, task repository, task schemas, task constants
+
+
+Feature-specific backend code should live under:
+
+```text
+services/backend/app/features/<feature-name>/
+```
 
 ## Frontend
 
+Frontend code lives under:
+
 ```text
-frontend/
-  Dockerfile
-  index.html
-  nginx.conf
+apps/frontend/
 ```
 
-The frontend is currently a static Nginx-based UI.
+Current frontend source structure:
+
+```text
+apps/frontend/src/
+├── app/
+│   ├── App.tsx
+│   └── config.ts
+├── features/
+│   ├── auth/
+│   │   ├── api.ts
+│   │   ├── components/
+│   │   │   └── AuthPanel.tsx
+│   │   ├── hooks/
+│   │   │   └── useAuth.ts
+│   │   ├── tokenStorage.ts
+│   │   └── types.ts
+│   ├── system/
+│   │   └── api.ts
+│   └── tasks/
+│       ├── api.ts
+│       ├── components/
+│       │   ├── TaskDashboard.tsx
+│       │   ├── TaskForm.tsx
+│       │   ├── TaskItem.tsx
+│       │   └── TaskList.tsx
+│       ├── hooks/
+│       │   └── useTasks.ts
+│       └── types.ts
+├── shared/
+│   ├── api/
+│   │   ├── client.ts
+│   │   └── errors.ts
+│   └── components/
+│       ├── Message.tsx
+│       └── SystemStatus.tsx
+├── main.tsx
+└── styles.css
+```
+
+### Frontend responsibilities
+
+`src/main.tsx`
+
+React/Vite entrypoint.
+
+`src/app/`
+
+Application shell and frontend configuration.
+
+- `App.tsx` composes the main application UI.
+- `config.ts` contains frontend runtime configuration.
+
+`src/features/`
+
+Feature-based frontend modules.
+
+Current frontend features:
+
+- `auth` — auth API calls, token storage, auth hook, auth UI, auth types
+- `tasks` — task API calls, task hook, task UI components, task types
+- `system` — system/health/version API calls
+
+`src/shared/`
+
+Reusable frontend foundation.
+
+- `shared/api/client.ts` — generic API client
+- `shared/api/errors.ts` — generic API error handling
+- `shared/components/Message.tsx` — reusable message component
+- `shared/components/SystemStatus.tsx` — reusable system status component
+
+Feature-specific frontend code should live under:
+
+```text
+apps/frontend/src/features/<feature-name>/
+```
+
+Reusable frontend code should live under:
+
+```text
+apps/frontend/src/shared/
+```
+
+Application composition should live under:
+
+```text
+apps/frontend/src/app/
+```
 
 ## Helm
 
 ```text
 helm/platform/
-  Chart.yaml
-  values.yaml
-  values-local.yaml
-  values-dev.yaml
-  values-staging.yaml
-  values-prod.yaml
-  templates/
-    _helpers.tpl
-    backend.yaml
-    frontend.yaml
-    postgres.yaml
-    ingress.yaml
-    external-secret.yaml
-    secret-store.yaml
-    backend-servicemonitor.yaml
+├── Chart.yaml
+├── values.yaml
+├── values-local.yaml
+├── values-dev.yaml
+├── values-staging.yaml
+├── values-prod.yaml
+└── templates/
+    ├── _helpers.tpl
+    ├── backend.yaml
+    ├── frontend.yaml
+    ├── postgres.yaml
+    ├── ingress.yaml
+    ├── external-secret.yaml
+    ├── secret-store.yaml
+    └── backend-servicemonitor.yaml
 ```
 
 The Helm chart defines how the application is deployed to Kubernetes.
@@ -93,17 +256,17 @@ The Helm chart defines how the application is deployed to Kubernetes.
 k8s/kind-config.yaml
 ```
 
-This file defines the local kind cluster.
+This file defines the local kind cluster configuration.
 
 ## Infrastructure
 
 ```text
 infra/
-  accounts/
-  config/
-  environments/
-  modules/
-  stacks/
+├── accounts/
+├── config/
+├── environments/
+├── modules/
+└── stacks/
 ```
 
 Infrastructure is organized around Terraform modules and stack wrappers.
@@ -172,3 +335,19 @@ Scripts automate local validation, cloud deployment, teardown, addon installatio
 ```
 
 These workflows support CI, Docker image publishing, Terraform validation, and deployment automation.
+
+## Architecture direction
+
+The current codebase follows a SaaS-ready modular monolith direction.
+
+Main rules:
+
+- Backend business code should live under `app/features/<feature-name>/`.
+- Frontend feature code should live under `src/features/<feature-name>/`.
+- Shared reusable frontend code should live under `src/shared/`.
+- Application composition should live under `src/app/`.
+- Generic backend foundation should live under `app/core/`, `app/db/`, and `app/api/`.
+- Keep feature boundaries clear.
+- Avoid hardcoded business values when constants/config are more appropriate.
+- Avoid overengineering before the project actually needs separate services.
+- Extract microservices later only when there is a real scaling, ownership, isolation, or deployment reason.
