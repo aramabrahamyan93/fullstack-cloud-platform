@@ -426,6 +426,7 @@ Detailed documentation is available in the `docs/` directory:
 - [CI/CD](docs/CI_CD.md)
 - [Operations](docs/OPERATIONS.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Architecture standards](docs/ARCHITECTURE_STANDARDS.md)
 
 ## Current roadmap
 
