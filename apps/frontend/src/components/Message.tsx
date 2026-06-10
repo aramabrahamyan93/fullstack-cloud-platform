@@ -14,5 +14,5 @@ export function Message({ message }: MessageProps) {
     return null;
   }
 
-  return <p className={message.type}>{message.text}</p>;
+  return <p className={`message ${message.type}`}>{message.text}</p>;
 }

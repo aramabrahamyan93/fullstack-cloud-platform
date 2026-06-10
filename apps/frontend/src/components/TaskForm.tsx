@@ -28,25 +28,38 @@ export function TaskForm({ isSubmitting, onCreateTask }: TaskFormProps) {
 
   return (
     <section className="card">
-      <h2>Create Task</h2>
+      <div className="card-header">
+        <div>
+          <h2>Create Task</h2>
+          <p className="card-subtitle">
+            New tasks are private and attached to the signed-in user.
+          </p>
+        </div>
+      </div>
 
-      <form className="form-row" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          maxLength={200}
-          placeholder="Task title"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
+      <form className="form-row task-form" onSubmit={handleSubmit}>
+        <label className="form-field task-title-field">
+          Title
+          <input
+            type="text"
+            maxLength={200}
+            placeholder="Task title"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        </label>
 
-        <select
-          value={status}
-          onChange={(event) => setStatus(event.target.value as TaskStatus)}
-        >
-          <option value="open">open</option>
-          <option value="in_progress">in_progress</option>
-          <option value="done">done</option>
-        </select>
+        <label className="form-field task-status-field">
+          Status
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value as TaskStatus)}
+          >
+            <option value="open">open</option>
+            <option value="in_progress">in_progress</option>
+            <option value="done">done</option>
+          </select>
+        </label>
 
         <button type="submit" disabled={isSubmitting || !title.trim()}>
           {isSubmitting ? "Creating..." : "Create task"}

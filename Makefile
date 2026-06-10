@@ -112,8 +112,15 @@ build:
 	$(COMPOSE) build
 
 .PHONY: test
-test:
+test: backend-test
+
+.PHONY: backend-test
+backend-test:
 	$(COMPOSE) run --rm backend pytest
+
+.PHONY: frontend-validate
+frontend-validate:
+	$(COMPOSE) build frontend
 
 .PHONY: clean
 clean:
@@ -169,6 +176,7 @@ local-validate:
 	$(MAKE) local-down || true
 	$(MAKE) local-clean || true
 	$(MAKE) local-build
+	$(MAKE) frontend-validate
 	$(MAKE) local-up
 	$(MAKE) local-smoke-test
 	$(MAKE) local-test
@@ -234,6 +242,8 @@ local-k8s-deploy:
 	$(MAKE) k8s-build PROJECT_NAME=$(PROJECT_NAME)
 	$(MAKE) k8s-load PROJECT_NAME=$(PROJECT_NAME) KIND_CLUSTER=$(KIND_CLUSTER)
 	$(MAKE) helm-deploy ENV=local PROJECT_NAME=$(PROJECT_NAME) PROJECT_DOMAIN=$(PROJECT_DOMAIN) AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID) AWS_REGION=$(AWS_REGION)
+	kubectl rollout restart deployment/backend -n $(K8S_NAMESPACE)
+	kubectl rollout restart deployment/frontend -n $(K8S_NAMESPACE)
 
 .PHONY: local-k8s-status
 local-k8s-status:

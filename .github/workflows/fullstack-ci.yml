@@ -13,6 +13,8 @@ on:
       - scripts/validate-services.py
       - scripts/docker-build-push.sh
       - scripts/compose.sh
+      - scripts/local-smoke-test.sh
+      - scripts/k8s-smoke-test.sh
       - docker-compose.yml
       - docker-compose.yaml
       - Makefile
@@ -32,6 +34,8 @@ on:
       - scripts/validate-services.py
       - scripts/docker-build-push.sh
       - scripts/compose.sh
+      - scripts/local-smoke-test.sh
+      - scripts/k8s-smoke-test.sh
       - docker-compose.yml
       - docker-compose.yaml
       - Makefile
@@ -61,6 +65,12 @@ jobs:
       - name: Validate Docker Compose wrapper syntax
         run: bash -n scripts/compose.sh
 
+      - name: Validate local smoke test syntax
+        run: bash -n scripts/local-smoke-test.sh
+
+      - name: Validate Kubernetes smoke test syntax
+        run: bash -n scripts/k8s-smoke-test.sh
+
       - name: Validate Docker build push script syntax
         run: bash -n scripts/docker-build-push.sh
 
@@ -79,8 +89,8 @@ jobs:
       - name: Run backend tests
         run: bash scripts/compose.sh run --rm backend pytest
 
-      - name: Build frontend Docker image
-        run: bash scripts/compose.sh build frontend
+      - name: Validate frontend TypeScript and production build
+        run: make frontend-validate
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -89,16 +99,31 @@ jobs:
         run: make helm-lint
 
       - name: Render Helm chart for local
-        run: make helm-render ENV=local PROJECT_NAME=${{ vars.PROJECT_NAME }}
+        run: make helm-render ENV=local PROJECT_NAME=${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }}
 
       - name: Render Helm chart for dev
-        run: make helm-render ENV=dev PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
+        run: |
+          make helm-render \
+            ENV=dev \
+            PROJECT_NAME=${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }} \
+            AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID || '000000000000' }} \
+            AWS_REGION=${{ vars.AWS_REGION || 'eu-central-1' }}
 
       - name: Render Helm chart for staging
-        run: make helm-render ENV=staging PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
+        run: |
+          make helm-render \
+            ENV=staging \
+            PROJECT_NAME=${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }} \
+            AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID || '000000000000' }} \
+            AWS_REGION=${{ vars.AWS_REGION || 'eu-central-1' }}
 
       - name: Render Helm chart for prod
-        run: make helm-render ENV=prod PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
+        run: |
+          make helm-render \
+            ENV=prod \
+            PROJECT_NAME=${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }} \
+            AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID || '000000000000' }} \
+            AWS_REGION=${{ vars.AWS_REGION || 'eu-central-1' }}
 
       - name: Start full stack
         run: bash scripts/compose.sh up -d
@@ -139,6 +164,9 @@ jobs:
           echo "Frontend did not become reachable"
           bash scripts/compose.sh logs frontend
           exit 1
+
+      - name: Run auth-aware local smoke test
+        run: make local-smoke-test
 
       - name: Show logs on failure
         if: failure()

@@ -1,37 +1,70 @@
 import { useEffect, useState } from "react";
 import { appConfig } from "./config";
-import {
-  createTask,
-  deleteTask,
-  getTasks,
-  updateTask
-} from "./api/tasks";
 import { getErrorMessage } from "./api/errors";
 import { getHealth, getVersion } from "./api/system";
+import { useAuth } from "./auth/useAuth";
+import { AuthPanel } from "./components/AuthPanel";
 import { Message, type MessageState, type MessageType } from "./components/Message";
 import { SystemStatus } from "./components/SystemStatus";
 import { TaskForm } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
-import type { Task, TaskStatus } from "./types/task";
+import { TaskDashboard } from "./components/TaskDashboard";
+import { useTasks } from "./tasks/useTasks";
+import type { AuthCredentials } from "./types/auth";
+import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "./types/task";
 
 export function App() {
   const [health, setHealth] = useState("loading...");
   const [version, setVersion] = useState("loading...");
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isTasksLoading, setIsTasksLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMutating, setIsMutating] = useState(false);
+
   const [message, setMessage] = useState<MessageState>({
     text: "",
     type: "muted"
   });
 
+  const {
+    currentUser,
+    isAuthLoading,
+    isAuthSubmitting,
+    loadCurrentUser,
+    login,
+    register,
+    logout
+  } = useAuth();
+
+  const {
+    tasks,
+    taskStatusFilter,
+    taskSearch,
+    taskCounters,
+    currentPage,
+    pageSize,
+    pageSizeOptions,
+    totalItems,
+    totalPages,
+    hasPreviousPage,
+    hasNextPage,
+    isTasksLoading,
+    isSubmitting,
+    isMutating,
+    changeTaskStatusFilter,
+    changeTaskPageSize,
+    changeTaskSearch,
+    clearTaskSearch,
+    goToPreviousTaskPage,
+    goToNextTaskPage,
+    loadTasks,
+    clearTasks,
+    createUserTask,
+    updateUserTask,
+    deleteUserTask
+  } = useTasks();
   useEffect(() => {
     void loadDashboard();
   }, []);
 
   async function loadDashboard() {
-    await Promise.all([loadSystemStatus(), loadTasks()]);
+    await Promise.all([loadSystemStatus(), restoreCurrentUser()]);
   }
 
   async function loadSystemStatus() {
@@ -50,36 +83,128 @@ export function App() {
     }
   }
 
-  async function loadTasks() {
-    setIsTasksLoading(true);
+  async function restoreCurrentUser() {
+    const user = await loadCurrentUser();
 
-    try {
-      const taskList = await getTasks();
-      setTasks(taskList);
-    } catch (error) {
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsTasksLoading(false);
+    if (!user) {
+      clearTasks();
+      return;
+    }
+
+    const result = await loadTasks();
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleLogin(credentials: AuthCredentials) {
+    showMessage("Logging in...", "muted");
+
+    const result = await login(credentials);
+
+    if (!result.success) {
+      clearTasks();
+      showMessage(result.message, "error");
+      return;
+    }
+
+    const tasksResult = await loadTasks();
+
+    if (!tasksResult.success) {
+      showMessage(tasksResult.message, "error");
+      return;
+    }
+
+    showMessage(result.message, "success");
+  }
+
+  async function handleRegister(credentials: AuthCredentials) {
+    showMessage("Registering user...", "muted");
+
+    const result = await register(credentials);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+      return;
+    }
+
+    const tasksResult = await loadTasks();
+
+    if (!tasksResult.success) {
+      showMessage(tasksResult.message, "error");
+      return;
+    }
+
+    showMessage(result.message, "success");
+  }
+
+  function handleLogout() {
+    const result = logout();
+
+    clearTasks();
+    showMessage(result.message, "success");
+  }
+
+  async function handleTaskStatusFilterChange(statusFilter: TaskStatusFilter) {
+    const result = await changeTaskStatusFilter(statusFilter);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleTaskPageSizeChange(nextPageSize: TaskPageSize) {
+    const result = await changeTaskPageSize(nextPageSize);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleTaskSearch(search: string) {
+    const result = await changeTaskSearch(search);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleClearTaskSearch() {
+    const result = await clearTaskSearch();
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handlePreviousTaskPage() {
+    const result = await goToPreviousTaskPage();
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleNextTaskPage() {
+    const result = await goToNextTaskPage();
+
+    if (!result.success) {
+      showMessage(result.message, "error");
     }
   }
 
   async function handleCreateTask(title: string, status: TaskStatus) {
-    setIsSubmitting(true);
+    if (!currentUser) {
+      showMessage("Please login before creating tasks.", "error");
+      return;
+    }
+
     showMessage("Creating task...", "muted");
 
-    try {
-      await createTask({
-        title,
-        status
-      });
+    const result = await createUserTask(title, status);
 
-      showMessage("Task created successfully.", "success");
-      await loadTasks();
-    } catch (error) {
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsSubmitting(false);
-    }
+    showMessage(result.message, result.success ? "success" : "error");
   }
 
   async function handleUpdateTask(
@@ -87,37 +212,29 @@ export function App() {
     title: string,
     status: TaskStatus
   ) {
-    setIsMutating(true);
+    if (!currentUser) {
+      showMessage("Please login before updating tasks.", "error");
+      return;
+    }
+
     showMessage(`Updating task #${taskId}...`, "muted");
 
-    try {
-      await updateTask(taskId, {
-        title,
-        status
-      });
+    const result = await updateUserTask(taskId, title, status);
 
-      showMessage(`Task #${taskId} updated successfully.`, "success");
-      await loadTasks();
-    } catch (error) {
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsMutating(false);
-    }
+    showMessage(result.message, result.success ? "success" : "error");
   }
 
   async function handleDeleteTask(taskId: number) {
-    setIsMutating(true);
+    if (!currentUser) {
+      showMessage("Please login before deleting tasks.", "error");
+      return;
+    }
+
     showMessage(`Deleting task #${taskId}...`, "muted");
 
-    try {
-      await deleteTask(taskId);
-      showMessage(`Task #${taskId} deleted successfully.`, "success");
-      await loadTasks();
-    } catch (error) {
-      showMessage(getErrorMessage(error), "error");
-    } finally {
-      setIsMutating(false);
-    }
+    const result = await deleteUserTask(taskId);
+
+    showMessage(result.message, result.success ? "success" : "error");
   }
 
   function showMessage(text: string, type: MessageType) {
@@ -133,20 +250,72 @@ export function App() {
 
       <SystemStatus health={health} version={version} />
 
-      <TaskForm
-        isSubmitting={isSubmitting}
-        onCreateTask={handleCreateTask}
+      <AuthPanel
+        currentUser={currentUser}
+        isLoading={isAuthLoading}
+        isSubmitting={isAuthSubmitting}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onLogout={handleLogout}
       />
 
-      <Message message={message} />
+      {currentUser ? (
+        <>
+          <TaskForm
+            isSubmitting={isSubmitting}
+            onCreateTask={handleCreateTask}
+          />
 
-      <TaskList
-        tasks={tasks}
-        isLoading={isTasksLoading}
-        isMutating={isMutating}
-        onUpdateTask={handleUpdateTask}
-        onDeleteTask={handleDeleteTask}
-      />
+          <TaskDashboard
+            counters={taskCounters}
+            activeFilter={taskStatusFilter}
+            onFilterChange={handleTaskStatusFilterChange}
+          />
+
+          <Message message={message} />
+
+          <TaskList
+            tasks={tasks}
+            activeFilter={taskStatusFilter}
+            search={taskSearch}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            hasPreviousPage={hasPreviousPage}
+            hasNextPage={hasNextPage}
+            isLoading={isTasksLoading}
+            isMutating={isMutating}
+            onPreviousPage={handlePreviousTaskPage}
+            onNextPage={handleNextTaskPage}
+            onPageSizeChange={handleTaskPageSizeChange}
+            onSearch={handleTaskSearch}
+            onClearSearch={handleClearTaskSearch}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={handleDeleteTask}
+          />
+        </>
+      ) : (
+        <>
+          <Message message={message} />
+
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h2>Tasks</h2>
+                <p className="card-subtitle">
+                  Protected task management is available after login.
+                </p>
+              </div>
+            </div>
+
+            <div className="empty-state">
+              Please login or register to manage your tasks.
+            </div>
+          </section>
+        </>
+      )}
     </main>
   );
 }

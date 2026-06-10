@@ -20,16 +20,28 @@ class AppError(Exception):
         super().__init__(self.message)
 
 
-class NotFoundError(AppError):
-    status_code = HTTPStatus.NOT_FOUND
-    error_code = "not_found"
-    message = "Resource was not found."
-
-
 class BadRequestError(AppError):
     status_code = HTTPStatus.BAD_REQUEST
     error_code = "bad_request"
     message = "Bad request."
+
+
+class UnauthorizedError(AppError):
+    status_code = HTTPStatus.UNAUTHORIZED
+    error_code = "unauthorized"
+    message = "Unauthorized."
+
+
+class ForbiddenError(AppError):
+    status_code = HTTPStatus.FORBIDDEN
+    error_code = "forbidden"
+    message = "Forbidden."
+
+
+class NotFoundError(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    error_code = "not_found"
+    message = "Resource was not found."
 
 
 class ConflictError(AppError):

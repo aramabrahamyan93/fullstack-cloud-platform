@@ -13,6 +13,7 @@ def setup_function():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
+
 def assert_task_not_found(response, task_id: int):
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {
@@ -23,12 +24,45 @@ def assert_task_not_found(response, task_id: int):
     }
 
 
+def register_and_login(
+    email: str = "user@example.com",
+    password: str = "strong-password",
+) -> dict[str, str]:
+    register_response = client.post(
+        "/auth/register",
+        json={
+            "email": email,
+            "password": password,
+        },
+    )
+
+    assert register_response.status_code == status.HTTP_201_CREATED
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": email,
+            "password": password,
+        },
+    )
+
+    assert login_response.status_code == status.HTTP_200_OK
+
+    token = login_response.json()["access_token"]
+
+    return {
+        "Authorization": f"Bearer {token}",
+    }
+
+
 def create_task(
+    headers: dict[str, str],
     title: str = "Test task",
     task_status: str = "open",
 ):
     return client.post(
         "/tasks",
+        headers=headers,
         json={
             "title": title,
             "status": task_status,
@@ -36,15 +70,61 @@ def create_task(
     )
 
 
-def test_list_tasks_returns_empty_list_initially():
+def test_list_tasks_requires_authentication():
     response = client.get("/tasks")
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_create_task_requires_authentication():
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "Test task",
+            "status": "open",
+        },
+    )
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_get_task_requires_authentication():
+    response = client.get("/tasks/1")
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_update_task_requires_authentication():
+    response = client.put(
+        "/tasks/1",
+        json={
+            "title": "Updated title",
+            "status": "done",
+        },
+    )
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_delete_task_requires_authentication():
+    response = client.delete("/tasks/1")
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_list_tasks_returns_empty_list_initially():
+    headers = register_and_login()
+
+    response = client.get("/tasks", headers=headers)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == []
 
 
 def test_create_task_returns_created_task():
-    response = create_task()
+    headers = register_and_login()
+
+    response = create_task(headers=headers)
 
     assert response.status_code == status.HTTP_201_CREATED
 
@@ -56,11 +136,13 @@ def test_create_task_returns_created_task():
 
 
 def test_list_tasks_returns_created_task():
-    create_response = create_task()
+    headers = register_and_login()
+
+    create_response = create_task(headers=headers)
 
     assert create_response.status_code == status.HTTP_201_CREATED
 
-    list_response = client.get("/tasks")
+    list_response = client.get("/tasks", headers=headers)
 
     assert list_response.status_code == status.HTTP_200_OK
 
@@ -73,14 +155,17 @@ def test_list_tasks_returns_created_task():
 
 
 def test_get_task_returns_existing_task():
+    headers = register_and_login()
+
     create_response = create_task(
+        headers=headers,
         title="Find me",
         task_status="in_progress",
     )
 
     task_id = create_response.json()["id"]
 
-    response = client.get(f"/tasks/{task_id}")
+    response = client.get(f"/tasks/{task_id}", headers=headers)
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -92,14 +177,19 @@ def test_get_task_returns_existing_task():
 
 
 def test_get_task_returns_404_when_task_does_not_exist():
-    response = client.get("/tasks/999")
+    headers = register_and_login()
+
+    response = client.get("/tasks/999", headers=headers)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert_task_not_found(response, 999)
 
 
 def test_update_task_updates_existing_task():
+    headers = register_and_login()
+
     create_response = create_task(
+        headers=headers,
         title="Old title",
         task_status="open",
     )
@@ -108,6 +198,7 @@ def test_update_task_updates_existing_task():
 
     response = client.put(
         f"/tasks/{task_id}",
+        headers=headers,
         json={
             "title": "Updated title",
             "status": "done",
@@ -124,8 +215,11 @@ def test_update_task_updates_existing_task():
 
 
 def test_update_task_returns_404_when_task_does_not_exist():
+    headers = register_and_login()
+
     response = client.put(
         "/tasks/999",
+        headers=headers,
         json={
             "title": "Updated title",
             "status": "done",
@@ -137,11 +231,14 @@ def test_update_task_returns_404_when_task_does_not_exist():
 
 
 def test_update_task_rejects_empty_title():
-    create_response = create_task()
+    headers = register_and_login()
+
+    create_response = create_task(headers=headers)
     task_id = create_response.json()["id"]
 
     response = client.put(
         f"/tasks/{task_id}",
+        headers=headers,
         json={
             "title": "",
             "status": "done",
@@ -152,11 +249,14 @@ def test_update_task_rejects_empty_title():
 
 
 def test_update_task_rejects_invalid_status():
-    create_response = create_task()
+    headers = register_and_login()
+
+    create_response = create_task(headers=headers)
     task_id = create_response.json()["id"]
 
     response = client.put(
         f"/tasks/{task_id}",
+        headers=headers,
         json={
             "title": "Updated title",
             "status": "invalid",
@@ -167,46 +267,640 @@ def test_update_task_rejects_invalid_status():
 
 
 def test_delete_task_deletes_existing_task():
-    create_response = create_task()
+    headers = register_and_login()
+
+    create_response = create_task(headers=headers)
     task_id = create_response.json()["id"]
 
-    delete_response = client.delete(f"/tasks/{task_id}")
+    delete_response = client.delete(f"/tasks/{task_id}", headers=headers)
 
     assert delete_response.status_code == status.HTTP_204_NO_CONTENT
     assert delete_response.text == ""
 
-    get_response = client.get(f"/tasks/{task_id}")
+    get_response = client.get(f"/tasks/{task_id}", headers=headers)
 
     assert get_response.status_code == status.HTTP_404_NOT_FOUND
 
 
 def test_delete_task_returns_404_when_task_does_not_exist():
-    response = client.delete("/tasks/999")
+    headers = register_and_login()
+
+    response = client.delete("/tasks/999", headers=headers)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert_task_not_found(response, 999)
 
 
 def test_create_task_rejects_empty_title():
-    response = create_task(title="")
+    headers = register_and_login()
+
+    response = create_task(headers=headers, title="")
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_create_task_rejects_invalid_status():
-    response = create_task(task_status="invalid")
+    headers = register_and_login()
+
+    response = create_task(headers=headers, task_status="invalid")
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_create_task_accepts_all_supported_statuses():
+    headers = register_and_login()
     supported_statuses = ["open", "in_progress", "done"]
 
     for task_status in supported_statuses:
         response = create_task(
+            headers=headers,
             title=f"Task with status {task_status}",
             task_status=task_status,
         )
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.json()["status"] == task_status
+
+
+def test_user_cannot_list_other_users_tasks():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_task(
+        headers=user_a_headers,
+        title="User A task",
+        task_status="open",
+    )
+
+    response = client.get("/tasks", headers=user_b_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == []
+
+
+def test_user_cannot_get_other_users_task():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_response = create_task(
+        headers=user_a_headers,
+        title="User A task",
+        task_status="open",
+    )
+
+    task_id = create_response.json()["id"]
+
+    response = client.get(f"/tasks/{task_id}", headers=user_b_headers)
+
+    assert_task_not_found(response, task_id)
+
+
+def test_user_cannot_update_other_users_task():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_response = create_task(
+        headers=user_a_headers,
+        title="User A task",
+        task_status="open",
+    )
+
+    task_id = create_response.json()["id"]
+
+    response = client.put(
+        f"/tasks/{task_id}",
+        headers=user_b_headers,
+        json={
+            "title": "Hacked title",
+            "status": "done",
+        },
+    )
+
+    assert_task_not_found(response, task_id)
+
+
+def test_user_cannot_delete_other_users_task():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_response = create_task(
+        headers=user_a_headers,
+        title="User A task",
+        task_status="open",
+    )
+
+    task_id = create_response.json()["id"]
+
+    response = client.delete(f"/tasks/{task_id}", headers=user_b_headers)
+
+    assert_task_not_found(response, task_id)
+
+    owner_response = client.get(f"/tasks/{task_id}", headers=user_a_headers)
+
+    assert owner_response.status_code == status.HTTP_200_OK
+
+def test_list_tasks_can_filter_by_open_status():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task", task_status="open")
+    create_task(headers=headers, title="In progress task", task_status="in_progress")
+    create_task(headers=headers, title="Done task", task_status="done")
+
+    response = client.get("/tasks?status=open", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Open task"
+    assert data[0]["status"] == "open"
+
+
+def test_list_tasks_can_filter_by_in_progress_status():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task", task_status="open")
+    create_task(headers=headers, title="In progress task", task_status="in_progress")
+    create_task(headers=headers, title="Done task", task_status="done")
+
+    response = client.get("/tasks?status=in_progress", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "In progress task"
+    assert data[0]["status"] == "in_progress"
+
+
+def test_list_tasks_can_filter_by_done_status():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task", task_status="open")
+    create_task(headers=headers, title="In progress task", task_status="in_progress")
+    create_task(headers=headers, title="Done task", task_status="done")
+
+    response = client.get("/tasks?status=done", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Done task"
+    assert data[0]["status"] == "done"
+
+
+def test_list_tasks_status_filter_keeps_user_ownership_scope():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_task(headers=user_a_headers, title="User A open task", task_status="open")
+    create_task(headers=user_b_headers, title="User B open task", task_status="open")
+    create_task(headers=user_b_headers, title="User B done task", task_status="done")
+
+    response = client.get("/tasks?status=open", headers=user_b_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "User B open task"
+    assert data[0]["status"] == "open"
+
+
+def test_list_tasks_rejects_invalid_status_filter():
+    headers = register_and_login()
+
+    response = client.get("/tasks?status=invalid", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+def test_list_tasks_supports_limit_pagination():
+    headers = register_and_login()
+
+    for index in range(1, 6):
+        create_task(
+            headers=headers,
+            title=f"Task {index}",
+            task_status="open",
+        )
+
+    response = client.get("/tasks?limit=2", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 2
+    assert data[0]["title"] == "Task 1"
+    assert data[1]["title"] == "Task 2"
+
+
+def test_list_tasks_supports_offset_pagination():
+    headers = register_and_login()
+
+    for index in range(1, 6):
+        create_task(
+            headers=headers,
+            title=f"Task {index}",
+            task_status="open",
+        )
+
+    response = client.get("/tasks?limit=2&offset=2", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 2
+    assert data[0]["title"] == "Task 3"
+    assert data[1]["title"] == "Task 4"
+
+
+def test_list_tasks_pagination_works_with_status_filter():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task 1", task_status="open")
+    create_task(headers=headers, title="Done task 1", task_status="done")
+    create_task(headers=headers, title="Open task 2", task_status="open")
+    create_task(headers=headers, title="Open task 3", task_status="open")
+
+    response = client.get(
+        "/tasks?status=open&limit=2&offset=1",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 2
+    assert data[0]["title"] == "Open task 2"
+    assert data[1]["title"] == "Open task 3"
+
+
+def test_list_tasks_rejects_zero_limit():
+    headers = register_and_login()
+
+    response = client.get("/tasks?limit=0", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_tasks_rejects_limit_above_maximum():
+    headers = register_and_login()
+
+    response = client.get("/tasks?limit=101", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_tasks_rejects_negative_offset():
+    headers = register_and_login()
+
+    response = client.get("/tasks?offset=-1", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+def test_list_paginated_tasks_returns_metadata():
+    headers = register_and_login()
+
+    for index in range(1, 6):
+        create_task(
+            headers=headers,
+            title=f"Task {index}",
+            task_status="open",
+        )
+
+    response = client.get("/tasks/paginated?limit=2&offset=0", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 0
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Task 1"
+    assert data["items"][1]["title"] == "Task 2"
+
+
+def test_list_paginated_tasks_supports_offset():
+    headers = register_and_login()
+
+    for index in range(1, 6):
+        create_task(
+            headers=headers,
+            title=f"Task {index}",
+            task_status="open",
+        )
+
+    response = client.get("/tasks/paginated?limit=2&offset=2", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 5
+    assert data["limit"] == 2
+    assert data["offset"] == 2
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Task 3"
+    assert data["items"][1]["title"] == "Task 4"
+
+
+def test_list_paginated_tasks_supports_status_filter():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task 1", task_status="open")
+    create_task(headers=headers, title="Done task 1", task_status="done")
+    create_task(headers=headers, title="Open task 2", task_status="open")
+    create_task(headers=headers, title="Open task 3", task_status="open")
+
+    response = client.get(
+        "/tasks/paginated?status=open&limit=2&offset=1",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 3
+    assert data["limit"] == 2
+    assert data["offset"] == 1
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Open task 2"
+    assert data["items"][1]["title"] == "Open task 3"
+
+
+def test_list_paginated_tasks_keeps_user_ownership_scope():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_task(headers=user_a_headers, title="User A task", task_status="open")
+    create_task(headers=user_b_headers, title="User B task 1", task_status="open")
+    create_task(headers=user_b_headers, title="User B task 2", task_status="done")
+
+    response = client.get("/tasks/paginated?limit=10&offset=0", headers=user_b_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 2
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "User B task 1"
+    assert data["items"][1]["title"] == "User B task 2"
+
+
+def test_list_paginated_tasks_rejects_invalid_status_filter():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?status=invalid", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_paginated_tasks_rejects_zero_limit():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?limit=0", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_paginated_tasks_rejects_limit_above_maximum():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?limit=101", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_paginated_tasks_rejects_negative_offset():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?offset=-1", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_get_task_stats_requires_authentication():
+    response = client.get("/tasks/stats")
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_get_task_stats_returns_zero_counts_initially():
+    headers = register_and_login()
+
+    response = client.get("/tasks/stats", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "all": 0,
+        "open": 0,
+        "in_progress": 0,
+        "done": 0,
+    }
+
+
+def test_get_task_stats_returns_counts_by_status():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Open task 1", task_status="open")
+    create_task(headers=headers, title="Open task 2", task_status="open")
+    create_task(headers=headers, title="In progress task", task_status="in_progress")
+    create_task(headers=headers, title="Done task", task_status="done")
+
+    response = client.get("/tasks/stats", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "all": 4,
+        "open": 2,
+        "in_progress": 1,
+        "done": 1,
+    }
+
+
+def test_get_task_stats_keeps_user_ownership_scope():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_task(headers=user_a_headers, title="User A open", task_status="open")
+    create_task(headers=user_a_headers, title="User A done", task_status="done")
+
+    create_task(headers=user_b_headers, title="User B open", task_status="open")
+    create_task(
+        headers=user_b_headers,
+        title="User B in progress",
+        task_status="in_progress",
+    )
+
+    response = client.get("/tasks/stats", headers=user_b_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "all": 2,
+        "open": 1,
+        "in_progress": 1,
+        "done": 0,
+    }
+
+def test_list_tasks_can_search_by_title():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker setup", task_status="open")
+    create_task(headers=headers, title="Kubernetes ingress", task_status="open")
+    create_task(headers=headers, title="Docker compose cleanup", task_status="done")
+
+    response = client.get("/tasks?search=docker", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 2
+    assert data[0]["title"] == "Docker setup"
+    assert data[1]["title"] == "Docker compose cleanup"
+
+
+def test_list_tasks_search_is_case_insensitive():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker setup", task_status="open")
+    create_task(headers=headers, title="Kubernetes ingress", task_status="open")
+
+    response = client.get("/tasks?search=DOCKER", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Docker setup"
+
+
+def test_list_tasks_search_keeps_user_ownership_scope():
+    user_a_headers = register_and_login(email="user-a@example.com")
+    user_b_headers = register_and_login(email="user-b@example.com")
+
+    create_task(headers=user_a_headers, title="Docker private task", task_status="open")
+    create_task(headers=user_b_headers, title="Docker visible task", task_status="open")
+
+    response = client.get("/tasks?search=docker", headers=user_b_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Docker visible task"
+
+
+def test_list_tasks_search_works_with_status_filter():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker open task", task_status="open")
+    create_task(headers=headers, title="Docker done task", task_status="done")
+    create_task(headers=headers, title="Kubernetes open task", task_status="open")
+
+    response = client.get("/tasks?status=open&search=docker", headers=headers)
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["title"] == "Docker open task"
+    assert data[0]["status"] == "open"
+
+
+def test_list_tasks_rejects_empty_search():
+    headers = register_and_login()
+
+    response = client.get("/tasks?search=", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_list_paginated_tasks_can_search_by_title():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker setup", task_status="open")
+    create_task(headers=headers, title="Kubernetes ingress", task_status="open")
+    create_task(headers=headers, title="Docker compose cleanup", task_status="done")
+
+    response = client.get(
+        "/tasks/paginated?search=docker&limit=10&offset=0",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 2
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Docker setup"
+    assert data["items"][1]["title"] == "Docker compose cleanup"
+
+
+def test_list_paginated_tasks_search_works_with_status_filter():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker open task", task_status="open")
+    create_task(headers=headers, title="Docker done task", task_status="done")
+    create_task(headers=headers, title="Kubernetes open task", task_status="open")
+
+    response = client.get(
+        "/tasks/paginated?status=open&search=docker&limit=10&offset=0",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["title"] == "Docker open task"
+    assert data["items"][0]["status"] == "open"
+
+
+def test_list_paginated_tasks_search_supports_pagination():
+    headers = register_and_login()
+
+    create_task(headers=headers, title="Docker task 1", task_status="open")
+    create_task(headers=headers, title="Docker task 2", task_status="open")
+    create_task(headers=headers, title="Docker task 3", task_status="open")
+    create_task(headers=headers, title="Kubernetes task", task_status="open")
+
+    response = client.get(
+        "/tasks/paginated?search=docker&limit=2&offset=1",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["total"] == 3
+    assert len(data["items"]) == 2
+    assert data["items"][0]["title"] == "Docker task 2"
+    assert data["items"][1]["title"] == "Docker task 3"
+
+
+def test_list_paginated_tasks_rejects_empty_search():
+    headers = register_and_login()
+
+    response = client.get("/tasks/paginated?search=", headers=headers)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
