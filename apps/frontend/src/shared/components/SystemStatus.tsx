@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../shared/api/client";
+import { API_BASE_URL } from "../api/client";
 
 type SystemStatusProps = {
   health: string;
