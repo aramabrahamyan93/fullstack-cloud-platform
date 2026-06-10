@@ -5,6 +5,11 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 
 from app.db.database import Base
+from app.features.tasks.constants import TASK_STATUS_DONE
+from app.features.tasks.constants import TASK_STATUS_IN_PROGRESS
+from app.features.tasks.constants import TASK_STATUS_MAX_LENGTH
+from app.features.tasks.constants import TASK_STATUS_OPEN
+from app.features.tasks.constants import TASK_TITLE_MAX_LENGTH
 
 
 class Task(Base):
@@ -12,14 +17,14 @@ class Task(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('open', 'in_progress', 'done')",
+            f"status IN (\'{TASK_STATUS_OPEN}\', \'{TASK_STATUS_IN_PROGRESS}\', \'{TASK_STATUS_DONE}\')",
             name="ck_tasks_status",
         ),
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(200), nullable=False)
-    status = Column(String(50), nullable=False)
+    title = Column(String(TASK_TITLE_MAX_LENGTH), nullable=False)
+    status = Column(String(TASK_STATUS_MAX_LENGTH), nullable=False)
     owner_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE"),

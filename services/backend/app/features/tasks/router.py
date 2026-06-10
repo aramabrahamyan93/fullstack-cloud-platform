@@ -9,6 +9,13 @@ from sqlalchemy.orm import Session
 from app.db.dependencies import get_current_user
 from app.db.dependencies import get_db
 from app.features.users.models import User
+from app.features.tasks.constants import DEFAULT_TASK_LIMIT
+from app.features.tasks.constants import DEFAULT_TASK_OFFSET
+from app.features.tasks.constants import MAX_TASK_LIMIT
+from app.features.tasks.constants import MIN_TASK_LIMIT
+from app.features.tasks.constants import MIN_TASK_OFFSET
+from app.features.tasks.constants import TASK_SEARCH_MAX_LENGTH
+from app.features.tasks.constants import TASK_SEARCH_MIN_LENGTH
 from app.features.tasks.repository import TaskRepository
 from app.features.tasks.schemas import PaginatedTaskResponse
 from app.features.tasks.schemas import TaskCreate
@@ -41,9 +48,20 @@ def list_tasks(
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     status: TaskStatus | None = None,
-    search: str | None = Query(default=None, min_length=1, max_length=100),
-    limit: int = Query(default=50, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
+    search: str | None = Query(
+        default=None,
+        min_length=TASK_SEARCH_MIN_LENGTH,
+        max_length=TASK_SEARCH_MAX_LENGTH,
+    ),
+    limit: int = Query(
+        default=DEFAULT_TASK_LIMIT,
+        ge=MIN_TASK_LIMIT,
+        le=MAX_TASK_LIMIT,
+    ),
+    offset: int = Query(
+        default=DEFAULT_TASK_OFFSET,
+        ge=MIN_TASK_OFFSET,
+    ),
 ):
     query = TaskListQuery(
         status=status,
@@ -66,9 +84,20 @@ def list_paginated_tasks(
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     status: TaskStatus | None = None,
-    search: str | None = Query(default=None, min_length=1, max_length=100),
-    limit: int = Query(default=50, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
+    search: str | None = Query(
+        default=None,
+        min_length=TASK_SEARCH_MIN_LENGTH,
+        max_length=TASK_SEARCH_MAX_LENGTH,
+    ),
+    limit: int = Query(
+        default=DEFAULT_TASK_LIMIT,
+        ge=MIN_TASK_LIMIT,
+        le=MAX_TASK_LIMIT,
+    ),
+    offset: int = Query(
+        default=DEFAULT_TASK_OFFSET,
+        ge=MIN_TASK_OFFSET,
+    ),
 ):
     query = TaskListQuery(
         status=status,
