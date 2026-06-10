@@ -51,6 +51,12 @@ Run backend tests through Docker Compose:
 make test
 ```
 
+Run frontend validation/build:
+
+```bash
+make frontend-validate
+```
+
 Stop local services:
 
 ```bash
@@ -119,10 +125,23 @@ Task endpoints are protected:
 
 ```text
 GET    /tasks
+GET    /tasks/paginated
+GET    /tasks/stats
 POST   /tasks
 GET    /tasks/{task_id}
 PUT    /tasks/{task_id}
 DELETE /tasks/{task_id}
+```
+
+Task listing supports status filtering, title search, and pagination:
+
+```text
+GET /tasks?status=open
+GET /tasks?search=docker
+GET /tasks?status=open&search=docker&limit=10&offset=0
+GET /tasks/paginated?limit=5&offset=0
+GET /tasks/paginated?status=done&search=release&limit=10&offset=0
+GET /tasks/stats
 ```
 
 Calling `/tasks` without a JWT access token returns `401 Unauthorized`.
@@ -174,6 +193,34 @@ List tasks with authentication:
 
 ```bash
 curl http://localhost:3000/api/tasks \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+List paginated tasks:
+
+```bash
+curl "http://localhost:3000/api/tasks/paginated?limit=5&offset=0" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Search tasks by title:
+
+```bash
+curl "http://localhost:3000/api/tasks/paginated?search=docker&limit=5&offset=0" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Filter tasks by status:
+
+```bash
+curl "http://localhost:3000/api/tasks/paginated?status=open&limit=5&offset=0" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Get task dashboard stats:
+
+```bash
+curl http://localhost:3000/api/tasks/stats \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -289,12 +336,17 @@ App
  │   ├─ token storage
  │   └─ current user restore
  ├─ useTasks
- │   ├─ load tasks
+ │   ├─ load paginated tasks
+ │   ├─ load task stats
+ │   ├─ status filter
+ │   ├─ title search
+ │   ├─ page size handling
  │   ├─ create task
  │   ├─ update task
  │   └─ delete task
  ├─ AuthPanel
  ├─ TaskForm
+ ├─ TaskDashboard
  └─ TaskList
 ```
 
@@ -340,11 +392,22 @@ Current validated capabilities:
 - Backend supports user register/login/current user flow
 - Backend protects `/tasks` with JWT authentication
 - Backend scopes tasks by authenticated user ownership
+- Backend supports task status filtering
+- Backend supports task title search
+- Backend supports paginated task responses with total count
+- Backend exposes task stats counters through `/tasks/stats`
+- Backend uses a `TaskListQuery` object internally for task list filtering/search/pagination
 - Frontend is served by Nginx
 - Frontend connects to the backend through the `/api` Nginx proxy
 - Frontend supports login/register/logout
 - Frontend sends JWT access token through the API client Authorization header
 - Frontend can create, update, delete, and list protected tasks after login
+- Frontend supports task dashboard counters
+- Frontend supports task status filtering
+- Frontend supports task title search
+- Frontend supports paginated task loading with total page count
+- Frontend supports configurable page size: 5 / 10 / 20
+- Frontend task loading uses object-based load options inside `useTasks`
 - Docker Compose smoke tests validate auth-aware backend, frontend, proxy, and task flow
 - Backend tests pass successfully
 - Frontend TypeScript build validation passes successfully
@@ -368,16 +431,15 @@ Detailed documentation is available in the `docs/` directory:
 
 Near-term roadmap:
 
-1. Keep improving local development workflow
-2. Keep backend/frontend architecture clean and extensible
-3. Add documentation for auth, protected APIs, and smoke tests
-4. Add CI checks for the new auth-aware workflow
+1. Keep backend/frontend architecture clean and extensible
+2. Update documentation as features are completed
+3. Improve request logging and observability
+4. Strengthen CI checks around the auth/task workflow
 5. Add Alembic migrations before using environments where data matters
-6. Add task filters/search/status dashboard
-7. Add roles/permissions foundation
-8. Continue monitoring/logging improvements
-9. Prepare cloud deployment hardening
-10. Add AWS/AI integrations later
+6. Add roles/permissions foundation
+7. Continue monitoring/logging improvements
+8. Prepare cloud deployment hardening
+9. Add AWS/AI integrations later
 
 ## AWS cost note
 
