@@ -1,4 +1,4 @@
-import { fetchJson } from "../../api/client";
+import { fetchJson } from "../../shared/api/client";
 import type {
   CreateTaskRequest,
   PaginatedTasksResponse,

@@ -6,7 +6,7 @@ import {
   getTaskStats,
   updateTask
 } from "../api";
-import { getErrorMessage } from "../../../api/errors";
+import { getErrorMessage } from "../../../shared/api/errors";
 import type {
   Task,
   TaskPageSize,

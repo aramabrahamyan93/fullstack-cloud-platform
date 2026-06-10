@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { appConfig } from "./config";
-import { getErrorMessage } from "./api/errors";
-import { getHealth, getVersion } from "./api/system";
+import { getErrorMessage } from "./shared/api/errors";
+import { getHealth, getVersion } from "./features/system/api";
 import { useAuth } from "./features/auth/hooks/useAuth";
 import { AuthPanel } from "./features/auth/components/AuthPanel";
 import { Message, type MessageState, type MessageType } from "./components/Message";

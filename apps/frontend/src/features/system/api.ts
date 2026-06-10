@@ -1,4 +1,4 @@
-import { fetchJson } from "./client";
+import { fetchJson } from "../../shared/api/client";
 
 export type HealthResponse = {
   status: string;

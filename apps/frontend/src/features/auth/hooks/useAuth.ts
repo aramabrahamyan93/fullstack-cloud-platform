@@ -4,7 +4,7 @@ import {
   loginUser,
   registerUser
 } from "../api";
-import { getErrorMessage } from "../../../api/errors";
+import { getErrorMessage } from "../../../shared/api/errors";
 import {
   clearAccessToken,
   saveAccessToken
