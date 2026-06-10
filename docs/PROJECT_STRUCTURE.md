@@ -123,16 +123,6 @@ Current backend features:
 - `users` — user model and user repository
 - `tasks` — task model, task API, task service, task repository, task schemas, task constants
 
-### Backend architecture rule
-
-Do not reintroduce broad root-level backend folders for feature-specific code, such as:
-
-```text
-services/backend/app/models
-services/backend/app/repositories
-services/backend/app/schemas
-services/backend/app/services
-```
 
 Feature-specific backend code should live under:
 
@@ -218,18 +208,6 @@ Reusable frontend foundation.
 - `shared/api/errors.ts` — generic API error handling
 - `shared/components/Message.tsx` — reusable message component
 - `shared/components/SystemStatus.tsx` — reusable system status component
-
-### Frontend architecture rule
-
-Do not reintroduce broad root-level frontend folders for feature-specific code, such as:
-
-```text
-apps/frontend/src/api
-apps/frontend/src/auth
-apps/frontend/src/components
-apps/frontend/src/tasks
-apps/frontend/src/types
-```
 
 Feature-specific frontend code should live under:
 
