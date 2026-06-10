@@ -6,12 +6,12 @@ import { useAuth } from "./auth/useAuth";
 import { AuthPanel } from "./components/AuthPanel";
 import { Message, type MessageState, type MessageType } from "./components/Message";
 import { SystemStatus } from "./components/SystemStatus";
-import { TaskForm } from "./components/TaskForm";
-import { TaskList } from "./components/TaskList";
-import { TaskDashboard } from "./components/TaskDashboard";
-import { useTasks } from "./tasks/useTasks";
+import { TaskForm } from "./features/tasks/components/TaskForm";
+import { TaskList } from "./features/tasks/components/TaskList";
+import { TaskDashboard } from "./features/tasks/components/TaskDashboard";
+import { useTasks } from "./features/tasks/hooks/useTasks";
 import type { AuthCredentials } from "./types/auth";
-import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "./types/task";
+import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "./features/tasks/types";
 
 export function App() {
   const [health, setHealth] = useState("loading...");

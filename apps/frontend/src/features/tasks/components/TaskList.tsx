@@ -5,7 +5,7 @@ import type {
   TaskPageSize,
   TaskStatus,
   TaskStatusFilter
-} from "../types/task";
+} from "../types";
 
 type TaskListProps = {
   tasks: Task[];

@@ -1,4 +1,4 @@
-import { fetchJson } from "./client";
+import { fetchJson } from "../../api/client";
 import type {
   CreateTaskRequest,
   PaginatedTasksResponse,
@@ -6,7 +6,7 @@ import type {
   TaskQueryParams,
   TaskStatsResponse,
   UpdateTaskRequest
-} from "../types/task";
+} from "./types";
 
 function buildTaskQueryString({
   statusFilter = "all",

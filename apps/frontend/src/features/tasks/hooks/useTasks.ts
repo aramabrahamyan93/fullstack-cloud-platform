@@ -5,15 +5,15 @@ import {
   getPaginatedTasks,
   getTaskStats,
   updateTask
-} from "../api/tasks";
-import { getErrorMessage } from "../api/errors";
+} from "../api";
+import { getErrorMessage } from "../../../api/errors";
 import type {
   Task,
   TaskPageSize,
   TaskStatus,
   TaskStatusCounters,
   TaskStatusFilter
-} from "../types/task";
+} from "../types";
 
 export type TaskActionResult = {
   success: boolean;

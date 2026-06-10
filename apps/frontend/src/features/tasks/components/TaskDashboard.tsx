@@ -1,7 +1,7 @@
 import type {
   TaskStatusCounters,
   TaskStatusFilter
-} from "../types/task";
+} from "../types";
 
 type TaskDashboardProps = {
   counters: TaskStatusCounters;

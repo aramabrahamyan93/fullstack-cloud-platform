@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import type { TaskStatus } from "../types/task";
+import type { TaskStatus } from "../types";
 
 type TaskFormProps = {
   isSubmitting: boolean;
