@@ -1,6 +1,6 @@
-import { TasksPage } from "../../features/tasks/components/TasksPage";
 import { Message } from "../../shared/components/Message";
 import type { AppController } from "../hooks/useAppController";
+import { TasksRouteContent } from "./TasksRouteContent";
 import { useWorkspaceRouteContext } from "./useWorkspaceRouteContext";
 
 type WorkspaceTasksRouteProps = {
@@ -31,32 +31,9 @@ export function WorkspaceTasksRoute({ controller }: WorkspaceTasksRouteProps) {
 
   if (!controller.currentUser) {
     return (
-      <TasksPage
+      <TasksRouteContent
+        controller={controller}
         currentUserExists={false}
-        message={controller.message}
-        tasks={controller.tasks}
-        taskStatusFilter={controller.taskStatusFilter}
-        taskSearch={controller.taskSearch}
-        taskCounters={controller.taskCounters}
-        currentPage={controller.currentPage}
-        pageSize={controller.pageSize}
-        pageSizeOptions={controller.pageSizeOptions}
-        totalItems={controller.totalItems}
-        totalPages={controller.totalPages}
-        hasPreviousPage={controller.hasPreviousPage}
-        hasNextPage={controller.hasNextPage}
-        isTasksLoading={controller.isTasksLoading}
-        isSubmitting={controller.isSubmitting}
-        isMutating={controller.isMutating}
-        onCreateTask={controller.handleCreateTask}
-        onFilterChange={controller.handleTaskStatusFilterChange}
-        onPreviousPage={controller.handlePreviousTaskPage}
-        onNextPage={controller.handleNextTaskPage}
-        onPageSizeChange={controller.handleTaskPageSizeChange}
-        onSearch={controller.handleTaskSearch}
-        onClearSearch={controller.handleClearTaskSearch}
-        onUpdateTask={controller.handleUpdateTask}
-        onDeleteTask={controller.handleDeleteTask}
       />
     );
   }
@@ -84,33 +61,5 @@ export function WorkspaceTasksRoute({ controller }: WorkspaceTasksRouteProps) {
     );
   }
 
-  return (
-    <TasksPage
-      currentUserExists={Boolean(controller.currentUser)}
-      message={controller.message}
-      tasks={controller.tasks}
-      taskStatusFilter={controller.taskStatusFilter}
-      taskSearch={controller.taskSearch}
-      taskCounters={controller.taskCounters}
-      currentPage={controller.currentPage}
-      pageSize={controller.pageSize}
-      pageSizeOptions={controller.pageSizeOptions}
-      totalItems={controller.totalItems}
-      totalPages={controller.totalPages}
-      hasPreviousPage={controller.hasPreviousPage}
-      hasNextPage={controller.hasNextPage}
-      isTasksLoading={controller.isTasksLoading}
-      isSubmitting={controller.isSubmitting}
-      isMutating={controller.isMutating}
-      onCreateTask={controller.handleCreateTask}
-      onFilterChange={controller.handleTaskStatusFilterChange}
-      onPreviousPage={controller.handlePreviousTaskPage}
-      onNextPage={controller.handleNextTaskPage}
-      onPageSizeChange={controller.handleTaskPageSizeChange}
-      onSearch={controller.handleTaskSearch}
-      onClearSearch={controller.handleClearTaskSearch}
-      onUpdateTask={controller.handleUpdateTask}
-      onDeleteTask={controller.handleDeleteTask}
-    />
-  );
+  return <TasksRouteContent controller={controller} />;
 }
