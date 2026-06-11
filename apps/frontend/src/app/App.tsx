@@ -5,6 +5,7 @@ import { DashboardRoute } from "./routes/DashboardRoute";
 import { SystemRoute } from "./routes/SystemRoute";
 import { WorkspacesRoute } from "./routes/WorkspacesRoute";
 import { WorkspaceTasksRoute } from "./routes/WorkspaceTasksRoute";
+import { WorkspaceDashboardRoute } from "./routes/WorkspaceDashboardRoute";
 
 export function App() {
   const controller = useAppController();
@@ -26,6 +27,10 @@ export function App() {
         <Route
           path="/workspaces"
           element={<WorkspacesRoute controller={controller} />}
+        />
+        <Route
+          path="/workspaces/:workspaceId/dashboard"
+          element={<WorkspaceDashboardRoute controller={controller} />}
         />
         <Route
           path="/workspaces/:workspaceId/tasks"

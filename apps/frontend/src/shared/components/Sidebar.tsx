@@ -22,7 +22,11 @@ export function Sidebar({
 }: SidebarProps) {
   function getNavigationPath(routeId: AppRouteId): string {
     if (routeId === "dashboard") {
-      return "/dashboard";
+      if (!selectedOrganization) {
+        return "/dashboard";
+      }
+
+      return `/workspaces/${selectedOrganization.id}/dashboard`;
     }
 
     if (routeId === "workspaces") {
