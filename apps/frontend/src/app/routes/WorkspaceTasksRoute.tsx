@@ -1,70 +1,20 @@
-import { useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { TasksPage } from "../../features/tasks/components/TasksPage";
 import { Message } from "../../shared/components/Message";
 import type { AppController } from "../hooks/useAppController";
+import { useWorkspaceRouteContext } from "./useWorkspaceRouteContext";
 
 type WorkspaceTasksRouteProps = {
   controller: AppController;
 };
 
 export function WorkspaceTasksRoute({ controller }: WorkspaceTasksRouteProps) {
-  const navigate = useNavigate();
-  const { workspaceId } = useParams();
+  const { routeWorkspace, isLoadingWorkspaceContext } =
+    useWorkspaceRouteContext({
+      controller,
+      loadTasks: true
+    });
 
-  const numericWorkspaceId = Number(workspaceId);
-  const isValidWorkspaceId =
-    Number.isInteger(numericWorkspaceId) && numericWorkspaceId > 0;
-
-  const routeWorkspace = controller.organizations.find(
-    (organization) => organization.id === numericWorkspaceId
-  );
-
-  useEffect(() => {
-    if (!workspaceId || !isValidWorkspaceId) {
-      controller.showMessage("Invalid workspace route.", "error");
-      navigate("/workspaces", { replace: true });
-      return;
-    }
-
-    if (controller.isAuthLoading || controller.isOrganizationsLoading) {
-      return;
-    }
-
-    if (!controller.currentUser) {
-      return;
-    }
-
-    if (controller.organizations.length === 0) {
-      return;
-    }
-
-    if (!routeWorkspace) {
-      controller.showMessage("Workspace was not found.", "error");
-      navigate("/workspaces", { replace: true });
-      return;
-    }
-
-    if (controller.selectedOrganization?.id !== routeWorkspace.id) {
-      controller.selectWorkspaceFromRoute(routeWorkspace.id);
-    }
-
-    if (controller.activeTaskOrganizationId !== routeWorkspace.id) {
-      void controller.loadWorkspaceTasks(routeWorkspace.id);
-    }
-  }, [
-    workspaceId,
-    isValidWorkspaceId,
-    routeWorkspace?.id,
-    controller.isAuthLoading,
-    controller.isOrganizationsLoading,
-    controller.currentUser,
-    controller.organizations.length,
-    controller.selectedOrganization?.id,
-    controller.activeTaskOrganizationId
-  ]);
-
-  if (controller.isAuthLoading || controller.isOrganizationsLoading) {
+  if (isLoadingWorkspaceContext) {
     return (
       <section className="card">
         <div className="card-header">
@@ -111,7 +61,7 @@ export function WorkspaceTasksRoute({ controller }: WorkspaceTasksRouteProps) {
     );
   }
 
-  if (!controller.selectedOrganization) {
+  if (!routeWorkspace) {
     return (
       <>
         <Message message={controller.message} />
