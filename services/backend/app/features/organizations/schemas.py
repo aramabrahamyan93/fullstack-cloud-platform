@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class OrganizationCreate(BaseModel):
@@ -10,6 +10,11 @@ class OrganizationRead(BaseModel):
 
     id: int
     name: str
+
+
+class OrganizationMemberCreate(BaseModel):
+    email: EmailStr
+    role: str = Field(default="member", min_length=1, max_length=50)
 
 
 class OrganizationMemberRead(BaseModel):

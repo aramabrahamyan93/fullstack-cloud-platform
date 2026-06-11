@@ -100,3 +100,18 @@ def list_organization_members(
     rows = db.execute(statement).mappings().all()
 
     return [dict(row) for row in rows]
+
+def get_organization_member_by_user_id(
+    db: Session,
+    *,
+    organization_id: int,
+    user_id: int,
+) -> OrganizationMember | None:
+    statement = (
+        select(OrganizationMember)
+        .where(OrganizationMember.organization_id == organization_id)
+        .where(OrganizationMember.user_id == user_id)
+    )
+
+    return db.scalars(statement).first()
+

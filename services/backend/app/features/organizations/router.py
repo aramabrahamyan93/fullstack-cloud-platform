@@ -3,9 +3,11 @@ from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_current_user, get_db
 from app.features.organizations.schemas import OrganizationCreate
+from app.features.organizations.schemas import OrganizationMemberCreate
 from app.features.organizations.schemas import OrganizationMemberRead
 from app.features.organizations.schemas import OrganizationRead
 from app.features.organizations.service import (
+    add_member_to_user_organization,
     create_user_organization,
     get_organization_for_user,
     list_members_for_user_organization,
@@ -59,5 +61,23 @@ def list_organization_members(
         db,
         organization_id=organization_id,
         current_user=current_user,
+    )
+
+@router.post(
+    "/{organization_id}/members",
+    response_model=OrganizationMemberRead,
+    status_code=201,
+)
+def add_organization_member(
+    organization_id: int,
+    member_create: OrganizationMemberCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> OrganizationMemberRead:
+    return add_member_to_user_organization(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+        member_create=member_create,
     )
 

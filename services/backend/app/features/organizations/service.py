@@ -4,9 +4,12 @@ from app.core.errors import ForbiddenError, NotFoundError
 from app.features.organizations import repository
 from app.features.organizations.models import Organization, OrganizationMember
 from app.features.organizations.schemas import OrganizationCreate
+from app.features.organizations.schemas import OrganizationMemberCreate
+from app.features.users import repository as users_repository
 from app.features.users.models import User
 
 ORGANIZATION_ROLE_OWNER = "owner"
+ORGANIZATION_ROLE_MEMBER = "member"
 
 
 def create_user_organization(
@@ -123,4 +126,58 @@ def list_members_for_user_organization(
         db,
         organization_id=organization_id,
     )
+
+def add_member_to_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+    member_create: OrganizationMemberCreate,
+) -> dict[str, int | str]:
+    ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if member_create.role != ORGANIZATION_ROLE_MEMBER:
+        raise ForbiddenError("Only member role can be assigned for now.")
+
+    user_to_add = users_repository.get_user_by_email(
+        db,
+        email=str(member_create.email),
+    )
+
+    if user_to_add is None:
+        raise NotFoundError("User not found.")
+
+    if user_to_add.id == current_user.id:
+        raise ForbiddenError("You cannot add yourself as a member.")
+
+    existing_member = repository.get_organization_member_by_user_id(
+        db,
+        organization_id=organization_id,
+        user_id=user_to_add.id,
+    )
+
+    if existing_member is not None:
+        raise ForbiddenError("User is already a workspace member.")
+
+    member = repository.create_organization_member(
+        db,
+        organization_id=organization_id,
+        user_id=user_to_add.id,
+        role=ORGANIZATION_ROLE_MEMBER,
+    )
+
+    db.commit()
+    db.refresh(member)
+
+    return {
+        "id": member.id,
+        "organization_id": member.organization_id,
+        "user_id": member.user_id,
+        "role": member.role,
+        "email": user_to_add.email,
+    }
 
