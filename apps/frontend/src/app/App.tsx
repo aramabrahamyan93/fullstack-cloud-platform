@@ -9,6 +9,7 @@ import { DashboardPage } from "../features/dashboard/components/DashboardPage";
 import { OrganizationsPage } from "../features/organizations/components/OrganizationsPage";
 import { TasksPage } from "../features/tasks/components/TasksPage";
 import { useTasks } from "../features/tasks/hooks/useTasks";
+import { useOrganizations } from "../features/organizations/hooks/useOrganizations";
 import type { AuthCredentials } from "../features/auth/types";
 import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "../features/tasks/types";
 import { AppLayout } from "./AppLayout";
@@ -62,6 +63,17 @@ export function App() {
     deleteUserTask
   } = useTasks();
 
+  const {
+    organizations,
+    selectedOrganization,
+    isOrganizationsLoading,
+    isOrganizationSubmitting,
+    loadOrganizations,
+    clearOrganizations,
+    selectOrganization,
+    createUserOrganization
+  } = useOrganizations();
+
   useEffect(() => {
     void loadDashboard();
   }, []);
@@ -91,13 +103,22 @@ export function App() {
 
     if (!user) {
       clearTasks();
+      clearOrganizations();
       return;
     }
 
-    const result = await loadTasks();
+    const [tasksResult, organizationsResult] = await Promise.all([
+      loadTasks(),
+      loadOrganizations()
+    ]);
 
-    if (!result.success) {
-      showMessage(result.message, "error");
+    if (!tasksResult.success) {
+      showMessage(tasksResult.message, "error");
+      return;
+    }
+
+    if (!organizationsResult.success) {
+      showMessage(organizationsResult.message, "error");
     }
   }
 
@@ -112,10 +133,18 @@ export function App() {
       return;
     }
 
-    const tasksResult = await loadTasks();
+    const [tasksResult, organizationsResult] = await Promise.all([
+      loadTasks(),
+      loadOrganizations()
+    ]);
 
     if (!tasksResult.success) {
       showMessage(tasksResult.message, "error");
+      return;
+    }
+
+    if (!organizationsResult.success) {
+      showMessage(organizationsResult.message, "error");
       return;
     }
 
@@ -133,10 +162,18 @@ export function App() {
       return;
     }
 
-    const tasksResult = await loadTasks();
+    const [tasksResult, organizationsResult] = await Promise.all([
+      loadTasks(),
+      loadOrganizations()
+    ]);
 
     if (!tasksResult.success) {
       showMessage(tasksResult.message, "error");
+      return;
+    }
+
+    if (!organizationsResult.success) {
+      showMessage(organizationsResult.message, "error");
       return;
     }
 
@@ -148,6 +185,7 @@ export function App() {
     const result = logout();
 
     clearTasks();
+    clearOrganizations();
     showMessage(result.message, "success");
     setActiveView("dashboard");
   }
@@ -243,6 +281,19 @@ export function App() {
     showMessage(result.message, result.success ? "success" : "error");
   }
 
+  async function handleCreateOrganization(name: string) {
+    if (!currentUser) {
+      showMessage("Please login before creating workspaces.", "error");
+      return;
+    }
+
+    showMessage("Creating workspace...", "muted");
+
+    const result = await createUserOrganization(name);
+
+    showMessage(result.message, result.success ? "success" : "error");
+  }
+
   function showMessage(text: string, type: MessageType) {
     setMessage({
       text,
@@ -310,7 +361,15 @@ export function App() {
         <>
           <Message message={message} />
 
-          <OrganizationsPage isAuthenticated={Boolean(currentUser)} />
+          <OrganizationsPage
+            isAuthenticated={Boolean(currentUser)}
+            organizations={organizations}
+            selectedOrganization={selectedOrganization}
+            isLoading={isOrganizationsLoading}
+            isSubmitting={isOrganizationSubmitting}
+            onCreateOrganization={handleCreateOrganization}
+            onSelectOrganization={selectOrganization}
+          />
         </>
       );
     }

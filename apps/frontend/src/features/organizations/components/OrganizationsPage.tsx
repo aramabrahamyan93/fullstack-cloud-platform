@@ -1,30 +1,129 @@
+import { useState, type FormEvent } from "react";
+import type { Organization } from "../types";
+import "./OrganizationsPage.css";
+
 type OrganizationsPageProps = {
   isAuthenticated: boolean;
+  organizations: Organization[];
+  selectedOrganization: Organization | null;
+  isLoading: boolean;
+  isSubmitting: boolean;
+  onCreateOrganization: (name: string) => Promise<void>;
+  onSelectOrganization: (organizationId: number) => void;
 };
 
 export function OrganizationsPage({
-  isAuthenticated
+  isAuthenticated,
+  organizations,
+  selectedOrganization,
+  isLoading,
+  isSubmitting,
+  onCreateOrganization,
+  onSelectOrganization
 }: OrganizationsPageProps) {
-  return (
-    <section className="card">
-      <div className="card-header">
-        <div>
-          <h1>Workspaces</h1>
-          <p className="card-subtitle">
-            Organization and workspace management will be connected in the next step.
-          </p>
-        </div>
-      </div>
+  const [name, setName] = useState("My Workspace");
 
-      {isAuthenticated ? (
-        <div className="empty-state">
-          Workspace list and creation form will appear here.
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    await onCreateOrganization(name);
+    setName("");
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <section className="card">
+        <div className="card-header">
+          <div>
+            <h1>Workspaces</h1>
+            <p className="card-subtitle">
+              Login or register to manage organizations and workspaces.
+            </p>
+          </div>
         </div>
-      ) : (
+
         <div className="empty-state">
           Please login or register to manage workspaces.
         </div>
-      )}
-    </section>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <section className="page-header">
+        <div>
+          <h1>Workspaces</h1>
+          <p className="card-subtitle">
+            Create and select organizations for team-scoped task management.
+          </p>
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="card-header">
+          <div>
+            <h2>Create workspace</h2>
+            <p className="card-subtitle">
+              New workspaces are created with you as the owner.
+            </p>
+          </div>
+        </div>
+
+        <form className="organization-form" onSubmit={handleSubmit}>
+          <label className="form-field organization-name-field">
+            Workspace name
+            <input
+              type="text"
+              value={name}
+              disabled={isSubmitting}
+              onChange={(event) => setName(event.target.value)}
+              minLength={1}
+              maxLength={200}
+              required
+            />
+          </label>
+
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Create workspace"}
+          </button>
+        </form>
+      </section>
+
+      <section className="card">
+        <div className="card-header">
+          <div>
+            <h2>Your workspaces</h2>
+            <p className="card-subtitle">
+              Select a workspace before moving tasks under organization context.
+            </p>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="empty-state">Loading workspaces...</div>
+        ) : organizations.length === 0 ? (
+          <div className="empty-state">
+            No workspaces yet. Create your first workspace above.
+          </div>
+        ) : (
+          <div className="organization-list">
+            {organizations.map((organization) => (
+              <button
+                key={organization.id}
+                type="button"
+                className={`organization-list-item ${
+                  selectedOrganization?.id === organization.id ? "active" : ""
+                }`}
+                onClick={() => onSelectOrganization(organization.id)}
+              >
+                <span>#{organization.id}</span>
+                <strong>{organization.name}</strong>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
   );
 }

@@ -1,0 +1,45 @@
+.organization-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.organization-name-field {
+  flex: 1 1 320px;
+}
+
+.organization-list {
+  display: grid;
+  gap: 12px;
+}
+
+.organization-list-item {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #1f2937;
+  text-align: left;
+  box-shadow: none;
+}
+
+.organization-list-item:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.organization-list-item.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.organization-list-item span {
+  color: #6b7280;
+  font-weight: 800;
+}
