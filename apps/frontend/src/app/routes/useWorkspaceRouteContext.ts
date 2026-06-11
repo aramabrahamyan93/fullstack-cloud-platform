@@ -70,6 +70,8 @@ export function useWorkspaceRouteContext({
     ) {
       void controller.loadWorkspaceTasks(routeWorkspace.id);
     }
+
+    void controller.loadWorkspaceMembers(routeWorkspace.id);
   }, [
     workspaceId,
     isValidWorkspaceId,

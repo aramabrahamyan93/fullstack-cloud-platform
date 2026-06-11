@@ -1,0 +1,40 @@
+.workspace-members-card {
+  margin-top: 20px;
+}
+
+.workspace-members-list {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.workspace-member-item div {
+  display: grid;
+  gap: 4px;
+}
+
+.workspace-member-item span {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.workspace-member-role {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8 !important;
+  font-size: 0.78rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+}

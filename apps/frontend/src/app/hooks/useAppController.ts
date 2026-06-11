@@ -37,7 +37,7 @@ export function useAppController() {
     register,
     logout,
     loadOrganizations: workspaceController.loadOrganizations,
-    clearOrganizations: workspaceController.clearOrganizations,
+    clearWorkspaceState: workspaceController.clearWorkspaceState,
     clearTasks: taskController.clearTasks,
     showMessage
   });

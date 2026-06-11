@@ -13,7 +13,7 @@ type UseAuthControllerOptions = {
   register: (credentials: AuthCredentials) => Promise<ActionResult>;
   logout: () => ActionResult;
   loadOrganizations: () => Promise<ActionResult>;
-  clearOrganizations: () => void;
+  clearWorkspaceState: () => void;
   clearTasks: () => void;
   showMessage: (text: string, type: MessageType) => void;
 };
@@ -24,7 +24,7 @@ export function useAuthController({
   register,
   logout,
   loadOrganizations,
-  clearOrganizations,
+  clearWorkspaceState,
   clearTasks,
   showMessage
 }: UseAuthControllerOptions) {
@@ -35,7 +35,7 @@ export function useAuthController({
 
     if (!user) {
       clearTasks();
-      clearOrganizations();
+      clearWorkspaceState();
       return;
     }
 
@@ -53,7 +53,7 @@ export function useAuthController({
 
     if (!result.success) {
       clearTasks();
-      clearOrganizations();
+      clearWorkspaceState();
       showMessage(result.message, "error");
       return;
     }
@@ -94,7 +94,7 @@ export function useAuthController({
     const result = logout();
 
     clearTasks();
-    clearOrganizations();
+    clearWorkspaceState();
     showMessage(result.message, "success");
     navigate("/dashboard");
   }

@@ -1,4 +1,5 @@
 import { DashboardPage } from "../../features/dashboard/components/DashboardPage";
+import { WorkspaceMembersPanel } from "../../features/organizations/components/WorkspaceMembersPanel";
 import { Message } from "../../shared/components/Message";
 import type { AppController } from "../hooks/useAppController";
 import { useWorkspaceRouteContext } from "./useWorkspaceRouteContext";
@@ -93,6 +94,11 @@ export function WorkspaceDashboardRoute({
       <DashboardPage
         currentUser={controller.currentUser}
         taskCounters={controller.taskCounters}
+      />
+
+      <WorkspaceMembersPanel
+        members={controller.members}
+        isLoading={controller.isMembersLoading}
       />
     </>
   );
