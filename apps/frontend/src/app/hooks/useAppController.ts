@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { useAuth } from "../../features/auth/hooks/useAuth";
+import { useAppBootstrap } from "./useAppBootstrap";
 import { useAppMessage } from "./useAppMessage";
 import { useAuthController } from "./useAuthController";
 import { useSystemStatus } from "./useSystemStatus";
@@ -42,20 +42,11 @@ export function useAppController() {
     showMessage
   });
 
-  useEffect(() => {
-    void loadApp();
-  }, []);
-
-  async function loadApp(): Promise<void> {
-    const [systemResult] = await Promise.all([
-      loadSystemStatus(),
-      authController.restoreCurrentUser()
-    ]);
-
-    if (!systemResult.success) {
-      showMessage(systemResult.message, "error");
-    }
-  }
+  useAppBootstrap({
+    loadSystemStatus,
+    restoreCurrentUser: authController.restoreCurrentUser,
+    showMessage
+  });
 
   return {
     message,
