@@ -9,6 +9,7 @@ import type { Organization } from "../types";
 export type OrganizationActionResult = {
   success: boolean;
   message: string;
+  organization?: Organization;
 };
 
 export type UseOrganizationsResult = {
@@ -18,7 +19,7 @@ export type UseOrganizationsResult = {
   isOrganizationSubmitting: boolean;
   loadOrganizations: () => Promise<OrganizationActionResult>;
   clearOrganizations: () => void;
-  selectOrganization: (organizationId: number) => void;
+  selectOrganization: (organizationId: number) => Organization | null;
   createUserOrganization: (
     name: string
   ) => Promise<OrganizationActionResult>;
@@ -75,12 +76,14 @@ export function useOrganizations(): UseOrganizationsResult {
     setIsOrganizationsLoading(false);
   }
 
-  function selectOrganization(organizationId: number): void {
+  function selectOrganization(organizationId: number): Organization | null {
     const organization = organizations.find(
       (item) => item.id === organizationId
-    );
+    ) ?? null;
 
-    setSelectedOrganization(organization ?? null);
+    setSelectedOrganization(organization);
+
+    return organization;
   }
 
   async function createUserOrganization(
@@ -110,7 +113,8 @@ export function useOrganizations(): UseOrganizationsResult {
 
       return {
         success: true,
-        message: "Workspace created successfully."
+        message: "Workspace created successfully.",
+        organization
       };
     } catch (error) {
       return {

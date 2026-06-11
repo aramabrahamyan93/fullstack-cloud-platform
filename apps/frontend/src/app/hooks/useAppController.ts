@@ -284,6 +284,10 @@ export function useAppController() {
     const result = await createUserOrganization(name);
 
     showMessage(result.message, result.success ? "success" : "error");
+
+    if (result.success && result.organization) {
+      navigate(`/workspaces/${result.organization.id}/tasks`);
+    }
   }
 
   function handleSelectOrganization(organizationId: number): void {
