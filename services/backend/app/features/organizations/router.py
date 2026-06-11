@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db.dependencies import get_db
-from app.features.auth.service import get_current_user
+from app.db.dependencies import get_current_user, get_db
 from app.features.organizations.schemas import OrganizationCreate, OrganizationRead
 from app.features.organizations.service import (
     create_user_organization,
