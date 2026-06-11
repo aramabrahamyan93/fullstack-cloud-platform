@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.features.organizations.models import Organization, OrganizationMember
+from app.features.users.models import User
 
 
 def create_organization(db: Session, *, name: str) -> Organization:
@@ -76,3 +77,26 @@ def get_user_organization_membership(
     )
 
     return db.scalars(statement).first()
+
+
+def list_organization_members(
+    db: Session,
+    *,
+    organization_id: int,
+) -> list[dict[str, int | str]]:
+    statement = (
+        select(
+            OrganizationMember.id,
+            OrganizationMember.organization_id,
+            OrganizationMember.user_id,
+            OrganizationMember.role,
+            User.email,
+        )
+        .join(User, User.id == OrganizationMember.user_id)
+        .where(OrganizationMember.organization_id == organization_id)
+        .order_by(OrganizationMember.id.asc())
+    )
+
+    rows = db.execute(statement).mappings().all()
+
+    return [dict(row) for row in rows]

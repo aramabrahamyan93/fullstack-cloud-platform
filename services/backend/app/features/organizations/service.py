@@ -106,3 +106,21 @@ def ensure_user_is_organization_owner(
         raise ForbiddenError("Organization owner role is required.")
 
     return membership
+
+def list_members_for_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> list[dict[str, int | str]]:
+    ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    return repository.list_organization_members(
+        db,
+        organization_id=organization_id,
+    )
+

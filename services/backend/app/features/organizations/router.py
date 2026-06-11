@@ -2,10 +2,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_current_user, get_db
-from app.features.organizations.schemas import OrganizationCreate, OrganizationRead
+from app.features.organizations.schemas import OrganizationCreate
+from app.features.organizations.schemas import OrganizationMemberRead
+from app.features.organizations.schemas import OrganizationRead
 from app.features.organizations.service import (
     create_user_organization,
     get_organization_for_user,
+    list_members_for_user_organization,
     list_organizations_for_user,
 )
 from app.features.users.models import User
@@ -45,3 +48,16 @@ def get_organization(
         organization_id=organization_id,
         current_user=current_user,
     )
+
+@router.get("/{organization_id}/members", response_model=list[OrganizationMemberRead])
+def list_organization_members(
+    organization_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[OrganizationMemberRead]:
+    return list_members_for_user_organization(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+

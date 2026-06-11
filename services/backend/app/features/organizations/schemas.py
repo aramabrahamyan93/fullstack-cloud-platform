@@ -19,3 +19,4 @@ class OrganizationMemberRead(BaseModel):
     organization_id: int
     user_id: int
     role: str
+    email: str
