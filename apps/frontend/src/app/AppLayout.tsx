@@ -6,20 +6,29 @@ import "./AppLayout.css";
 
 type AppLayoutProps = {
   currentUser: User | null;
+  organizations: Organization[];
   selectedOrganization: Organization | null;
+  isOrganizationsLoading: boolean;
   children: ReactNode;
+  onSelectOrganization: (organizationId: number) => void;
 };
 
 export function AppLayout({
   currentUser,
+  organizations,
   selectedOrganization,
-  children
+  isOrganizationsLoading,
+  children,
+  onSelectOrganization
 }: AppLayoutProps) {
   return (
     <div className="app-shell">
       <Sidebar
         currentUser={currentUser}
+        organizations={organizations}
         selectedOrganization={selectedOrganization}
+        isOrganizationsLoading={isOrganizationsLoading}
+        onSelectOrganization={onSelectOrganization}
       />
 
       <main className="app-main">{children}</main>

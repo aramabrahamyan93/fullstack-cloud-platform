@@ -12,7 +12,10 @@ export function App() {
   return (
     <AppLayout
       currentUser={controller.currentUser}
+      organizations={controller.organizations}
       selectedOrganization={controller.selectedOrganization}
+      isOrganizationsLoading={controller.isOrganizationsLoading}
+      onSelectOrganization={controller.handleSelectOrganization}
     >
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -42,6 +42,7 @@ export function useAppController() {
     isTasksLoading,
     isSubmitting,
     isMutating,
+    activeTaskOrganizationId,
     changeTaskStatusFilter,
     changeTaskPageSize,
     changeTaskSearch,
@@ -90,15 +91,7 @@ export function useAppController() {
       return;
     }
 
-    const [tasksResult, organizationsResult] = await Promise.all([
-      loadTasks(),
-      loadOrganizations()
-    ]);
-
-    if (!tasksResult.success) {
-      showMessage(tasksResult.message, "error");
-      return;
-    }
+    const organizationsResult = await loadOrganizations();
 
     if (!organizationsResult.success) {
       showMessage(organizationsResult.message, "error");
@@ -117,15 +110,7 @@ export function useAppController() {
       return;
     }
 
-    const [tasksResult, organizationsResult] = await Promise.all([
-      loadTasks(),
-      loadOrganizations()
-    ]);
-
-    if (!tasksResult.success) {
-      showMessage(tasksResult.message, "error");
-      return;
-    }
+    const organizationsResult = await loadOrganizations();
 
     if (!organizationsResult.success) {
       showMessage(organizationsResult.message, "error");
@@ -146,15 +131,7 @@ export function useAppController() {
       return;
     }
 
-    const [tasksResult, organizationsResult] = await Promise.all([
-      loadTasks(),
-      loadOrganizations()
-    ]);
-
-    if (!tasksResult.success) {
-      showMessage(tasksResult.message, "error");
-      return;
-    }
+    const organizationsResult = await loadOrganizations();
 
     if (!organizationsResult.success) {
       showMessage(organizationsResult.message, "error");
@@ -177,7 +154,10 @@ export function useAppController() {
   async function handleTaskStatusFilterChange(
     statusFilter: TaskStatusFilter
   ): Promise<void> {
-    const result = await changeTaskStatusFilter(statusFilter);
+    const result = await changeTaskStatusFilter(
+      statusFilter,
+      selectedOrganization?.id
+    );
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -187,7 +167,10 @@ export function useAppController() {
   async function handleTaskPageSizeChange(
     nextPageSize: TaskPageSize
   ): Promise<void> {
-    const result = await changeTaskPageSize(nextPageSize);
+    const result = await changeTaskPageSize(
+      nextPageSize,
+      selectedOrganization?.id
+    );
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -195,7 +178,7 @@ export function useAppController() {
   }
 
   async function handleTaskSearch(search: string): Promise<void> {
-    const result = await changeTaskSearch(search);
+    const result = await changeTaskSearch(search, selectedOrganization?.id);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -203,7 +186,7 @@ export function useAppController() {
   }
 
   async function handleClearTaskSearch(): Promise<void> {
-    const result = await clearTaskSearch();
+    const result = await clearTaskSearch(selectedOrganization?.id);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -211,7 +194,7 @@ export function useAppController() {
   }
 
   async function handlePreviousTaskPage(): Promise<void> {
-    const result = await goToPreviousTaskPage();
+    const result = await goToPreviousTaskPage(selectedOrganization?.id);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -219,7 +202,7 @@ export function useAppController() {
   }
 
   async function handleNextTaskPage(): Promise<void> {
-    const result = await goToNextTaskPage();
+    const result = await goToNextTaskPage(selectedOrganization?.id);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -246,7 +229,11 @@ export function useAppController() {
 
     showMessage("Creating task...", "muted");
 
-    const result = await createUserTask(title, status);
+    const result = await createUserTask(
+      title,
+      status,
+      selectedOrganization.id
+    );
 
     showMessage(result.message, result.success ? "success" : "error");
   }
@@ -263,7 +250,12 @@ export function useAppController() {
 
     showMessage(`Updating task #${taskId}...`, "muted");
 
-    const result = await updateUserTask(taskId, title, status);
+    const result = await updateUserTask(
+      taskId,
+      title,
+      status,
+      selectedOrganization?.id
+    );
 
     showMessage(result.message, result.success ? "success" : "error");
   }
@@ -276,7 +268,7 @@ export function useAppController() {
 
     showMessage(`Deleting task #${taskId}...`, "muted");
 
-    const result = await deleteUserTask(taskId);
+    const result = await deleteUserTask(taskId, selectedOrganization?.id);
 
     showMessage(result.message, result.success ? "success" : "error");
   }
@@ -301,6 +293,18 @@ export function useAppController() {
 
   function selectWorkspaceFromRoute(organizationId: number): void {
     selectOrganization(organizationId);
+  }
+
+  async function loadWorkspaceTasks(organizationId: number): Promise<void> {
+    const result = await loadTasks({
+      organizationId,
+      page: 1,
+      refreshCounters: true
+    });
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
   }
 
   return {
@@ -329,6 +333,7 @@ export function useAppController() {
     isTasksLoading,
     isSubmitting,
     isMutating,
+    activeTaskOrganizationId,
 
     organizations,
     selectedOrganization,
@@ -351,7 +356,8 @@ export function useAppController() {
 
     handleCreateOrganization,
     handleSelectOrganization,
-    selectWorkspaceFromRoute
+    selectWorkspaceFromRoute,
+    loadWorkspaceTasks
   };
 }
 

@@ -36,55 +36,75 @@ function buildTaskQueryString({
   return queryParams.toString();
 }
 
-export function getTasks(params: TaskQueryParams = {}): Promise<Task[]> {
+function getTaskBasePath(organizationId?: number): string {
+  if (organizationId !== undefined) {
+    return `/organizations/${organizationId}/tasks`;
+  }
+
+  return "/tasks";
+}
+
+export function getTasks(
+  params: TaskQueryParams = {},
+  organizationId?: number
+): Promise<Task[]> {
   const query = buildTaskQueryString(params);
-  const path = query ? `/tasks?${query}` : "/tasks";
+  const basePath = getTaskBasePath(organizationId);
+  const path = query ? `${basePath}?${query}` : basePath;
 
   return fetchJson<Task[]>(path);
 }
 
 export function getPaginatedTasks(
-  params: TaskQueryParams = {}
+  params: TaskQueryParams = {},
+  organizationId?: number
 ): Promise<PaginatedTasksResponse> {
   const query = buildTaskQueryString(params);
-  const path = query ? `/tasks/paginated?${query}` : "/tasks/paginated";
+  const basePath = getTaskBasePath(organizationId);
+  const path = query ? `${basePath}/paginated?${query}` : `${basePath}/paginated`;
 
   return fetchJson<PaginatedTasksResponse>(path);
 }
 
-export function getTaskStats(): Promise<TaskStatsResponse> {
-  return fetchJson<TaskStatsResponse>("/tasks/stats");
+export function getTaskStats(
+  organizationId?: number
+): Promise<TaskStatsResponse> {
+  return fetchJson<TaskStatsResponse>(`${getTaskBasePath(organizationId)}/stats`);
 }
 
-export function getTask(taskId: number): Promise<Task> {
-  return fetchJson<Task>(`/tasks/${taskId}`);
+export function getTask(
+  taskId: number,
+  organizationId?: number
+): Promise<Task> {
+  return fetchJson<Task>(`${getTaskBasePath(organizationId)}/${taskId}`);
 }
 
-export function createTask(payload: CreateTaskRequest): Promise<Task> {
-  return fetchJson<Task>("/tasks", {
+export function createTask(
+  payload: CreateTaskRequest,
+  organizationId?: number
+): Promise<Task> {
+  return fetchJson<Task>(getTaskBasePath(organizationId), {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
     body: JSON.stringify(payload)
   });
 }
 
 export function updateTask(
   taskId: number,
-  payload: UpdateTaskRequest
+  payload: UpdateTaskRequest,
+  organizationId?: number
 ): Promise<Task> {
-  return fetchJson<Task>(`/tasks/${taskId}`, {
+  return fetchJson<Task>(`${getTaskBasePath(organizationId)}/${taskId}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
     body: JSON.stringify(payload)
   });
 }
 
-export function deleteTask(taskId: number): Promise<void> {
-  return fetchJson<void>(`/tasks/${taskId}`, {
+export function deleteTask(
+  taskId: number,
+  organizationId?: number
+): Promise<void> {
+  return fetchJson<void>(`${getTaskBasePath(organizationId)}/${taskId}`, {
     method: "DELETE"
   });
 }

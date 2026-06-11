@@ -21,6 +21,7 @@ export type TaskActionResult = {
 };
 
 type LoadTasksOptions = {
+  organizationId?: number;
   statusFilter?: TaskStatusFilter;
   page?: number;
   refreshCounters?: boolean;
@@ -43,26 +44,39 @@ export type UseTasksResult = {
   isTasksLoading: boolean;
   isSubmitting: boolean;
   isMutating: boolean;
+  activeTaskOrganizationId: number | null;
   changeTaskStatusFilter: (
-    statusFilter: TaskStatusFilter
+    statusFilter: TaskStatusFilter,
+    organizationId?: number
   ) => Promise<TaskActionResult>;
-  changeTaskPageSize: (pageSize: TaskPageSize) => Promise<TaskActionResult>;
-  changeTaskSearch: (search: string) => Promise<TaskActionResult>;
-  clearTaskSearch: () => Promise<TaskActionResult>;
-  goToPreviousTaskPage: () => Promise<TaskActionResult>;
-  goToNextTaskPage: () => Promise<TaskActionResult>;
+  changeTaskPageSize: (
+    pageSize: TaskPageSize,
+    organizationId?: number
+  ) => Promise<TaskActionResult>;
+  changeTaskSearch: (
+    search: string,
+    organizationId?: number
+  ) => Promise<TaskActionResult>;
+  clearTaskSearch: (organizationId?: number) => Promise<TaskActionResult>;
+  goToPreviousTaskPage: (organizationId?: number) => Promise<TaskActionResult>;
+  goToNextTaskPage: (organizationId?: number) => Promise<TaskActionResult>;
   loadTasks: (options?: LoadTasksOptions) => Promise<TaskActionResult>;
   clearTasks: () => void;
   createUserTask: (
     title: string,
-    status: TaskStatus
+    status: TaskStatus,
+    organizationId?: number
   ) => Promise<TaskActionResult>;
   updateUserTask: (
     taskId: number,
     title: string,
-    status: TaskStatus
+    status: TaskStatus,
+    organizationId?: number
   ) => Promise<TaskActionResult>;
-  deleteUserTask: (taskId: number) => Promise<TaskActionResult>;
+  deleteUserTask: (
+    taskId: number,
+    organizationId?: number
+  ) => Promise<TaskActionResult>;
 };
 
 const INITIAL_TASK_COUNTERS: TaskStatusCounters = {
@@ -85,9 +99,11 @@ export function useTasks(): UseTasksResult {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<TaskPageSize>(DEFAULT_PAGE_SIZE);
   const [totalItems, setTotalItems] = useState(0);
-  const [isTasksLoading, setIsTasksLoading] = useState(true);
+  const [isTasksLoading, setIsTasksLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
+  const [activeTaskOrganizationId, setActiveTaskOrganizationId] =
+    useState<number | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const hasPreviousPage = currentPage > 1;
@@ -96,6 +112,8 @@ export function useTasks(): UseTasksResult {
   async function loadTasks(
     options: LoadTasksOptions = {}
   ): Promise<TaskActionResult> {
+    const nextOrganizationId =
+      options.organizationId ?? activeTaskOrganizationId ?? undefined;
     const nextStatusFilter = options.statusFilter ?? taskStatusFilter;
     const nextPage = options.page ?? currentPage;
     const shouldRefreshCounters = options.refreshCounters ?? true;
@@ -109,15 +127,18 @@ export function useTasks(): UseTasksResult {
       const normalizedSearch = nextSearch.trim();
       const offset = (normalizedPage - 1) * nextPageSize;
 
-      const paginatedTasksPromise = getPaginatedTasks({
-        statusFilter: nextStatusFilter,
-        search: normalizedSearch,
-        limit: nextPageSize,
-        offset
-      });
+      const paginatedTasksPromise = getPaginatedTasks(
+        {
+          statusFilter: nextStatusFilter,
+          search: normalizedSearch,
+          limit: nextPageSize,
+          offset
+        },
+        nextOrganizationId
+      );
 
       const taskStatsPromise = shouldRefreshCounters
-        ? getTaskStats()
+        ? getTaskStats(nextOrganizationId)
         : Promise.resolve(taskCounters);
 
       const [paginatedTasks, stats] = await Promise.all([
@@ -132,6 +153,7 @@ export function useTasks(): UseTasksResult {
       setCurrentPage(normalizedPage);
       setPageSize(nextPageSize);
       setTotalItems(paginatedTasks.total);
+      setActiveTaskOrganizationId(nextOrganizationId ?? null);
 
       return {
         success: true,
@@ -148,9 +170,11 @@ export function useTasks(): UseTasksResult {
   }
 
   async function changeTaskStatusFilter(
-    statusFilter: TaskStatusFilter
+    statusFilter: TaskStatusFilter,
+    organizationId?: number
   ): Promise<TaskActionResult> {
     return loadTasks({
+      organizationId,
       statusFilter,
       page: 1,
       refreshCounters: false
@@ -158,32 +182,43 @@ export function useTasks(): UseTasksResult {
   }
 
   async function changeTaskPageSize(
-    nextPageSize: TaskPageSize
+    nextPageSize: TaskPageSize,
+    organizationId?: number
   ): Promise<TaskActionResult> {
     return loadTasks({
+      organizationId,
       page: 1,
       refreshCounters: false,
       pageSize: nextPageSize
     });
   }
 
-  async function changeTaskSearch(search: string): Promise<TaskActionResult> {
+  async function changeTaskSearch(
+    search: string,
+    organizationId?: number
+  ): Promise<TaskActionResult> {
     return loadTasks({
+      organizationId,
       page: 1,
       refreshCounters: false,
       search
     });
   }
 
-  async function clearTaskSearch(): Promise<TaskActionResult> {
+  async function clearTaskSearch(
+    organizationId?: number
+  ): Promise<TaskActionResult> {
     return loadTasks({
+      organizationId,
       page: 1,
       refreshCounters: false,
       search: ""
     });
   }
 
-  async function goToPreviousTaskPage(): Promise<TaskActionResult> {
+  async function goToPreviousTaskPage(
+    organizationId?: number
+  ): Promise<TaskActionResult> {
     if (!hasPreviousPage) {
       return {
         success: true,
@@ -192,12 +227,15 @@ export function useTasks(): UseTasksResult {
     }
 
     return loadTasks({
+      organizationId,
       page: currentPage - 1,
       refreshCounters: false
     });
   }
 
-  async function goToNextTaskPage(): Promise<TaskActionResult> {
+  async function goToNextTaskPage(
+    organizationId?: number
+  ): Promise<TaskActionResult> {
     if (!hasNextPage) {
       return {
         success: true,
@@ -206,6 +244,7 @@ export function useTasks(): UseTasksResult {
     }
 
     return loadTasks({
+      organizationId,
       page: currentPage + 1,
       refreshCounters: false
     });
@@ -220,21 +259,30 @@ export function useTasks(): UseTasksResult {
     setPageSize(DEFAULT_PAGE_SIZE);
     setTotalItems(0);
     setIsTasksLoading(false);
+    setActiveTaskOrganizationId(null);
   }
 
   async function createUserTask(
     title: string,
-    status: TaskStatus
+    status: TaskStatus,
+    organizationId?: number
   ): Promise<TaskActionResult> {
+    const nextOrganizationId =
+      organizationId ?? activeTaskOrganizationId ?? undefined;
+
     setIsSubmitting(true);
 
     try {
-      await createTask({
-        title,
-        status
-      });
+      await createTask(
+        {
+          title,
+          status
+        },
+        nextOrganizationId
+      );
 
       await loadTasks({
+        organizationId: nextOrganizationId,
         refreshCounters: true
       });
 
@@ -255,17 +303,26 @@ export function useTasks(): UseTasksResult {
   async function updateUserTask(
     taskId: number,
     title: string,
-    status: TaskStatus
+    status: TaskStatus,
+    organizationId?: number
   ): Promise<TaskActionResult> {
+    const nextOrganizationId =
+      organizationId ?? activeTaskOrganizationId ?? undefined;
+
     setIsMutating(true);
 
     try {
-      await updateTask(taskId, {
-        title,
-        status
-      });
+      await updateTask(
+        taskId,
+        {
+          title,
+          status
+        },
+        nextOrganizationId
+      );
 
       await loadTasks({
+        organizationId: nextOrganizationId,
         refreshCounters: true
       });
 
@@ -283,15 +340,22 @@ export function useTasks(): UseTasksResult {
     }
   }
 
-  async function deleteUserTask(taskId: number): Promise<TaskActionResult> {
+  async function deleteUserTask(
+    taskId: number,
+    organizationId?: number
+  ): Promise<TaskActionResult> {
+    const nextOrganizationId =
+      organizationId ?? activeTaskOrganizationId ?? undefined;
+
     setIsMutating(true);
 
     try {
-      await deleteTask(taskId);
+      await deleteTask(taskId, nextOrganizationId);
 
       const shouldMoveToPreviousPage = tasks.length === 1 && currentPage > 1;
 
       await loadTasks({
+        organizationId: nextOrganizationId,
         page: shouldMoveToPreviousPage ? currentPage - 1 : currentPage,
         refreshCounters: true
       });
@@ -325,6 +389,7 @@ export function useTasks(): UseTasksResult {
     isTasksLoading,
     isSubmitting,
     isMutating,
+    activeTaskOrganizationId,
     changeTaskStatusFilter,
     changeTaskPageSize,
     changeTaskSearch,

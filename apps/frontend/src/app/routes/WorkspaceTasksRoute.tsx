@@ -48,12 +48,20 @@ export function WorkspaceTasksRoute({ controller }: WorkspaceTasksRouteProps) {
     if (controller.selectedOrganization?.id !== routeWorkspace.id) {
       controller.selectWorkspaceFromRoute(routeWorkspace.id);
     }
+
+    if (controller.activeTaskOrganizationId !== routeWorkspace.id) {
+      void controller.loadWorkspaceTasks(routeWorkspace.id);
+    }
   }, [
     workspaceId,
     isValidWorkspaceId,
-    routeWorkspace,
-    controller,
-    navigate
+    routeWorkspace?.id,
+    controller.isAuthLoading,
+    controller.isOrganizationsLoading,
+    controller.currentUser,
+    controller.organizations.length,
+    controller.selectedOrganization?.id,
+    controller.activeTaskOrganizationId
   ]);
 
   if (controller.isAuthLoading || controller.isOrganizationsLoading) {

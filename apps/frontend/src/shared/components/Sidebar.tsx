@@ -7,12 +7,18 @@ import "./Sidebar.css";
 
 type SidebarProps = {
   currentUser: User | null;
+  organizations: Organization[];
   selectedOrganization: Organization | null;
+  isOrganizationsLoading: boolean;
+  onSelectOrganization: (organizationId: number) => void;
 };
 
 export function Sidebar({
   currentUser,
-  selectedOrganization
+  organizations,
+  selectedOrganization,
+  isOrganizationsLoading,
+  onSelectOrganization
 }: SidebarProps) {
   function getNavigationPath(routeId: AppRouteId): string {
     if (routeId === "dashboard") {
@@ -34,6 +40,16 @@ export function Sidebar({
     return `/workspaces/${selectedOrganization.id}/tasks`;
   }
 
+  function handleWorkspaceChange(value: string): void {
+    const organizationId = Number(value);
+
+    if (!Number.isInteger(organizationId) || organizationId <= 0) {
+      return;
+    }
+
+    onSelectOrganization(organizationId);
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -45,10 +61,40 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className="sidebar-workspace">
+      <section className="workspace-switcher" aria-label="Workspace switcher">
         <span className="sidebar-user-label">Current workspace</span>
-        <strong>{selectedOrganization ? selectedOrganization.name : "No workspace selected"}</strong>
-      </div>
+
+        {currentUser ? (
+          <>
+            <select
+              className="workspace-select"
+              value={selectedOrganization?.id ?? ""}
+              disabled={isOrganizationsLoading || organizations.length === 0}
+              onChange={(event) => handleWorkspaceChange(event.target.value)}
+            >
+              <option value="">
+                {isOrganizationsLoading
+                  ? "Loading workspaces..."
+                  : "Select workspace"}
+              </option>
+
+              {organizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>
+                  {organization.name}
+                </option>
+              ))}
+            </select>
+
+            {organizations.length === 0 && !isOrganizationsLoading ? (
+              <NavLink className="workspace-create-link" to="/workspaces">
+                Create your first workspace
+              </NavLink>
+            ) : null}
+          </>
+        ) : (
+          <strong className="workspace-guest">Login to use workspaces</strong>
+        )}
+      </section>
 
       <nav className="sidebar-nav" aria-label="Main navigation">
         {NAVIGATION_ITEMS.map((item) => (

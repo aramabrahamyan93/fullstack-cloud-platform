@@ -39,15 +39,39 @@
   font-weight: 900;
 }
 
-.sidebar-workspace,
+.workspace-switcher,
 .sidebar-user {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   padding: 14px;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   background: #f9fafb;
   overflow-wrap: anywhere;
+}
+
+.workspace-select {
+  min-width: 0;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.workspace-create-link {
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.workspace-create-link:hover {
+  text-decoration: underline;
+}
+
+.workspace-guest {
+  color: #6b7280;
+  font-size: 0.95rem;
 }
 
 .sidebar-nav {
