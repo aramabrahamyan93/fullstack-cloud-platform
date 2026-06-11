@@ -6,3 +6,13 @@ export type Organization = {
 export type CreateOrganizationRequest = {
   name: string;
 };
+
+export type OrganizationMemberRole = "owner" | "member";
+
+export type OrganizationMember = {
+  id: number;
+  organization_id: number;
+  user_id: number;
+  role: OrganizationMemberRole;
+  email: string;
+};
