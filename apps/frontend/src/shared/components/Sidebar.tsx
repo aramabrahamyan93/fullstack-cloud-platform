@@ -29,6 +29,14 @@ export function Sidebar({
       return `/workspaces/${selectedOrganization.id}/dashboard`;
     }
 
+    if (routeId === "members") {
+      if (!selectedOrganization) {
+        return "/workspaces";
+      }
+
+      return `/workspaces/${selectedOrganization.id}/members`;
+    }
+
     if (routeId === "workspaces") {
       return "/workspaces";
     }

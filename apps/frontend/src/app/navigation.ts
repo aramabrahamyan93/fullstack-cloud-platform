@@ -1,4 +1,9 @@
-export type AppRouteId = "dashboard" | "workspaces" | "tasks" | "system";
+export type AppRouteId =
+  | "dashboard"
+  | "tasks"
+  | "members"
+  | "workspaces"
+  | "system";
 
 export type NavigationItem = {
   id: AppRouteId;
@@ -10,7 +15,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     id: "dashboard",
     label: "Dashboard",
-    description: "Overview"
+    description: "Workspace overview"
   },
   {
     id: "tasks",
@@ -18,13 +23,18 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     description: "Workspace tasks"
   },
   {
+    id: "members",
+    label: "Members",
+    description: "Workspace access"
+  },
+  {
     id: "workspaces",
     label: "Workspaces",
-    description: "Organizations"
+    description: "Create and switch"
   },
   {
     id: "system",
     label: "System Status",
-    description: "Health and version"
+    description: "API health"
   }
 ];
