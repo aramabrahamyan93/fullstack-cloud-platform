@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
-import { appConfig } from "./config";
 import { getErrorMessage } from "../shared/api/errors";
 import { getHealth, getVersion } from "../features/system/api";
 import { useAuth } from "../features/auth/hooks/useAuth";
 import { AuthPanel } from "../features/auth/components/AuthPanel";
 import { Message, type MessageState, type MessageType } from "../shared/components/Message";
 import { SystemStatus } from "../shared/components/SystemStatus";
-import { TaskForm } from "../features/tasks/components/TaskForm";
-import { TaskList } from "../features/tasks/components/TaskList";
-import { TaskDashboard } from "../features/tasks/components/TaskDashboard";
+import { DashboardPage } from "../features/dashboard/components/DashboardPage";
+import { OrganizationsPage } from "../features/organizations/components/OrganizationsPage";
+import { TasksPage } from "../features/tasks/components/TasksPage";
 import { useTasks } from "../features/tasks/hooks/useTasks";
 import type { AuthCredentials } from "../features/auth/types";
 import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "../features/tasks/types";
+import { AppLayout } from "./AppLayout";
+import type { AppView } from "./navigation";
 
 export function App() {
+  const [activeView, setActiveView] = useState<AppView>("dashboard");
   const [health, setHealth] = useState("loading...");
   const [version, setVersion] = useState("loading...");
 
@@ -59,6 +61,7 @@ export function App() {
     updateUserTask,
     deleteUserTask
   } = useTasks();
+
   useEffect(() => {
     void loadDashboard();
   }, []);
@@ -117,6 +120,7 @@ export function App() {
     }
 
     showMessage(result.message, "success");
+    setActiveView("dashboard");
   }
 
   async function handleRegister(credentials: AuthCredentials) {
@@ -137,6 +141,7 @@ export function App() {
     }
 
     showMessage(result.message, "success");
+    setActiveView("dashboard");
   }
 
   function handleLogout() {
@@ -144,6 +149,7 @@ export function App() {
 
     clearTasks();
     showMessage(result.message, "success");
+    setActiveView("dashboard");
   }
 
   async function handleTaskStatusFilterChange(statusFilter: TaskStatusFilter) {
@@ -244,78 +250,96 @@ export function App() {
     });
   }
 
+  function renderActiveView() {
+    if (activeView === "dashboard") {
+      return (
+        <>
+          <AuthPanel
+            currentUser={currentUser}
+            isLoading={isAuthLoading}
+            isSubmitting={isAuthSubmitting}
+            onLogin={handleLogin}
+            onRegister={handleRegister}
+            onLogout={handleLogout}
+          />
+
+          <Message message={message} />
+
+          <DashboardPage
+            currentUser={currentUser}
+            taskCounters={taskCounters}
+          />
+        </>
+      );
+    }
+
+    if (activeView === "tasks") {
+      return (
+        <TasksPage
+          currentUserExists={Boolean(currentUser)}
+          message={message}
+          tasks={tasks}
+          taskStatusFilter={taskStatusFilter}
+          taskSearch={taskSearch}
+          taskCounters={taskCounters}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          pageSizeOptions={pageSizeOptions}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          hasPreviousPage={hasPreviousPage}
+          hasNextPage={hasNextPage}
+          isTasksLoading={isTasksLoading}
+          isSubmitting={isSubmitting}
+          isMutating={isMutating}
+          onCreateTask={handleCreateTask}
+          onFilterChange={handleTaskStatusFilterChange}
+          onPreviousPage={handlePreviousTaskPage}
+          onNextPage={handleNextTaskPage}
+          onPageSizeChange={handleTaskPageSizeChange}
+          onSearch={handleTaskSearch}
+          onClearSearch={handleClearTaskSearch}
+          onUpdateTask={handleUpdateTask}
+          onDeleteTask={handleDeleteTask}
+        />
+      );
+    }
+
+    if (activeView === "organizations") {
+      return (
+        <>
+          <Message message={message} />
+
+          <OrganizationsPage isAuthenticated={Boolean(currentUser)} />
+        </>
+      );
+    }
+
+    return (
+      <>
+        <Message message={message} />
+
+        <section className="page-header">
+          <div>
+            <h1>System Status</h1>
+            <p className="card-subtitle">
+              Backend health, API base URL, and current application version.
+            </p>
+          </div>
+        </section>
+
+        <SystemStatus health={health} version={version} />
+      </>
+    );
+  }
+
   return (
-    <main className="page">
-      <h1>{appConfig.appTitle}</h1>
-
-      <SystemStatus health={health} version={version} />
-
-      <AuthPanel
-        currentUser={currentUser}
-        isLoading={isAuthLoading}
-        isSubmitting={isAuthSubmitting}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-        onLogout={handleLogout}
-      />
-
-      {currentUser ? (
-        <>
-          <TaskForm
-            isSubmitting={isSubmitting}
-            onCreateTask={handleCreateTask}
-          />
-
-          <TaskDashboard
-            counters={taskCounters}
-            activeFilter={taskStatusFilter}
-            onFilterChange={handleTaskStatusFilterChange}
-          />
-
-          <Message message={message} />
-
-          <TaskList
-            tasks={tasks}
-            activeFilter={taskStatusFilter}
-            search={taskSearch}
-            currentPage={currentPage}
-            pageSize={pageSize}
-            pageSizeOptions={pageSizeOptions}
-            totalItems={totalItems}
-            totalPages={totalPages}
-            hasPreviousPage={hasPreviousPage}
-            hasNextPage={hasNextPage}
-            isLoading={isTasksLoading}
-            isMutating={isMutating}
-            onPreviousPage={handlePreviousTaskPage}
-            onNextPage={handleNextTaskPage}
-            onPageSizeChange={handleTaskPageSizeChange}
-            onSearch={handleTaskSearch}
-            onClearSearch={handleClearTaskSearch}
-            onUpdateTask={handleUpdateTask}
-            onDeleteTask={handleDeleteTask}
-          />
-        </>
-      ) : (
-        <>
-          <Message message={message} />
-
-          <section className="card">
-            <div className="card-header">
-              <div>
-                <h2>Tasks</h2>
-                <p className="card-subtitle">
-                  Protected task management is available after login.
-                </p>
-              </div>
-            </div>
-
-            <div className="empty-state">
-              Please login or register to manage your tasks.
-            </div>
-          </section>
-        </>
-      )}
-    </main>
+    <AppLayout
+      activeView={activeView}
+      currentUser={currentUser}
+      onNavigate={setActiveView}
+    >
+      {renderActiveView()}
+    </AppLayout>
   );
 }

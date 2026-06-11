@@ -1,0 +1,76 @@
+.task-list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-list-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.task-search-form {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.task-search-field {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.task-search-summary {
+  margin: 0 0 16px;
+  color: #6b7280;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.pagination-summary {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pagination-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.page-size-selector select {
+  min-width: 90px;
+}
+
+@media (max-width: 760px) {
+  .task-list-toolbar,
+  .task-search-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination-toolbar {
+    justify-content: flex-start;
+  }
+}

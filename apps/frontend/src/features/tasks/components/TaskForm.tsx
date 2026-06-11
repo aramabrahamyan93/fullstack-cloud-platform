@@ -1,3 +1,4 @@
+import "./TaskForm.css";
 import { FormEvent, useState } from "react";
 import type { TaskStatus } from "../types";
 

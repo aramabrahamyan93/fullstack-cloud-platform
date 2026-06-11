@@ -1,3 +1,4 @@
+import "./TaskItem.css";
 import { useState } from "react";
 import type { Task, TaskStatus } from "../types";
 

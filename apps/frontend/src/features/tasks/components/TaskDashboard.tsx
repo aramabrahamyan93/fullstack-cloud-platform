@@ -1,3 +1,4 @@
+import "./TaskDashboard.css";
 import type {
   TaskStatusCounters,
   TaskStatusFilter

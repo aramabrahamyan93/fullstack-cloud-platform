@@ -1,3 +1,4 @@
+import "./AuthPanel.css";
 import { useState, type FormEvent } from "react";
 import type { AuthCredentials, User } from "../types";
 
