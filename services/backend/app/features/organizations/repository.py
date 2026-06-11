@@ -61,3 +61,18 @@ def get_user_organization(
     )
 
     return db.scalars(statement).first()
+
+
+def get_user_organization_membership(
+    db: Session,
+    *,
+    organization_id: int,
+    user_id: int,
+) -> OrganizationMember | None:
+    statement = (
+        select(OrganizationMember)
+        .where(OrganizationMember.organization_id == organization_id)
+        .where(OrganizationMember.user_id == user_id)
+    )
+
+    return db.scalars(statement).first()
