@@ -39,6 +39,17 @@
   font-weight: 900;
 }
 
+.sidebar-workspace,
+.sidebar-user {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f9fafb;
+  overflow-wrap: anywhere;
+}
+
 .sidebar-nav {
   display: grid;
   gap: 8px;
@@ -50,13 +61,15 @@
   width: 100%;
   padding: 12px 14px;
   border: 1px solid transparent;
+  border-radius: 10px;
   background: transparent;
   color: #374151;
   text-align: left;
-  box-shadow: none;
+  text-decoration: none;
+  font-weight: 700;
 }
 
-.sidebar-nav-item:hover:not(:disabled) {
+.sidebar-nav-item:hover {
   background: #f8fafc;
 }
 
@@ -72,14 +85,7 @@
 }
 
 .sidebar-user {
-  display: grid;
-  gap: 4px;
   margin-top: auto;
-  padding: 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  background: #f9fafb;
-  overflow-wrap: anywhere;
 }
 
 .sidebar-user-label {

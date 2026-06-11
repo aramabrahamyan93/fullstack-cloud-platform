@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { getErrorMessage } from "../shared/api/errors";
 import { getHealth, getVersion } from "../features/system/api";
 import { useAuth } from "../features/auth/hooks/useAuth";
@@ -13,10 +14,9 @@ import { useOrganizations } from "../features/organizations/hooks/useOrganizatio
 import type { AuthCredentials } from "../features/auth/types";
 import type { TaskPageSize, TaskStatus, TaskStatusFilter } from "../features/tasks/types";
 import { AppLayout } from "./AppLayout";
-import type { AppView } from "./navigation";
 
 export function App() {
-  const [activeView, setActiveView] = useState<AppView>("dashboard");
+  const navigate = useNavigate();
   const [health, setHealth] = useState("loading...");
   const [version, setVersion] = useState("loading...");
 
@@ -129,6 +129,7 @@ export function App() {
 
     if (!result.success) {
       clearTasks();
+      clearOrganizations();
       showMessage(result.message, "error");
       return;
     }
@@ -149,7 +150,7 @@ export function App() {
     }
 
     showMessage(result.message, "success");
-    setActiveView("dashboard");
+    navigate("/dashboard");
   }
 
   async function handleRegister(credentials: AuthCredentials) {
@@ -178,7 +179,7 @@ export function App() {
     }
 
     showMessage(result.message, "success");
-    setActiveView("dashboard");
+    navigate("/dashboard");
   }
 
   function handleLogout() {
@@ -187,7 +188,7 @@ export function App() {
     clearTasks();
     clearOrganizations();
     showMessage(result.message, "success");
-    setActiveView("dashboard");
+    navigate("/dashboard");
   }
 
   async function handleTaskStatusFilterChange(statusFilter: TaskStatusFilter) {
@@ -244,6 +245,12 @@ export function App() {
       return;
     }
 
+    if (!selectedOrganization) {
+      showMessage("Please create or select a workspace before creating tasks.", "error");
+      navigate("/workspaces");
+      return;
+    }
+
     showMessage("Creating task...", "muted");
 
     const result = await createUserTask(title, status);
@@ -294,6 +301,11 @@ export function App() {
     showMessage(result.message, result.success ? "success" : "error");
   }
 
+  function handleSelectOrganization(organizationId: number) {
+    selectOrganization(organizationId);
+    navigate(`/workspaces/${organizationId}/tasks`);
+  }
+
   function showMessage(text: string, type: MessageType) {
     setMessage({
       text,
@@ -301,79 +313,102 @@ export function App() {
     });
   }
 
-  function renderActiveView() {
-    if (activeView === "dashboard") {
-      return (
-        <>
-          <AuthPanel
-            currentUser={currentUser}
-            isLoading={isAuthLoading}
-            isSubmitting={isAuthSubmitting}
-            onLogin={handleLogin}
-            onRegister={handleRegister}
-            onLogout={handleLogout}
-          />
-
-          <Message message={message} />
-
-          <DashboardPage
-            currentUser={currentUser}
-            taskCounters={taskCounters}
-          />
-        </>
-      );
-    }
-
-    if (activeView === "tasks") {
-      return (
-        <TasksPage
-          currentUserExists={Boolean(currentUser)}
-          message={message}
-          tasks={tasks}
-          taskStatusFilter={taskStatusFilter}
-          taskSearch={taskSearch}
-          taskCounters={taskCounters}
-          currentPage={currentPage}
-          pageSize={pageSize}
-          pageSizeOptions={pageSizeOptions}
-          totalItems={totalItems}
-          totalPages={totalPages}
-          hasPreviousPage={hasPreviousPage}
-          hasNextPage={hasNextPage}
-          isTasksLoading={isTasksLoading}
-          isSubmitting={isSubmitting}
-          isMutating={isMutating}
-          onCreateTask={handleCreateTask}
-          onFilterChange={handleTaskStatusFilterChange}
-          onPreviousPage={handlePreviousTaskPage}
-          onNextPage={handleNextTaskPage}
-          onPageSizeChange={handleTaskPageSizeChange}
-          onSearch={handleTaskSearch}
-          onClearSearch={handleClearTaskSearch}
-          onUpdateTask={handleUpdateTask}
-          onDeleteTask={handleDeleteTask}
+  function renderDashboardPage() {
+    return (
+      <>
+        <AuthPanel
+          currentUser={currentUser}
+          isLoading={isAuthLoading}
+          isSubmitting={isAuthSubmitting}
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+          onLogout={handleLogout}
         />
-      );
-    }
 
-    if (activeView === "organizations") {
+        <Message message={message} />
+
+        <DashboardPage
+          currentUser={currentUser}
+          taskCounters={taskCounters}
+        />
+      </>
+    );
+  }
+
+  function renderWorkspacesPage() {
+    return (
+      <>
+        <Message message={message} />
+
+        <OrganizationsPage
+          isAuthenticated={Boolean(currentUser)}
+          organizations={organizations}
+          selectedOrganization={selectedOrganization}
+          isLoading={isOrganizationsLoading}
+          isSubmitting={isOrganizationSubmitting}
+          onCreateOrganization={handleCreateOrganization}
+          onSelectOrganization={handleSelectOrganization}
+        />
+      </>
+    );
+  }
+
+  function renderTasksPage() {
+    if (!selectedOrganization) {
       return (
         <>
           <Message message={message} />
 
-          <OrganizationsPage
-            isAuthenticated={Boolean(currentUser)}
-            organizations={organizations}
-            selectedOrganization={selectedOrganization}
-            isLoading={isOrganizationsLoading}
-            isSubmitting={isOrganizationSubmitting}
-            onCreateOrganization={handleCreateOrganization}
-            onSelectOrganization={selectOrganization}
-          />
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h1>Tasks</h1>
+                <p className="card-subtitle">
+                  Select a workspace before managing tasks.
+                </p>
+              </div>
+            </div>
+
+            <div className="empty-state">
+              Please create or select a workspace first.
+            </div>
+          </section>
         </>
       );
     }
 
+    return (
+      <TasksPage
+        currentUserExists={Boolean(currentUser)}
+        message={message}
+        tasks={tasks}
+        taskStatusFilter={taskStatusFilter}
+        taskSearch={taskSearch}
+        taskCounters={taskCounters}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        pageSizeOptions={pageSizeOptions}
+        totalItems={totalItems}
+        totalPages={totalPages}
+        hasPreviousPage={hasPreviousPage}
+        hasNextPage={hasNextPage}
+        isTasksLoading={isTasksLoading}
+        isSubmitting={isSubmitting}
+        isMutating={isMutating}
+        onCreateTask={handleCreateTask}
+        onFilterChange={handleTaskStatusFilterChange}
+        onPreviousPage={handlePreviousTaskPage}
+        onNextPage={handleNextTaskPage}
+        onPageSizeChange={handleTaskPageSizeChange}
+        onSearch={handleTaskSearch}
+        onClearSearch={handleClearTaskSearch}
+        onUpdateTask={handleUpdateTask}
+        onDeleteTask={handleDeleteTask}
+      />
+    );
+  }
+
+  function renderSystemPage() {
     return (
       <>
         <Message message={message} />
@@ -394,11 +429,17 @@ export function App() {
 
   return (
     <AppLayout
-      activeView={activeView}
       currentUser={currentUser}
-      onNavigate={setActiveView}
+      selectedOrganization={selectedOrganization}
     >
-      {renderActiveView()}
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={renderDashboardPage()} />
+        <Route path="/workspaces" element={renderWorkspacesPage()} />
+        <Route path="/workspaces/:workspaceId/tasks" element={renderTasksPage()} />
+        <Route path="/system" element={renderSystemPage()} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </AppLayout>
   );
 }

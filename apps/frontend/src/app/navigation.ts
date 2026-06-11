@@ -1,7 +1,7 @@
-export type AppView = "dashboard" | "tasks" | "organizations" | "system";
+export type AppRouteId = "dashboard" | "workspaces" | "tasks" | "system";
 
 export type NavigationItem = {
-  id: AppView;
+  id: AppRouteId;
   label: string;
   description: string;
 };
@@ -15,10 +15,10 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     id: "tasks",
     label: "Tasks",
-    description: "Task management"
+    description: "Workspace tasks"
   },
   {
-    id: "organizations",
+    id: "workspaces",
     label: "Workspaces",
     description: "Organizations"
   },

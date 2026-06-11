@@ -1,28 +1,25 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "../shared/components/Sidebar";
 import type { User } from "../features/auth/types";
-import type { AppView } from "./navigation";
+import type { Organization } from "../features/organizations/types";
 import "./AppLayout.css";
 
 type AppLayoutProps = {
-  activeView: AppView;
   currentUser: User | null;
+  selectedOrganization: Organization | null;
   children: ReactNode;
-  onNavigate: (view: AppView) => void;
 };
 
 export function AppLayout({
-  activeView,
   currentUser,
-  children,
-  onNavigate
+  selectedOrganization,
+  children
 }: AppLayoutProps) {
   return (
     <div className="app-shell">
       <Sidebar
-        activeView={activeView}
         currentUser={currentUser}
-        onNavigate={onNavigate}
+        selectedOrganization={selectedOrganization}
       />
 
       <main className="app-main">{children}</main>

@@ -1,19 +1,39 @@
+import { NavLink } from "react-router-dom";
 import { appConfig } from "../../app/config";
-import { NAVIGATION_ITEMS, type AppView } from "../../app/navigation";
+import { NAVIGATION_ITEMS, type AppRouteId } from "../../app/navigation";
 import type { User } from "../../features/auth/types";
+import type { Organization } from "../../features/organizations/types";
 import "./Sidebar.css";
 
 type SidebarProps = {
-  activeView: AppView;
   currentUser: User | null;
-  onNavigate: (view: AppView) => void;
+  selectedOrganization: Organization | null;
 };
 
 export function Sidebar({
-  activeView,
   currentUser,
-  onNavigate
+  selectedOrganization
 }: SidebarProps) {
+  function getNavigationPath(routeId: AppRouteId): string {
+    if (routeId === "dashboard") {
+      return "/dashboard";
+    }
+
+    if (routeId === "workspaces") {
+      return "/workspaces";
+    }
+
+    if (routeId === "system") {
+      return "/system";
+    }
+
+    if (!selectedOrganization) {
+      return "/workspaces";
+    }
+
+    return `/workspaces/${selectedOrganization.id}/tasks`;
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -25,19 +45,23 @@ export function Sidebar({
         </div>
       </div>
 
+      <div className="sidebar-workspace">
+        <span className="sidebar-user-label">Current workspace</span>
+        <strong>{selectedOrganization ? selectedOrganization.name : "No workspace selected"}</strong>
+      </div>
+
       <nav className="sidebar-nav" aria-label="Main navigation">
         {NAVIGATION_ITEMS.map((item) => (
-          <button
+          <NavLink
             key={item.id}
-            type="button"
-            className={`sidebar-nav-item ${
-              activeView === item.id ? "active" : ""
-            }`}
-            onClick={() => onNavigate(item.id)}
+            to={getNavigationPath(item.id)}
+            className={({ isActive }) =>
+              `sidebar-nav-item ${isActive ? "active" : ""}`
+            }
           >
             <span>{item.label}</span>
             <small>{item.description}</small>
-          </button>
+          </NavLink>
         ))}
       </nav>
 
