@@ -115,7 +115,7 @@ export function TaskList({
         <div>
           <h2>Tasks</h2>
           <p className="card-subtitle">
-            Showing {FILTER_LABELS[activeFilter]} tasks owned by the signed-in user.
+            Showing {FILTER_LABELS[activeFilter]} tasks for the current workspace.
           </p>
         </div>
 

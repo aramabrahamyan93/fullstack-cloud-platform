@@ -85,7 +85,7 @@ export function AuthPanel({
         <div>
           <h2>Authentication</h2>
           <p className="auth-subtitle">
-            Login or create a local account to manage protected tasks.
+            Login or create a local account to manage your workspaces.
           </p>
         </div>
       </div>

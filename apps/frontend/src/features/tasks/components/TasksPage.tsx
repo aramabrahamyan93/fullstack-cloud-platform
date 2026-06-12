@@ -98,7 +98,7 @@ export function TasksPage({
         <div>
           <h1>Tasks</h1>
           <p className="card-subtitle">
-            Create, filter, update, and delete protected tasks.
+            Create, filter, update, and delete workspace tasks.
           </p>
         </div>
       </section>
