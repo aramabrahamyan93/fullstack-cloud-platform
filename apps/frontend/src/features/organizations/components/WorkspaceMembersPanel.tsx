@@ -1,15 +1,35 @@
+import { useState } from "react";
 import type { OrganizationMember } from "../types";
 import "./WorkspaceMembersPanel.css";
 
 type WorkspaceMembersPanelProps = {
   members: OrganizationMember[];
   isLoading: boolean;
+  isSubmitting?: boolean;
+  canAddMembers?: boolean;
+  onAddMember?: (email: string) => Promise<void>;
 };
 
 export function WorkspaceMembersPanel({
   members,
-  isLoading
+  isLoading,
+  isSubmitting = false,
+  canAddMembers = false,
+  onAddMember
 }: WorkspaceMembersPanelProps) {
+  const [email, setEmail] = useState("");
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!onAddMember) {
+      return;
+    }
+
+    await onAddMember(email);
+    setEmail("");
+  }
+
   return (
     <section className="card workspace-members-card">
       <div className="card-header">
@@ -20,6 +40,33 @@ export function WorkspaceMembersPanel({
           </p>
         </div>
       </div>
+
+      {canAddMembers ? (
+        <form className="workspace-member-form" onSubmit={handleSubmit}>
+          <label htmlFor="workspace-member-email">
+            Add member by email
+          </label>
+
+          <div className="workspace-member-form-row">
+            <input
+              id="workspace-member-email"
+              type="email"
+              value={email}
+              placeholder="member@example.com"
+              disabled={isSubmitting}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={isSubmitting || !email.trim()}
+            >
+              {isSubmitting ? "Adding..." : "Add member"}
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       {isLoading ? (
         <div className="empty-state">Loading members...</div>

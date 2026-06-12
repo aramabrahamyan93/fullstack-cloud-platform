@@ -75,6 +75,11 @@ export function WorkspaceMembersRoute({
     );
   }
 
+  const currentMember = controller.members.find(
+    (member) => member.user_id === controller.currentUser?.id
+  );
+  const canAddMembers = currentMember?.role === "owner";
+
   return (
     <>
       <Message message={controller.message} />
@@ -91,6 +96,9 @@ export function WorkspaceMembersRoute({
       <WorkspaceMembersPanel
         members={controller.members}
         isLoading={controller.isMembersLoading}
+        isSubmitting={controller.isMemberSubmitting}
+        canAddMembers={canAddMembers}
+        onAddMember={controller.handleAddWorkspaceMember}
       />
     </>
   );

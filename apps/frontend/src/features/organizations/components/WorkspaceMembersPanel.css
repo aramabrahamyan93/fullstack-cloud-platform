@@ -38,3 +38,35 @@
   font-weight: 900 !important;
   text-transform: uppercase;
 }
+
+.workspace-member-form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.workspace-member-form label {
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.workspace-member-form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.workspace-member-form-row input {
+  min-width: 0;
+  flex: 1;
+}
+
+@media (max-width: 700px) {
+  .workspace-member-form-row {
+    flex-direction: column;
+  }
+}

@@ -11,6 +11,7 @@ type AppLayoutProps = {
   isOrganizationsLoading: boolean;
   children: ReactNode;
   onSelectOrganization: (organizationId: number) => void;
+  onLogout: () => void;
 };
 
 export function AppLayout({
@@ -19,7 +20,8 @@ export function AppLayout({
   selectedOrganization,
   isOrganizationsLoading,
   children,
-  onSelectOrganization
+  onSelectOrganization,
+  onLogout
 }: AppLayoutProps) {
   return (
     <div className="app-shell">
@@ -29,6 +31,7 @@ export function AppLayout({
         selectedOrganization={selectedOrganization}
         isOrganizationsLoading={isOrganizationsLoading}
         onSelectOrganization={onSelectOrganization}
+        onLogout={onLogout}
       />
 
       <main className="app-main">{children}</main>

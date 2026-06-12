@@ -18,6 +18,7 @@ export function App() {
       selectedOrganization={controller.selectedOrganization}
       isOrganizationsLoading={controller.isOrganizationsLoading}
       onSelectOrganization={controller.handleSelectOrganization}
+      onLogout={controller.handleLogout}
     >
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

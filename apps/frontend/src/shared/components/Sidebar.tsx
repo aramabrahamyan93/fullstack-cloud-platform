@@ -11,6 +11,7 @@ type SidebarProps = {
   selectedOrganization: Organization | null;
   isOrganizationsLoading: boolean;
   onSelectOrganization: (organizationId: number) => void;
+  onLogout: () => void;
 };
 
 export function Sidebar({
@@ -18,7 +19,8 @@ export function Sidebar({
   organizations,
   selectedOrganization,
   isOrganizationsLoading,
-  onSelectOrganization
+  onSelectOrganization,
+  onLogout
 }: SidebarProps) {
   function getNavigationPath(routeId: AppRouteId): string {
     if (routeId === "dashboard") {
@@ -126,6 +128,16 @@ export function Sidebar({
       <div className="sidebar-user">
         <span className="sidebar-user-label">Signed in as</span>
         <strong>{currentUser ? currentUser.email : "Guest"}</strong>
+
+        {currentUser ? (
+          <button
+            type="button"
+            className="sidebar-logout-button"
+            onClick={onLogout}
+          >
+            Logout
+          </button>
+        ) : null}
       </div>
     </aside>
   );

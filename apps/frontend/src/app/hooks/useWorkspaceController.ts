@@ -29,7 +29,9 @@ export function useWorkspaceController({
   const {
     members,
     isMembersLoading,
+    isMemberSubmitting,
     loadMembers,
+    addMember,
     clearMembers
   } = useOrganizationMembers();
 
@@ -69,6 +71,25 @@ export function useWorkspaceController({
     }
   }
 
+  async function handleAddWorkspaceMember(email: string): Promise<void> {
+    if (!currentUser) {
+      showMessage("Please login before adding workspace members.", "error");
+      return;
+    }
+
+    if (!selectedOrganization) {
+      showMessage("Please select a workspace before adding members.", "error");
+      navigate("/workspaces");
+      return;
+    }
+
+    showMessage("Adding workspace member...", "muted");
+
+    const result = await addMember(selectedOrganization.id, email);
+
+    showMessage(result.message, result.success ? "success" : "error");
+  }
+
   function clearWorkspaceState(): void {
     clearOrganizations();
     clearMembers();
@@ -82,12 +103,14 @@ export function useWorkspaceController({
 
     members,
     isMembersLoading,
+    isMemberSubmitting,
 
     loadOrganizations,
     clearOrganizations,
     clearMembers,
     clearWorkspaceState,
     loadWorkspaceMembers,
+    handleAddWorkspaceMember,
 
     handleCreateOrganization,
     handleSelectOrganization,

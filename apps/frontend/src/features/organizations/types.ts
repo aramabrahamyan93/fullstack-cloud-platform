@@ -16,3 +16,8 @@ export type OrganizationMember = {
   role: OrganizationMemberRole;
   email: string;
 };
+
+export type AddOrganizationMemberRequest = {
+  email: string;
+  role: OrganizationMemberRole;
+};
