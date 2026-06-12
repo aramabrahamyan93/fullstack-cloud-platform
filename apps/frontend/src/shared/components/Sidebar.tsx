@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { appConfig } from "../../app/config";
 import { NAVIGATION_ITEMS, type AppRouteId } from "../../app/navigation";
 import type { User } from "../../features/auth/types";
@@ -37,35 +37,67 @@ export function Sidebar({
       return "/dashboard";
     }
 
-    if (routeId === "dashboard") {
-      if (!selectedOrganization) {
-        return "/workspaces";
-      }
-
-      return `/workspaces/${selectedOrganization.id}/dashboard`;
-    }
-
-    if (routeId === "tasks") {
-      if (!selectedOrganization) {
-        return "/workspaces";
-      }
-
-      return `/workspaces/${selectedOrganization.id}/tasks`;
-    }
-
-    if (routeId === "members") {
-      if (!selectedOrganization) {
-        return "/workspaces";
-      }
-
-      return `/workspaces/${selectedOrganization.id}/members`;
+    if (routeId === "system") {
+      return "/system";
     }
 
     if (routeId === "workspaces") {
       return "/workspaces";
     }
 
-    return "/system";
+    if (!selectedOrganization) {
+      return "/workspaces";
+    }
+
+    if (routeId === "dashboard") {
+      return `/workspaces/${selectedOrganization.id}/dashboard`;
+    }
+
+    if (routeId === "tasks") {
+      return `/workspaces/${selectedOrganization.id}/tasks`;
+    }
+
+    if (routeId === "members") {
+      return `/workspaces/${selectedOrganization.id}/members`;
+    }
+
+    return "/workspaces";
+  }
+
+  function isWorkspaceSpecificRoute(routeId: AppRouteId): boolean {
+    return routeId === "dashboard" || routeId === "tasks" || routeId === "members";
+  }
+
+  function isNavigationItemDisabled(routeId: AppRouteId): boolean {
+    return isWorkspaceSpecificRoute(routeId) && !selectedOrganization;
+  }
+
+  function isNavigationItemActive(routeId: AppRouteId): boolean {
+    if (routeId === "global_dashboard") {
+      return location.pathname === "/dashboard";
+    }
+
+    if (routeId === "system") {
+      return location.pathname === "/system";
+    }
+
+    if (routeId === "workspaces") {
+      return location.pathname === "/workspaces";
+    }
+
+    if (routeId === "dashboard") {
+      return /^\/workspaces\/[^/]+\/dashboard$/.test(location.pathname);
+    }
+
+    if (routeId === "tasks") {
+      return /^\/workspaces\/[^/]+\/tasks$/.test(location.pathname);
+    }
+
+    if (routeId === "members") {
+      return /^\/workspaces\/[^/]+\/members$/.test(location.pathname);
+    }
+
+    return false;
   }
 
   function getWorkspaceSwitchPath(organizationId: number): string {
@@ -95,19 +127,38 @@ export function Sidebar({
   }
 
   function renderNavigationItems(items: typeof NAVIGATION_ITEMS) {
-    return items.map((item) => (
-      <NavLink
-        key={item.id}
-        to={getNavigationPath(item.id)}
-        end
-        className={({ isActive }) =>
-          `sidebar-nav-item ${isActive ? "active" : ""}`
-        }
-      >
-        <span>{item.label}</span>
-        <small>{item.description}</small>
-      </NavLink>
-    ));
+    return items.map((item) => {
+      const isActive = isNavigationItemActive(item.id);
+      const isDisabled = isNavigationItemDisabled(item.id);
+      const className = [
+        "sidebar-nav-item",
+        isActive ? "active" : "",
+        isDisabled ? "disabled" : ""
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      if (isDisabled) {
+        return (
+          <div
+            key={item.id}
+            className={className}
+            aria-disabled="true"
+            title="Create or select a workspace first"
+          >
+            <span>{item.label}</span>
+            <small>{item.description}</small>
+          </div>
+        );
+      }
+
+      return (
+        <Link key={item.id} to={getNavigationPath(item.id)} className={className}>
+          <span>{item.label}</span>
+          <small>{item.description}</small>
+        </Link>
+      );
+    });
   }
 
   return (

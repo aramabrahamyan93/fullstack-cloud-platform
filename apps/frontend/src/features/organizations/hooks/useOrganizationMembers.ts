@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getErrorMessage } from "../../../shared/api/errors";
+import { getErrorCode, getErrorMessage } from "../../../shared/api/errors";
 import {
   addOrganizationMember,
   getOrganizationMembers
@@ -26,21 +26,25 @@ export type UseOrganizationMembersResult = {
 };
 
 function getAddMemberErrorMessage(error: unknown): string {
-  const message = getErrorMessage(error);
+  const code = getErrorCode(error);
 
-  if (message === "User not found.") {
+  if (code === "workspace_member_user_not_registered") {
     return "This user must register before you can add them to the workspace.";
   }
 
-  if (message === "User is already a workspace member.") {
+  if (code === "workspace_member_already_exists") {
     return "This user is already a member of this workspace.";
   }
 
-  if (message === "You cannot add yourself as a member.") {
+  if (code === "workspace_member_self_add_not_allowed") {
     return "You are already the workspace owner.";
   }
 
-  return message;
+  if (code === "workspace_member_invalid_role") {
+    return "Only members can be added from this form.";
+  }
+
+  return getErrorMessage(error);
 }
 
 export function useOrganizationMembers(): UseOrganizationMembersResult {

@@ -172,3 +172,15 @@
   padding-top: 14px;
   border-top: 1px solid #e5e7eb;
 }
+
+.sidebar-nav-item.disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: transparent;
+  border-color: transparent;
+}
+
+.sidebar-nav-item.disabled:hover {
+  background: transparent;
+  border-color: transparent;
+}

@@ -1,5 +1,6 @@
 import { getAccessToken } from "../../features/auth/tokenStorage";
 import { appConfig } from "../../app/config";
+import { parseApiErrorResponse } from "./errors";
 import { createApiError } from "./errors";
 
 export const API_BASE_URL = appConfig.apiBaseUrl;
