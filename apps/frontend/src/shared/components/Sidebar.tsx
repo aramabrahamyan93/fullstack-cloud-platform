@@ -14,6 +14,14 @@ type SidebarProps = {
   onLogout: () => void;
 };
 
+const GLOBAL_NAVIGATION_ITEMS = NAVIGATION_ITEMS.filter(
+  (item) => item.group === "global"
+);
+
+const WORKSPACE_NAVIGATION_ITEMS = NAVIGATION_ITEMS.filter(
+  (item) => item.group === "workspace"
+);
+
 export function Sidebar({
   currentUser,
   organizations,
@@ -86,6 +94,22 @@ export function Sidebar({
     onSelectOrganization(organizationId, getWorkspaceSwitchPath(organizationId));
   }
 
+  function renderNavigationItems(items: typeof NAVIGATION_ITEMS) {
+    return items.map((item) => (
+      <NavLink
+        key={item.id}
+        to={getNavigationPath(item.id)}
+        end
+        className={({ isActive }) =>
+          `sidebar-nav-item ${isActive ? "active" : ""}`
+        }
+      >
+        <span>{item.label}</span>
+        <small>{item.description}</small>
+      </NavLink>
+    ));
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -98,7 +122,7 @@ export function Sidebar({
       </div>
 
       <section className="workspace-switcher" aria-label="Workspace switcher">
-        <span className="sidebar-user-label">Current workspace</span>
+        <span className="sidebar-section-title">Current workspace</span>
 
         {currentUser ? (
           <>
@@ -133,23 +157,23 @@ export function Sidebar({
       </section>
 
       <nav className="sidebar-nav" aria-label="Main navigation">
-        {NAVIGATION_ITEMS.map((item) => (
-          <NavLink
-            key={item.id}
-            to={getNavigationPath(item.id)}
-            end
-            className={({ isActive }) =>
-              `sidebar-nav-item ${isActive ? "active" : ""}`
-            }
-          >
-            <span>{item.label}</span>
-            <small>{item.description}</small>
-          </NavLink>
-        ))}
+        <section className="sidebar-nav-section">
+          <span className="sidebar-section-title">Global</span>
+          <div className="sidebar-nav-group">
+            {renderNavigationItems(GLOBAL_NAVIGATION_ITEMS)}
+          </div>
+        </section>
+
+        <section className="sidebar-nav-section">
+          <span className="sidebar-section-title">Workspace</span>
+          <div className="sidebar-nav-group">
+            {renderNavigationItems(WORKSPACE_NAVIGATION_ITEMS)}
+          </div>
+        </section>
       </nav>
 
       <div className="sidebar-user">
-        <span className="sidebar-user-label">Signed in as</span>
+        <span className="sidebar-section-title">Signed in as</span>
         <strong>{currentUser ? currentUser.email : "Guest"}</strong>
 
         {currentUser ? (

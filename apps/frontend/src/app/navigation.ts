@@ -6,41 +6,50 @@ export type AppRouteId =
   | "workspaces"
   | "system";
 
+export type NavigationGroupId = "global" | "workspace";
+
 export type NavigationItem = {
   id: AppRouteId;
   label: string;
   description: string;
+  group: NavigationGroupId;
 };
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     id: "global_dashboard",
     label: "Global Dashboard",
-    description: "Account overview"
-  },
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    description: "Workspace overview"
-  },
-  {
-    id: "tasks",
-    label: "Tasks",
-    description: "Workspace tasks"
-  },
-  {
-    id: "members",
-    label: "Members",
-    description: "Workspace access"
-  },
-  {
-    id: "workspaces",
-    label: "Workspaces",
-    description: "Create and switch"
+    description: "Account overview",
+    group: "global"
   },
   {
     id: "system",
     label: "System Status",
-    description: "API health"
+    description: "API health",
+    group: "global"
+  },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    description: "Workspace overview",
+    group: "workspace"
+  },
+  {
+    id: "tasks",
+    label: "Tasks",
+    description: "Workspace tasks",
+    group: "workspace"
+  },
+  {
+    id: "members",
+    label: "Members",
+    description: "Workspace access",
+    group: "workspace"
+  },
+  {
+    id: "workspaces",
+    label: "Workspaces",
+    description: "Create and switch",
+    group: "workspace"
   }
 ];

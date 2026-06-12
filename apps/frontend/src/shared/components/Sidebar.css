@@ -149,3 +149,26 @@
 .sidebar-logout-button:hover {
   background: #fee2e2;
 }
+
+.sidebar-nav-section {
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar-nav-group {
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar-section-title {
+  color: #6b7280;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sidebar-nav-section + .sidebar-nav-section {
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
