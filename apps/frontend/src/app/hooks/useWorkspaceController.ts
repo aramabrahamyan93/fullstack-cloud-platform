@@ -74,23 +74,18 @@ export function useWorkspaceController({
     }
   }
 
-  async function handleAddWorkspaceMember(email: string): Promise<void> {
-    if (!currentUser) {
-      showMessage("Please login before adding workspace members.", "error");
-      return;
-    }
-
+  async function handleAddWorkspaceMember(email: string): Promise<boolean> {
     if (!selectedOrganization) {
-      showMessage("Please select a workspace before adding members.", "error");
-      navigate("/workspaces");
-      return;
-    }
+      showMessage("Please select a workspace first.", "error");
 
-    showMessage("Adding workspace member...", "muted");
+      return false;
+    }
 
     const result = await addMember(selectedOrganization.id, email);
 
     showMessage(result.message, result.success ? "success" : "error");
+
+    return result.success;
   }
 
   function clearWorkspaceState(): void {

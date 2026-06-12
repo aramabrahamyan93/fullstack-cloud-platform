@@ -7,7 +7,7 @@ type WorkspaceMembersPanelProps = {
   isLoading: boolean;
   isSubmitting?: boolean;
   canAddMembers?: boolean;
-  onAddMember?: (email: string) => Promise<void>;
+  onAddMember?: (email: string) => Promise<boolean>;
 };
 
 export function WorkspaceMembersPanel({
@@ -26,8 +26,17 @@ export function WorkspaceMembersPanel({
       return;
     }
 
-    await onAddMember(email);
-    setEmail("");
+    const submittedEmail = email.trim();
+
+    if (!submittedEmail) {
+      return;
+    }
+
+    const wasAdded = await onAddMember(submittedEmail);
+
+    if (wasAdded) {
+      setEmail("");
+    }
   }
 
   return (
