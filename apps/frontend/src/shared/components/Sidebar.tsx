@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { appConfig } from "../../app/config";
 import { NAVIGATION_ITEMS, type AppRouteId } from "../../app/navigation";
 import type { User } from "../../features/auth/types";
@@ -10,7 +10,7 @@ type SidebarProps = {
   organizations: Organization[];
   selectedOrganization: Organization | null;
   isOrganizationsLoading: boolean;
-  onSelectOrganization: (organizationId: number) => void;
+  onSelectOrganization: (organizationId: number, targetPath?: string) => void;
   onLogout: () => void;
 };
 
@@ -22,13 +22,27 @@ export function Sidebar({
   onSelectOrganization,
   onLogout
 }: SidebarProps) {
+  const location = useLocation();
+
   function getNavigationPath(routeId: AppRouteId): string {
+    if (routeId === "global_dashboard") {
+      return "/dashboard";
+    }
+
     if (routeId === "dashboard") {
       if (!selectedOrganization) {
-        return "/dashboard";
+        return "/workspaces";
       }
 
       return `/workspaces/${selectedOrganization.id}/dashboard`;
+    }
+
+    if (routeId === "tasks") {
+      if (!selectedOrganization) {
+        return "/workspaces";
+      }
+
+      return `/workspaces/${selectedOrganization.id}/tasks`;
     }
 
     if (routeId === "members") {
@@ -43,15 +57,23 @@ export function Sidebar({
       return "/workspaces";
     }
 
-    if (routeId === "system") {
-      return "/system";
+    return "/system";
+  }
+
+  function getWorkspaceSwitchPath(organizationId: number): string {
+    if (location.pathname.includes("/members")) {
+      return `/workspaces/${organizationId}/members`;
     }
 
-    if (!selectedOrganization) {
-      return "/workspaces";
+    if (location.pathname.includes("/tasks")) {
+      return `/workspaces/${organizationId}/tasks`;
     }
 
-    return `/workspaces/${selectedOrganization.id}/tasks`;
+    if (location.pathname.includes("/dashboard")) {
+      return `/workspaces/${organizationId}/dashboard`;
+    }
+
+    return `/workspaces/${organizationId}/dashboard`;
   }
 
   function handleWorkspaceChange(value: string): void {
@@ -61,7 +83,7 @@ export function Sidebar({
       return;
     }
 
-    onSelectOrganization(organizationId);
+    onSelectOrganization(organizationId, getWorkspaceSwitchPath(organizationId));
   }
 
   return (
@@ -115,6 +137,7 @@ export function Sidebar({
           <NavLink
             key={item.id}
             to={getNavigationPath(item.id)}
+            end
             className={({ isActive }) =>
               `sidebar-nav-item ${isActive ? "active" : ""}`
             }

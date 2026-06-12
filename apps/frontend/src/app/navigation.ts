@@ -1,4 +1,5 @@
 export type AppRouteId =
+  | "global_dashboard"
   | "dashboard"
   | "tasks"
   | "members"
@@ -12,6 +13,11 @@ export type NavigationItem = {
 };
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
+  {
+    id: "global_dashboard",
+    label: "Global Dashboard",
+    description: "Account overview"
+  },
   {
     id: "dashboard",
     label: "Dashboard",

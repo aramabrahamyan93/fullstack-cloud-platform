@@ -53,10 +53,13 @@ export function useWorkspaceController({
     }
   }
 
-  function handleSelectOrganization(organizationId: number): void {
+  function handleSelectOrganization(
+    organizationId: number,
+    targetPath?: string
+  ): void {
     selectOrganization(organizationId);
     void loadWorkspaceMembers(organizationId);
-    navigate(`/workspaces/${organizationId}/tasks`);
+    navigate(targetPath ?? `/workspaces/${organizationId}/dashboard`);
   }
 
   function selectWorkspaceFromRoute(organizationId: number): void {

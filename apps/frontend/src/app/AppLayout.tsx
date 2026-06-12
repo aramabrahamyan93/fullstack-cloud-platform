@@ -10,7 +10,7 @@ type AppLayoutProps = {
   selectedOrganization: Organization | null;
   isOrganizationsLoading: boolean;
   children: ReactNode;
-  onSelectOrganization: (organizationId: number) => void;
+  onSelectOrganization: (organizationId: number, targetPath?: string) => void;
   onLogout: () => void;
 };
 
