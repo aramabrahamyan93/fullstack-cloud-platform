@@ -141,7 +141,10 @@ def add_member_to_user_organization(
     )
 
     if member_create.role != ORGANIZATION_ROLE_MEMBER:
-        raise ForbiddenError("Only member role can be assigned for now.")
+        raise ForbiddenError(
+            "Only member role can be assigned for now.",
+            error_code="workspace_member_invalid_role",
+        )
 
     user_to_add = users_repository.get_user_by_email(
         db,
@@ -149,10 +152,16 @@ def add_member_to_user_organization(
     )
 
     if user_to_add is None:
-        raise NotFoundError("User not found.")
+        raise NotFoundError(
+            "User not found.",
+            error_code="workspace_member_user_not_registered",
+        )
 
     if user_to_add.id == current_user.id:
-        raise ForbiddenError("You cannot add yourself as a member.")
+        raise ForbiddenError(
+            "You cannot add yourself as a member.",
+            error_code="workspace_member_self_add_not_allowed",
+        )
 
     existing_member = repository.get_organization_member_by_user_id(
         db,
@@ -161,7 +170,10 @@ def add_member_to_user_organization(
     )
 
     if existing_member is not None:
-        raise ForbiddenError("User is already a workspace member.")
+        raise ForbiddenError(
+            "User is already a workspace member.",
+            error_code="workspace_member_already_exists",
+        )
 
     member = repository.create_organization_member(
         db,

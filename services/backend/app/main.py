@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from app.core.errors import AppError
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -13,7 +14,6 @@ from app.db.init_db import init_db
 
 configure_logging()
 logger = logging.getLogger(__name__)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,7 +27,6 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("Stopping application")
-
 
 app = FastAPI(
     title=settings.app_name,

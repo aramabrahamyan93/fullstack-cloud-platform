@@ -25,6 +25,24 @@ export type UseOrganizationMembersResult = {
   clearMembers: () => void;
 };
 
+function getAddMemberErrorMessage(error: unknown): string {
+  const message = getErrorMessage(error);
+
+  if (message === "User not found.") {
+    return "This user must register before you can add them to the workspace.";
+  }
+
+  if (message === "User is already a workspace member.") {
+    return "This user is already a member of this workspace.";
+  }
+
+  if (message === "You cannot add yourself as a member.") {
+    return "You are already the workspace owner.";
+  }
+
+  return message;
+}
+
 export function useOrganizationMembers(): UseOrganizationMembersResult {
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [isMembersLoading, setIsMembersLoading] = useState(false);
@@ -84,7 +102,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     } catch (error) {
       return {
         success: false,
-        message: getErrorMessage(error)
+        message: getAddMemberErrorMessage(error)
       };
     } finally {
       setIsMemberSubmitting(false);

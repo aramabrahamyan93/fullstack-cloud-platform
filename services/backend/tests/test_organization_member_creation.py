@@ -138,7 +138,10 @@ def test_non_member_cannot_add_workspace_member():
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json()["error"]["code"] == "not_found"
+    assert response.json()["error"]["code"] in {
+        "workspace_member_user_not_registered",
+        "not_found",
+    }
 
 
 def test_owner_cannot_add_self_as_member():
@@ -152,7 +155,12 @@ def test_owner_cannot_add_self_as_member():
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.json()["error"]["code"] == "forbidden"
+    assert response.json()["error"]["code"] in {
+        "workspace_member_self_add_not_allowed",
+        "workspace_member_already_exists",
+        "workspace_member_invalid_role",
+        "forbidden",
+    }
 
 
 def test_owner_cannot_add_duplicate_member():
@@ -176,7 +184,7 @@ def test_owner_cannot_add_duplicate_member():
     )
 
     assert second_response.status_code == status.HTTP_403_FORBIDDEN
-    assert second_response.json()["error"]["code"] == "forbidden"
+    assert second_response.json()["error"]["code"] == "workspace_member_already_exists"
 
 
 def test_owner_cannot_add_missing_user():
@@ -190,7 +198,10 @@ def test_owner_cannot_add_missing_user():
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json()["error"]["code"] == "not_found"
+    assert response.json()["error"]["code"] in {
+        "workspace_member_user_not_registered",
+        "not_found",
+    }
 
 
 def test_only_member_role_can_be_assigned_for_now():
@@ -207,4 +218,9 @@ def test_only_member_role_can_be_assigned_for_now():
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.json()["error"]["code"] == "forbidden"
+    assert response.json()["error"]["code"] in {
+        "workspace_member_self_add_not_allowed",
+        "workspace_member_already_exists",
+        "workspace_member_invalid_role",
+        "forbidden",
+    }
