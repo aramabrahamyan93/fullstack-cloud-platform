@@ -581,3 +581,49 @@ def remove_member_from_user_organization(
     )
 
     db.commit()
+
+
+def transfer_user_organization_ownership(
+    db: Session,
+    *,
+    organization_id: int,
+    member_id: int,
+    current_user: User,
+) -> None:
+    current_owner_membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    target_member = repository.get_organization_member_by_id(
+        db,
+        organization_id=organization_id,
+        member_id=member_id,
+    )
+
+    if target_member is None:
+        raise NotFoundError("Workspace member not found.")
+
+    if target_member.user_id == current_user.id:
+        raise ForbiddenError(
+            "You cannot transfer ownership to yourself.",
+            error_code="workspace_ownership_self_transfer_not_allowed",
+        )
+
+    if target_member.role == ORGANIZATION_ROLE_OWNER:
+        raise ForbiddenError(
+            "Target member is already an owner.",
+            error_code="workspace_ownership_target_already_owner",
+        )
+
+    if target_member.role != ORGANIZATION_ROLE_MEMBER:
+        raise ForbiddenError(
+            "Ownership can only be transferred to a workspace member.",
+            error_code="workspace_ownership_target_invalid_role",
+        )
+
+    current_owner_membership.role = ORGANIZATION_ROLE_MEMBER
+    target_member.role = ORGANIZATION_ROLE_OWNER
+
+    db.commit()

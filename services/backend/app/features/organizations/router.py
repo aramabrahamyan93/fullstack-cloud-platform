@@ -24,6 +24,7 @@ from app.features.organizations.service import (
     list_user_organization_invitations,
     list_organizations_for_user,
     remove_member_from_user_organization,
+    transfer_user_organization_ownership,
 )
 from app.features.users.models import User
 
@@ -225,6 +226,26 @@ def remove_organization_member(
     db: Session = Depends(get_db),
 ) -> Response:
     remove_member_from_user_organization(
+        db,
+        organization_id=organization_id,
+        member_id=member_id,
+        current_user=current_user,
+    )
+
+    return Response(status_code=204)
+
+
+@router.post(
+    "/{organization_id}/members/{member_id}/transfer-ownership",
+    status_code=204,
+)
+def transfer_organization_ownership(
+    organization_id: int,
+    member_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    transfer_user_organization_ownership(
         db,
         organization_id=organization_id,
         member_id=member_id,
