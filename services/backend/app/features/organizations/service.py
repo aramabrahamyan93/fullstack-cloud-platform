@@ -5,6 +5,7 @@ from app.features.organizations import repository
 from app.features.organizations.models import Organization, OrganizationMember
 from app.features.organizations.schemas import OrganizationCreate
 from app.features.organizations.schemas import OrganizationMemberCreate
+from app.features.organizations.schemas import OrganizationInvitationCreate
 from app.features.users import repository as users_repository
 from app.features.users.models import User
 
@@ -193,3 +194,128 @@ def add_member_to_user_organization(
         "email": user_to_add.email,
     }
 
+
+ORGANIZATION_INVITATION_STATUS_PENDING = "pending"
+ORGANIZATION_INVITATION_STATUS_CANCELLED = "cancelled"
+ORGANIZATION_INVITATION_EXPIRATION_DAYS = 7
+
+
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def create_user_organization_invitation(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+    invitation_create: OrganizationInvitationCreate,
+):
+    ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if invitation_create.role != ORGANIZATION_ROLE_MEMBER:
+        raise ForbiddenError(
+            "Only member role can be invited for now.",
+            error_code="workspace_invitation_invalid_role",
+        )
+
+    email = _normalize_email(str(invitation_create.email))
+
+    invited_user = users_repository.get_user_by_email(
+        db,
+        email=email,
+    )
+
+    if invited_user is not None:
+        existing_member = repository.get_organization_member_by_user_id(
+            db,
+            organization_id=organization_id,
+            user_id=invited_user.id,
+        )
+
+        if existing_member is not None:
+            raise ForbiddenError(
+                "User is already a workspace member.",
+                error_code="workspace_invitation_user_already_member",
+            )
+
+    existing_invitation = repository.get_pending_organization_invitation_by_email(
+        db,
+        organization_id=organization_id,
+        email=email,
+    )
+
+    if existing_invitation is not None:
+        raise ForbiddenError(
+            "A pending invitation already exists for this email.",
+            error_code="workspace_invitation_already_pending",
+        )
+
+    from datetime import datetime, timedelta, timezone
+    import secrets
+
+    invitation = repository.create_organization_invitation(
+        db,
+        organization_id=organization_id,
+        email=email,
+        role=ORGANIZATION_ROLE_MEMBER,
+        status=ORGANIZATION_INVITATION_STATUS_PENDING,
+        invited_by_user_id=current_user.id,
+        token=secrets.token_urlsafe(32),
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(days=ORGANIZATION_INVITATION_EXPIRATION_DAYS),
+    )
+
+    db.commit()
+    db.refresh(invitation)
+
+    return invitation
+
+
+def list_user_organization_invitations(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+):
+    ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    return repository.list_organization_invitations(
+        db,
+        organization_id=organization_id,
+    )
+
+
+def cancel_user_organization_invitation(
+    db: Session,
+    *,
+    organization_id: int,
+    invitation_id: int,
+    current_user: User,
+) -> None:
+    ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    invitation = repository.get_organization_invitation_by_id(
+        db,
+        organization_id=organization_id,
+        invitation_id=invitation_id,
+    )
+
+    if invitation is None:
+        raise NotFoundError("Invitation not found.")
+
+    invitation.status = ORGANIZATION_INVITATION_STATUS_CANCELLED
+
+    db.commit()

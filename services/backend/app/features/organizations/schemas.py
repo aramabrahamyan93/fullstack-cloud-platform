@@ -1,4 +1,9 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from datetime import datetime
+
+from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import EmailStr
+from pydantic import Field
 
 
 class OrganizationCreate(BaseModel):
@@ -25,3 +30,21 @@ class OrganizationMemberRead(BaseModel):
     user_id: int
     role: str
     email: str
+
+
+class OrganizationInvitationCreate(BaseModel):
+    email: EmailStr
+    role: str = Field(default="member", min_length=1, max_length=50)
+
+
+class OrganizationInvitationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    organization_id: int
+    email: str
+    role: str
+    status: str
+    invited_by_user_id: int
+    expires_at: datetime
+    created_at: datetime

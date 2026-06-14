@@ -1,16 +1,21 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_current_user, get_db
 from app.features.organizations.schemas import OrganizationCreate
+from app.features.organizations.schemas import OrganizationInvitationCreate
+from app.features.organizations.schemas import OrganizationInvitationRead
 from app.features.organizations.schemas import OrganizationMemberCreate
 from app.features.organizations.schemas import OrganizationMemberRead
 from app.features.organizations.schemas import OrganizationRead
 from app.features.organizations.service import (
     add_member_to_user_organization,
+    cancel_user_organization_invitation,
+    create_user_organization_invitation,
     create_user_organization,
     get_organization_for_user,
     list_members_for_user_organization,
+    list_user_organization_invitations,
     list_organizations_for_user,
 )
 from app.features.users.models import User
@@ -81,3 +86,58 @@ def add_organization_member(
         member_create=member_create,
     )
 
+
+
+@router.post(
+    "/{organization_id}/invitations",
+    response_model=OrganizationInvitationRead,
+    status_code=201,
+)
+def create_organization_invitation(
+    organization_id: int,
+    invitation_create: OrganizationInvitationCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> OrganizationInvitationRead:
+    return create_user_organization_invitation(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+        invitation_create=invitation_create,
+    )
+
+
+@router.get(
+    "/{organization_id}/invitations",
+    response_model=list[OrganizationInvitationRead],
+)
+def list_organization_invitations(
+    organization_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[OrganizationInvitationRead]:
+    return list_user_organization_invitations(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+
+@router.delete(
+    "/{organization_id}/invitations/{invitation_id}",
+    status_code=204,
+)
+def cancel_organization_invitation(
+    organization_id: int,
+    invitation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    cancel_user_organization_invitation(
+        db,
+        organization_id=organization_id,
+        invitation_id=invitation_id,
+        current_user=current_user,
+    )
+
+    return Response(status_code=204)
