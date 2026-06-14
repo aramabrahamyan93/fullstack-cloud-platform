@@ -43,3 +43,8 @@ export type CreateOrganizationInvitationRequest = {
   email: string;
   role: "member";
 };
+
+export type MyInvitationActionResult = {
+  success: boolean;
+  message: string;
+};

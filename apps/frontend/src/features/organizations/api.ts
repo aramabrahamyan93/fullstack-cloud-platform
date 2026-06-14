@@ -81,3 +81,29 @@ export function cancelOrganizationInvitation(
   );
 }
 
+
+export function getMyOrganizationInvitations(): Promise<OrganizationInvitation[]> {
+  return fetchJson<OrganizationInvitation[]>("/organizations/invitations/me");
+}
+
+export function acceptMyOrganizationInvitation(
+  invitationId: number
+): Promise<OrganizationMember> {
+  return fetchJson<OrganizationMember>(
+    `/organizations/invitations/${invitationId}/accept`,
+    {
+      method: "POST"
+    }
+  );
+}
+
+export function declineMyOrganizationInvitation(
+  invitationId: number
+): Promise<OrganizationInvitation> {
+  return fetchJson<OrganizationInvitation>(
+    `/organizations/invitations/${invitationId}/decline`,
+    {
+      method: "POST"
+    }
+  );
+}

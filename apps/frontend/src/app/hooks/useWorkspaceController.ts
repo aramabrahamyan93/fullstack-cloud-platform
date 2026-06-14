@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { User } from "../../features/auth/types";
+import { useMyOrganizationInvitations } from "../../features/organizations/hooks/useMyOrganizationInvitations";
 import { useOrganizationInvitations } from "../../features/organizations/hooks/useOrganizationInvitations";
 import { useOrganizationMembers } from "../../features/organizations/hooks/useOrganizationMembers";
 import { useOrganizations } from "../../features/organizations/hooks/useOrganizations";
@@ -45,6 +46,16 @@ export function useWorkspaceController({
     cancelInvitation,
     clearInvitations
   } = useOrganizationInvitations();
+
+  const {
+    myInvitations,
+    isMyInvitationsLoading,
+    isMyInvitationSubmitting,
+    loadMyInvitations,
+    acceptMyInvitation,
+    declineMyInvitation,
+    clearMyInvitations
+  } = useMyOrganizationInvitations();
 
   async function handleCreateOrganization(name: string): Promise<void> {
     if (!currentUser) {
@@ -135,10 +146,44 @@ export function useWorkspaceController({
     showMessage(result.message, result.success ? "success" : "error");
   }
 
+  async function loadCurrentUserInvitations(): Promise<void> {
+    if (!currentUser) {
+      clearMyInvitations();
+      return;
+    }
+
+    const result = await loadMyInvitations();
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleAcceptMyInvitation(invitationId: number): Promise<void> {
+    const result = await acceptMyInvitation(invitationId);
+
+    showMessage(result.message, result.success ? "success" : "error");
+
+    if (result.success) {
+      await loadOrganizations();
+
+      if (result.member) {
+        await loadWorkspaceMembers(result.member.organization_id);
+      }
+    }
+  }
+
+  async function handleDeclineMyInvitation(invitationId: number): Promise<void> {
+    const result = await declineMyInvitation(invitationId);
+
+    showMessage(result.message, result.success ? "success" : "error");
+  }
+
   function clearWorkspaceState(): void {
     clearOrganizations();
     clearMembers();
     clearInvitations();
+    clearMyInvitations();
   }
 
   return {
@@ -155,6 +200,10 @@ export function useWorkspaceController({
     isInvitationsLoading,
     isInvitationSubmitting,
 
+    myInvitations,
+    isMyInvitationsLoading,
+    isMyInvitationSubmitting,
+
     loadOrganizations,
     clearOrganizations,
     clearMembers,
@@ -165,6 +214,10 @@ export function useWorkspaceController({
     handleAddWorkspaceMember,
     handleCreateWorkspaceInvitation,
     handleCancelWorkspaceInvitation,
+
+    loadCurrentUserInvitations,
+    handleAcceptMyInvitation,
+    handleDeclineMyInvitation,
 
     handleCreateOrganization,
     handleSelectOrganization,

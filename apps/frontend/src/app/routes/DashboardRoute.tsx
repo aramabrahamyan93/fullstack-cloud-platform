@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { AuthPanel } from "../../features/auth/components/AuthPanel";
 import { DashboardPage } from "../../features/dashboard/components/DashboardPage";
+import { MyInvitationsPanel } from "../../features/organizations/components/MyInvitationsPanel";
 import { Message } from "../../shared/components/Message";
 import type { AppController } from "../hooks/useAppController";
 
@@ -8,6 +10,14 @@ type DashboardRouteProps = {
 };
 
 export function DashboardRoute({ controller }: DashboardRouteProps) {
+  useEffect(() => {
+    if (!controller.currentUser) {
+      return;
+    }
+
+    void controller.loadCurrentUserInvitations();
+  }, [controller.currentUser?.id]);
+
   return (
     <>
       <AuthPanel
@@ -20,6 +30,14 @@ export function DashboardRoute({ controller }: DashboardRouteProps) {
       />
 
       <Message message={controller.message} />
+
+      <MyInvitationsPanel
+        invitations={controller.myInvitations}
+        isLoading={controller.isMyInvitationsLoading}
+        isSubmitting={controller.isMyInvitationSubmitting}
+        onAccept={controller.handleAcceptMyInvitation}
+        onDecline={controller.handleDeclineMyInvitation}
+      />
 
       <DashboardPage
         currentUser={controller.currentUser}
