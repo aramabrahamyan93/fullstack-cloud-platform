@@ -45,7 +45,7 @@ export function MyInvitationsPanel({
         {invitations.map((invitation) => (
           <article key={invitation.id} className="my-invitation-item">
             <div>
-              <strong>Workspace #{invitation.organization_id}</strong>
+              <strong>{invitation.organization_name ?? `Workspace #${invitation.organization_id}`}</strong>
               <span>{invitation.email}</span>
               <span>Role: {invitation.role}</span>
             </div>

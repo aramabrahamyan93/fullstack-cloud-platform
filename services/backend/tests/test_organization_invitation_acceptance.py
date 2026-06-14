@@ -99,6 +99,7 @@ def test_invited_user_can_list_pending_invitations():
 
     assert len(invitations) == 1
     assert invitations[0]["organization_id"] == organization["id"]
+    assert invitations[0]["organization_name"] == organization["name"]
     assert invitations[0]["email"] == "accept-list-user@example.com"
     assert invitations[0]["status"] == "pending"
 

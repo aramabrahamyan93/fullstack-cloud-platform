@@ -31,6 +31,7 @@ export type OrganizationInvitationStatus =
 export type OrganizationInvitation = {
   id: number;
   organization_id: number;
+  organization_name?: string;
   email: string;
   role: string;
   status: OrganizationInvitationStatus;

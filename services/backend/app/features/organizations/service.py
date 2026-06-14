@@ -354,7 +354,7 @@ def list_current_user_pending_invitations(
     db: Session,
     *,
     current_user: User,
-) -> list[OrganizationInvitation]:
+) -> list[dict]:
     email = _normalize_email(current_user.email)
 
     invitations = repository.list_pending_organization_invitations_by_email(
@@ -362,7 +362,7 @@ def list_current_user_pending_invitations(
         email=email,
     )
 
-    active_invitations: list[OrganizationInvitation] = []
+    active_invitations: list[dict] = []
 
     for invitation in invitations:
         try:
@@ -370,7 +370,26 @@ def list_current_user_pending_invitations(
         except ForbiddenError:
             continue
 
-        active_invitations.append(invitation)
+        organization = db.get(Organization, invitation.organization_id)
+        organization_name = (
+            organization.name
+            if organization is not None
+            else f"Workspace #{invitation.organization_id}"
+        )
+
+        active_invitations.append(
+            {
+                "id": invitation.id,
+                "organization_id": invitation.organization_id,
+                "organization_name": organization_name,
+                "email": invitation.email,
+                "role": invitation.role,
+                "status": invitation.status,
+                "invited_by_user_id": invitation.invited_by_user_id,
+                "expires_at": invitation.expires_at,
+                "created_at": invitation.created_at,
+            }
+        )
 
     db.commit()
 

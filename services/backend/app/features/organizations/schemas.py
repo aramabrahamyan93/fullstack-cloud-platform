@@ -48,3 +48,15 @@ class OrganizationInvitationRead(BaseModel):
     invited_by_user_id: int
     expires_at: datetime
     created_at: datetime
+
+
+class MyOrganizationInvitationRead(BaseModel):
+    id: int
+    organization_id: int
+    organization_name: str
+    email: str
+    role: str
+    status: str
+    invited_by_user_id: int
+    expires_at: datetime
+    created_at: datetime

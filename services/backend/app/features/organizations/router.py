@@ -7,6 +7,7 @@ from app.features.organizations.schemas import OrganizationInvitationCreate
 from app.features.organizations.schemas import OrganizationInvitationRead
 from app.features.organizations.schemas import OrganizationMemberCreate
 from app.features.organizations.schemas import OrganizationMemberRead
+from app.features.organizations.schemas import MyOrganizationInvitationRead
 from app.features.organizations.schemas import OrganizationRead
 from app.features.organizations.service import (
     accept_current_user_invitation,
@@ -148,12 +149,12 @@ def cancel_organization_invitation(
 
 @router.get(
     "/invitations/me",
-    response_model=list[OrganizationInvitationRead],
+    response_model=list[MyOrganizationInvitationRead],
 )
 def list_my_organization_invitations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[OrganizationInvitationRead]:
+) -> list[MyOrganizationInvitationRead]:
     return list_current_user_pending_invitations(
         db,
         current_user=current_user,
