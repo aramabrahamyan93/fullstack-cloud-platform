@@ -36,6 +36,7 @@ export function useWorkspaceController({
     loadMembers,
     addMember,
     removeMember,
+    transferOwnership,
     clearMembers
   } = useOrganizationMembers();
 
@@ -137,6 +138,32 @@ export function useWorkspaceController({
     const result = await removeMember(selectedOrganization.id, memberId);
 
     showMessage(result.message, result.success ? "success" : "error");
+  }
+
+  async function handleTransferWorkspaceOwnership(
+    memberId: number
+  ): Promise<void> {
+    if (!selectedOrganization) {
+      showMessage("Please select a workspace first.", "error");
+
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Transfer workspace ownership to this member? You will become a regular member."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const result = await transferOwnership(selectedOrganization.id, memberId);
+
+    showMessage(result.message, result.success ? "success" : "error");
+
+    if (result.success) {
+      await loadOrganizations();
+    }
   }
 
   async function loadWorkspaceInvitations(organizationId: number): Promise<void> {
@@ -265,6 +292,7 @@ export function useWorkspaceController({
     loadWorkspaceInvitations,
     handleAddWorkspaceMember,
     handleRemoveWorkspaceMember,
+    handleTransferWorkspaceOwnership,
     handleCreateWorkspaceInvitation,
     handleCancelWorkspaceInvitation,
     handleSearchWorkspaceInviteCandidates,

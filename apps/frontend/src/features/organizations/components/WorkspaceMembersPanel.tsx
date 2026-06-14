@@ -18,6 +18,7 @@ type WorkspaceMembersPanelProps = {
   onCreateInvitation?: (email: string) => Promise<boolean>;
   onCancelInvitation?: (invitationId: number) => Promise<void>;
   onRemoveMember?: (memberId: number) => Promise<void>;
+  onTransferOwnership?: (memberId: number) => Promise<void>;
   onSearchInviteCandidates?: (query: string) => Promise<void>;
 };
 
@@ -37,6 +38,7 @@ export function WorkspaceMembersPanel({
   onCreateInvitation,
   onCancelInvitation,
   onRemoveMember,
+  onTransferOwnership,
   onSearchInviteCandidates
 }: WorkspaceMembersPanelProps) {
   const [invitationEmail, setInvitationEmail] = useState("");
@@ -139,6 +141,19 @@ export function WorkspaceMembersPanel({
 
               <div className="workspace-invitation-actions">
                 <span className="workspace-member-role">{member.role}</span>
+
+                {canManageInvitations &&
+                member.role === "member" &&
+                onTransferOwnership ? (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={isInvitationSubmitting}
+                    onClick={() => void onTransferOwnership(member.id)}
+                  >
+                    Transfer ownership
+                  </button>
+                ) : null}
 
                 {canManageInvitations &&
                 member.role === "member" &&

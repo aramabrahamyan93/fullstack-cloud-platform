@@ -133,3 +133,15 @@ export function removeOrganizationMember(
     }
   );
 }
+
+export function transferOrganizationOwnership(
+  organizationId: number,
+  memberId: number
+): Promise<void> {
+  return fetchJson<void>(
+    `/organizations/${organizationId}/members/${memberId}/transfer-ownership`,
+    {
+      method: "POST"
+    }
+  );
+}

@@ -3,7 +3,8 @@ import { getErrorCode, getErrorMessage } from "../../../shared/api/errors";
 import {
   addOrganizationMember,
   getOrganizationMembers,
-  removeOrganizationMember
+  removeOrganizationMember,
+  transferOrganizationOwnership
 } from "../api";
 import type { OrganizationMember } from "../types";
 
@@ -24,6 +25,10 @@ export type UseOrganizationMembersResult = {
     email: string
   ) => Promise<OrganizationMembersActionResult>;
   removeMember: (
+    organizationId: number,
+    memberId: number
+  ) => Promise<OrganizationMembersActionResult>;
+  transferOwnership: (
     organizationId: number,
     memberId: number
   ) => Promise<OrganizationMembersActionResult>;
@@ -142,6 +147,30 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     }
   }
 
+  async function transferOwnership(
+    organizationId: number,
+    memberId: number
+  ): Promise<OrganizationMembersActionResult> {
+    setIsMemberSubmitting(true);
+
+    try {
+      await transferOrganizationOwnership(organizationId, memberId);
+      await loadMembers(organizationId);
+
+      return {
+        success: true,
+        message: "Workspace ownership transferred successfully."
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: getErrorMessage(error)
+      };
+    } finally {
+      setIsMemberSubmitting(false);
+    }
+  }
+
   function clearMembers(): void {
     setMembers([]);
     setIsMembersLoading(false);
@@ -155,6 +184,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     loadMembers,
     addMember,
     removeMember,
+    transferOwnership,
     clearMembers
   };
 }
