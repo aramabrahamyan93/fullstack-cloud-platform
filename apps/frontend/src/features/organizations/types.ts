@@ -21,3 +21,25 @@ export type AddOrganizationMemberRequest = {
   email: string;
   role: OrganizationMemberRole;
 };
+
+export type OrganizationInvitationStatus =
+  | "pending"
+  | "accepted"
+  | "cancelled"
+  | "expired";
+
+export type OrganizationInvitation = {
+  id: number;
+  organization_id: number;
+  email: string;
+  role: string;
+  status: OrganizationInvitationStatus;
+  invited_by_user_id: number;
+  expires_at: string;
+  created_at: string;
+};
+
+export type CreateOrganizationInvitationRequest = {
+  email: string;
+  role: "member";
+};

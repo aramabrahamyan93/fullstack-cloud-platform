@@ -1,8 +1,10 @@
 import { fetchJson } from "../../shared/api/client";
 import type {
   AddOrganizationMemberRequest,
+  CreateOrganizationInvitationRequest,
   CreateOrganizationRequest,
   Organization,
+  OrganizationInvitation,
   OrganizationMember
 } from "./types";
 
@@ -45,3 +47,37 @@ export function addOrganizationMember(
     }
   );
 }
+
+export function getOrganizationInvitations(
+  organizationId: number
+): Promise<OrganizationInvitation[]> {
+  return fetchJson<OrganizationInvitation[]>(
+    `/organizations/${organizationId}/invitations`
+  );
+}
+
+export function createOrganizationInvitation(
+  organizationId: number,
+  payload: CreateOrganizationInvitationRequest
+): Promise<OrganizationInvitation> {
+  return fetchJson<OrganizationInvitation>(
+    `/organizations/${organizationId}/invitations`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }
+  );
+}
+
+export function cancelOrganizationInvitation(
+  organizationId: number,
+  invitationId: number
+): Promise<void> {
+  return fetchJson<void>(
+    `/organizations/${organizationId}/invitations/${invitationId}`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
