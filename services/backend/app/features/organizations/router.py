@@ -5,6 +5,7 @@ from app.db.dependencies import get_current_user, get_db
 from app.features.organizations.schemas import OrganizationCreate
 from app.features.organizations.schemas import OrganizationInvitationCreate
 from app.features.organizations.schemas import OrganizationInvitationRead
+from app.features.organizations.schemas import OrganizationInviteCandidateRead
 from app.features.organizations.schemas import OrganizationMemberCreate
 from app.features.organizations.schemas import OrganizationMemberRead
 from app.features.organizations.schemas import MyOrganizationInvitationRead
@@ -18,6 +19,7 @@ from app.features.organizations.service import (
     create_user_organization,
     get_organization_for_user,
     list_current_user_pending_invitations,
+    list_user_organization_invite_candidates,
     list_members_for_user_organization,
     list_user_organization_invitations,
     list_organizations_for_user,
@@ -190,4 +192,22 @@ def decline_my_organization_invitation(
         db,
         invitation_id=invitation_id,
         current_user=current_user,
+    )
+
+
+@router.get(
+    "/{organization_id}/invite-candidates",
+    response_model=list[OrganizationInviteCandidateRead],
+)
+def list_organization_invite_candidates(
+    organization_id: int,
+    query: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[OrganizationInviteCandidateRead]:
+    return list_user_organization_invite_candidates(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+        query=query,
     )

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { User } from "../../features/auth/types";
 import { useMyOrganizationInvitations } from "../../features/organizations/hooks/useMyOrganizationInvitations";
+import { useOrganizationInviteCandidates } from "../../features/organizations/hooks/useOrganizationInviteCandidates";
 import { useOrganizationInvitations } from "../../features/organizations/hooks/useOrganizationInvitations";
 import { useOrganizationMembers } from "../../features/organizations/hooks/useOrganizationMembers";
 import { useOrganizations } from "../../features/organizations/hooks/useOrganizations";
@@ -46,6 +47,13 @@ export function useWorkspaceController({
     cancelInvitation,
     clearInvitations
   } = useOrganizationInvitations();
+
+  const {
+    inviteCandidates,
+    isInviteCandidatesLoading,
+    loadInviteCandidates,
+    clearInviteCandidates
+  } = useOrganizationInviteCandidates();
 
   const {
     myInvitations,
@@ -129,7 +137,26 @@ export function useWorkspaceController({
 
     showMessage(result.message, result.success ? "success" : "error");
 
+    if (result.success) {
+      await loadInviteCandidates(selectedOrganization.id, email);
+    }
+
     return result.success;
+  }
+
+  async function handleSearchWorkspaceInviteCandidates(
+    query: string
+  ): Promise<void> {
+    if (!selectedOrganization) {
+      clearInviteCandidates();
+      return;
+    }
+
+    const result = await loadInviteCandidates(selectedOrganization.id, query);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
   }
 
   async function handleCancelWorkspaceInvitation(
@@ -183,6 +210,7 @@ export function useWorkspaceController({
     clearOrganizations();
     clearMembers();
     clearInvitations();
+    clearInviteCandidates();
     clearMyInvitations();
   }
 
@@ -200,6 +228,9 @@ export function useWorkspaceController({
     isInvitationsLoading,
     isInvitationSubmitting,
 
+    inviteCandidates,
+    isInviteCandidatesLoading,
+
     myInvitations,
     isMyInvitationsLoading,
     isMyInvitationSubmitting,
@@ -214,6 +245,7 @@ export function useWorkspaceController({
     handleAddWorkspaceMember,
     handleCreateWorkspaceInvitation,
     handleCancelWorkspaceInvitation,
+    handleSearchWorkspaceInviteCandidates,
 
     loadCurrentUserInvitations,
     handleAcceptMyInvitation,

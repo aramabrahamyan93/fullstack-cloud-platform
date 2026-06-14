@@ -5,6 +5,7 @@ import type {
   CreateOrganizationRequest,
   Organization,
   OrganizationInvitation,
+  OrganizationInviteCandidate,
   OrganizationMember
 } from "./types";
 
@@ -105,5 +106,18 @@ export function declineMyOrganizationInvitation(
     {
       method: "POST"
     }
+  );
+}
+
+export function getOrganizationInviteCandidates(
+  organizationId: number,
+  query: string
+): Promise<OrganizationInviteCandidate[]> {
+  const searchParams = new URLSearchParams({
+    query
+  });
+
+  return fetchJson<OrganizationInviteCandidate[]>(
+    `/organizations/${organizationId}/invite-candidates?${searchParams.toString()}`
   );
 }

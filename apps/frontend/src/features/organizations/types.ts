@@ -49,3 +49,10 @@ export type MyInvitationActionResult = {
   success: boolean;
   message: string;
 };
+
+export type OrganizationInviteCandidate = {
+  user_id: number;
+  email: string;
+  membership_status: "member" | "not_member";
+  invitation_status: "pending" | null;
+};

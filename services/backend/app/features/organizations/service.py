@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ForbiddenError, NotFoundError
@@ -481,3 +482,60 @@ def decline_current_user_invitation(
     db.refresh(invitation)
 
     return invitation
+
+
+def list_user_organization_invite_candidates(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+    query: str,
+) -> list[dict[str, int | str | None]]:
+    ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    normalized_query = query.strip().lower()
+
+    if len(normalized_query) < 2:
+        return []
+
+    statement = (
+        select(User)
+        .where(User.email.ilike(f"%{normalized_query}%"))
+        .order_by(User.email.asc())
+        .limit(10)
+    )
+
+    users = list(db.scalars(statement).all())
+    candidates: list[dict[str, int | str | None]] = []
+
+    for user in users:
+        existing_member = repository.get_organization_member_by_user_id(
+            db,
+            organization_id=organization_id,
+            user_id=user.id,
+        )
+
+        pending_invitation = repository.get_pending_organization_invitation_by_user_email(
+            db,
+            organization_id=organization_id,
+            email=_normalize_email(user.email),
+        )
+
+        candidates.append(
+            {
+                "user_id": user.id,
+                "email": user.email,
+                "membership_status": "member"
+                if existing_member is not None
+                else "not_member",
+                "invitation_status": ORGANIZATION_INVITATION_STATUS_PENDING
+                if pending_invitation is not None
+                else None,
+            }
+        )
+
+    return candidates

@@ -1,33 +1,58 @@
 import { useState } from "react";
-import type { OrganizationInvitation, OrganizationMember } from "../types";
+import type {
+  OrganizationInvitation,
+  OrganizationInviteCandidate,
+  OrganizationMember
+} from "../types";
 import "./WorkspaceMembersPanel.css";
 
 type WorkspaceMembersPanelProps = {
   members: OrganizationMember[];
   invitations?: OrganizationInvitation[];
+  inviteCandidates?: OrganizationInviteCandidate[];
   isLoading: boolean;
   isInvitationsLoading?: boolean;
+  isInviteCandidatesLoading?: boolean;
   isInvitationSubmitting?: boolean;
   canManageInvitations?: boolean;
   onCreateInvitation?: (email: string) => Promise<boolean>;
   onCancelInvitation?: (invitationId: number) => Promise<void>;
+  onSearchInviteCandidates?: (query: string) => Promise<void>;
 };
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
 
 export function WorkspaceMembersPanel({
   members,
   invitations = [],
+  inviteCandidates = [],
   isLoading,
   isInvitationsLoading = false,
+  isInviteCandidatesLoading = false,
   isInvitationSubmitting = false,
   canManageInvitations = false,
   onCreateInvitation,
-  onCancelInvitation
+  onCancelInvitation,
+  onSearchInviteCandidates
 }: WorkspaceMembersPanelProps) {
   const [invitationEmail, setInvitationEmail] = useState("");
 
   const pendingInvitations = invitations.filter(
     (invitation) => invitation.status === "pending"
   );
+
+  const exactCandidate = inviteCandidates.find(
+    (candidate) =>
+      candidate.email.toLowerCase() === invitationEmail.trim().toLowerCase()
+  );
+
+  const canInviteTypedEmail =
+    isValidEmail(invitationEmail.trim()) &&
+    (!exactCandidate ||
+      (exactCandidate.membership_status === "not_member" &&
+        exactCandidate.invitation_status !== "pending"));
 
   async function handleCreateInvitationSubmit(
     event: React.FormEvent<HTMLFormElement>
@@ -49,6 +74,16 @@ export function WorkspaceMembersPanel({
     if (wasCreated) {
       setInvitationEmail("");
     }
+  }
+
+  async function handleSearchChange(value: string): Promise<void> {
+    setInvitationEmail(value);
+
+    if (!onSearchInviteCandidates) {
+      return;
+    }
+
+    await onSearchInviteCandidates(value);
   }
 
   return (
@@ -90,8 +125,7 @@ export function WorkspaceMembersPanel({
             <div>
               <h3>Invite People</h3>
               <p className="card-subtitle">
-                Create a pending invitation. The user becomes a member only
-                after accepting it.
+                Search registered users or invite a new email address.
               </p>
             </div>
           </div>
@@ -101,7 +135,7 @@ export function WorkspaceMembersPanel({
             onSubmit={handleCreateInvitationSubmit}
           >
             <label htmlFor="workspace-invitation-email">
-              Invite by email
+              Search by email or invite by email
             </label>
 
             <div className="workspace-member-form-row">
@@ -111,23 +145,85 @@ export function WorkspaceMembersPanel({
                 value={invitationEmail}
                 placeholder="person@example.com"
                 disabled={isInvitationSubmitting}
-                onChange={(event) => setInvitationEmail(event.target.value)}
+                onChange={(event) => void handleSearchChange(event.target.value)}
               />
 
               <button
                 type="submit"
                 className="primary-button"
-                disabled={isInvitationSubmitting || !invitationEmail.trim()}
+                disabled={
+                  isInvitationSubmitting ||
+                  !invitationEmail.trim() ||
+                  !canInviteTypedEmail
+                }
               >
-                {isInvitationSubmitting ? "Inviting..." : "Create invitation"}
+                {isInvitationSubmitting ? "Inviting..." : "Invite email"}
               </button>
             </div>
 
             <p className="workspace-member-help">
-              Registered and unregistered emails both receive a pending
-              invitation.
+              Registered users are shown below. Unknown emails can still receive
+              a pending invitation.
             </p>
           </form>
+
+          {isInviteCandidatesLoading ? (
+            <div className="empty-state">Searching users...</div>
+          ) : null}
+
+          {!isInviteCandidatesLoading &&
+          invitationEmail.trim().length >= 2 &&
+          inviteCandidates.length === 0 ? (
+            <div className="empty-state">
+              No registered users found. You can invite this email directly if
+              it is valid.
+            </div>
+          ) : null}
+
+          {!isInviteCandidatesLoading && inviteCandidates.length > 0 ? (
+            <div className="workspace-members-list">
+              {inviteCandidates.map((candidate) => {
+                const isMember = candidate.membership_status === "member";
+                const isPending = candidate.invitation_status === "pending";
+                const canInvite = !isMember && !isPending;
+
+                return (
+                  <article
+                    key={candidate.user_id}
+                    className="workspace-member-item"
+                  >
+                    <div>
+                      <strong>{candidate.email}</strong>
+                      <span>
+                        {isMember
+                          ? "Already a workspace member"
+                          : isPending
+                            ? "Invitation already pending"
+                            : "Registered user"}
+                      </span>
+                    </div>
+
+                    {canInvite ? (
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={isInvitationSubmitting}
+                        onClick={() =>
+                          void onCreateInvitation?.(candidate.email)
+                        }
+                      >
+                        Invite
+                      </button>
+                    ) : (
+                      <span className="workspace-member-role">
+                        {isMember ? "member" : "pending"}
+                      </span>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
 
           <div className="workspace-invitations-header">
             <div>

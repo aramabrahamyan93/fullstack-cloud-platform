@@ -222,3 +222,19 @@ def get_organization_invitation_by_id_and_email(
     )
 
     return db.scalars(statement).first()
+
+
+def get_pending_organization_invitation_by_user_email(
+    db: Session,
+    *,
+    organization_id: int,
+    email: str,
+):
+    statement = (
+        select(OrganizationInvitation)
+        .where(OrganizationInvitation.organization_id == organization_id)
+        .where(OrganizationInvitation.email == email)
+        .where(OrganizationInvitation.status == "pending")
+    )
+
+    return db.scalars(statement).first()

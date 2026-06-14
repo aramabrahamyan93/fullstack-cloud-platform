@@ -60,3 +60,10 @@ class MyOrganizationInvitationRead(BaseModel):
     invited_by_user_id: int
     expires_at: datetime
     created_at: datetime
+
+
+class OrganizationInviteCandidateRead(BaseModel):
+    user_id: int
+    email: str
+    membership_status: str
+    invitation_status: str | None = None

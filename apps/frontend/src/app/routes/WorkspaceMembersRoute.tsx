@@ -113,12 +113,15 @@ export function WorkspaceMembersRoute({
       <WorkspaceMembersPanel
         members={controller.members}
         invitations={controller.invitations}
+        inviteCandidates={controller.inviteCandidates}
         isLoading={controller.isMembersLoading}
         isInvitationsLoading={controller.isInvitationsLoading}
+        isInviteCandidatesLoading={controller.isInviteCandidatesLoading}
         isInvitationSubmitting={controller.isInvitationSubmitting}
         canManageInvitations={canManageInvitations}
         onCreateInvitation={controller.handleCreateWorkspaceInvitation}
         onCancelInvitation={controller.handleCancelWorkspaceInvitation}
+        onSearchInviteCandidates={controller.handleSearchWorkspaceInviteCandidates}
       />
     </>
   );
