@@ -9,11 +9,14 @@ from app.features.organizations.schemas import OrganizationMemberCreate
 from app.features.organizations.schemas import OrganizationMemberRead
 from app.features.organizations.schemas import OrganizationRead
 from app.features.organizations.service import (
+    accept_current_user_invitation,
     add_member_to_user_organization,
     cancel_user_organization_invitation,
     create_user_organization_invitation,
+    decline_current_user_invitation,
     create_user_organization,
     get_organization_for_user,
+    list_current_user_pending_invitations,
     list_members_for_user_organization,
     list_user_organization_invitations,
     list_organizations_for_user,
@@ -141,3 +144,49 @@ def cancel_organization_invitation(
     )
 
     return Response(status_code=204)
+
+
+@router.get(
+    "/invitations/me",
+    response_model=list[OrganizationInvitationRead],
+)
+def list_my_organization_invitations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[OrganizationInvitationRead]:
+    return list_current_user_pending_invitations(
+        db,
+        current_user=current_user,
+    )
+
+
+@router.post(
+    "/invitations/{invitation_id}/accept",
+    response_model=OrganizationMemberRead,
+)
+def accept_my_organization_invitation(
+    invitation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> OrganizationMemberRead:
+    return accept_current_user_invitation(
+        db,
+        invitation_id=invitation_id,
+        current_user=current_user,
+    )
+
+
+@router.post(
+    "/invitations/{invitation_id}/decline",
+    response_model=OrganizationInvitationRead,
+)
+def decline_my_organization_invitation(
+    invitation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> OrganizationInvitationRead:
+    return decline_current_user_invitation(
+        db,
+        invitation_id=invitation_id,
+        current_user=current_user,
+    )

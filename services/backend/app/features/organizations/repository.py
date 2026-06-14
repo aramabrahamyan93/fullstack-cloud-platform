@@ -192,3 +192,33 @@ def get_pending_organization_invitation_by_email(
     )
 
     return db.scalars(statement).first()
+
+
+def list_pending_organization_invitations_by_email(
+    db: Session,
+    *,
+    email: str,
+):
+    statement = (
+        select(OrganizationInvitation)
+        .where(OrganizationInvitation.email == email)
+        .where(OrganizationInvitation.status == "pending")
+        .order_by(OrganizationInvitation.id.asc())
+    )
+
+    return list(db.scalars(statement).all())
+
+
+def get_organization_invitation_by_id_and_email(
+    db: Session,
+    *,
+    invitation_id: int,
+    email: str,
+):
+    statement = (
+        select(OrganizationInvitation)
+        .where(OrganizationInvitation.id == invitation_id)
+        .where(OrganizationInvitation.email == email)
+    )
+
+    return db.scalars(statement).first()

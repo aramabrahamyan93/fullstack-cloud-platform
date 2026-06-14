@@ -1,8 +1,10 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from app.core.errors import ForbiddenError, NotFoundError
 from app.features.organizations import repository
-from app.features.organizations.models import Organization, OrganizationMember
+from app.features.organizations.models import Organization, OrganizationMember, OrganizationInvitation
 from app.features.organizations.schemas import OrganizationCreate
 from app.features.organizations.schemas import OrganizationMemberCreate
 from app.features.organizations.schemas import OrganizationInvitationCreate
@@ -197,6 +199,9 @@ def add_member_to_user_organization(
 
 ORGANIZATION_INVITATION_STATUS_PENDING = "pending"
 ORGANIZATION_INVITATION_STATUS_CANCELLED = "cancelled"
+ORGANIZATION_INVITATION_STATUS_ACCEPTED = "accepted"
+ORGANIZATION_INVITATION_STATUS_DECLINED = "declined"
+ORGANIZATION_INVITATION_STATUS_EXPIRED = "expired"
 ORGANIZATION_INVITATION_EXPIRATION_DAYS = 7
 
 
@@ -320,3 +325,140 @@ def cancel_user_organization_invitation(
     invitation.status = ORGANIZATION_INVITATION_STATUS_CANCELLED
 
     db.commit()
+
+
+def _ensure_invitation_is_pending(invitation: OrganizationInvitation) -> None:
+    if invitation.status != ORGANIZATION_INVITATION_STATUS_PENDING:
+        raise ForbiddenError(
+            "Invitation is not pending.",
+            error_code="workspace_invitation_not_pending",
+        )
+
+
+def _ensure_invitation_is_not_expired(invitation: OrganizationInvitation) -> None:
+    expires_at = invitation.expires_at
+
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at <= datetime.now(timezone.utc):
+        invitation.status = ORGANIZATION_INVITATION_STATUS_EXPIRED
+
+        raise ForbiddenError(
+            "Invitation has expired.",
+            error_code="workspace_invitation_expired",
+        )
+
+
+def list_current_user_pending_invitations(
+    db: Session,
+    *,
+    current_user: User,
+) -> list[OrganizationInvitation]:
+    email = _normalize_email(current_user.email)
+
+    invitations = repository.list_pending_organization_invitations_by_email(
+        db,
+        email=email,
+    )
+
+    active_invitations: list[OrganizationInvitation] = []
+
+    for invitation in invitations:
+        try:
+            _ensure_invitation_is_not_expired(invitation)
+        except ForbiddenError:
+            continue
+
+        active_invitations.append(invitation)
+
+    db.commit()
+
+    return active_invitations
+
+
+def accept_current_user_invitation(
+    db: Session,
+    *,
+    invitation_id: int,
+    current_user: User,
+) -> dict[str, int | str]:
+    email = _normalize_email(current_user.email)
+
+    invitation = repository.get_organization_invitation_by_id_and_email(
+        db,
+        invitation_id=invitation_id,
+        email=email,
+    )
+
+    if invitation is None:
+        raise NotFoundError("Invitation not found.")
+
+    _ensure_invitation_is_pending(invitation)
+    _ensure_invitation_is_not_expired(invitation)
+
+    existing_member = repository.get_organization_member_by_user_id(
+        db,
+        organization_id=invitation.organization_id,
+        user_id=current_user.id,
+    )
+
+    if existing_member is not None:
+        invitation.status = ORGANIZATION_INVITATION_STATUS_ACCEPTED
+        db.commit()
+
+        return {
+            "id": existing_member.id,
+            "organization_id": existing_member.organization_id,
+            "user_id": existing_member.user_id,
+            "role": existing_member.role,
+            "email": current_user.email,
+        }
+
+    member = repository.create_organization_member(
+        db,
+        organization_id=invitation.organization_id,
+        user_id=current_user.id,
+        role=invitation.role,
+    )
+
+    invitation.status = ORGANIZATION_INVITATION_STATUS_ACCEPTED
+
+    db.commit()
+    db.refresh(member)
+
+    return {
+        "id": member.id,
+        "organization_id": member.organization_id,
+        "user_id": member.user_id,
+        "role": member.role,
+        "email": current_user.email,
+    }
+
+
+def decline_current_user_invitation(
+    db: Session,
+    *,
+    invitation_id: int,
+    current_user: User,
+) -> OrganizationInvitation:
+    email = _normalize_email(current_user.email)
+
+    invitation = repository.get_organization_invitation_by_id_and_email(
+        db,
+        invitation_id=invitation_id,
+        email=email,
+    )
+
+    if invitation is None:
+        raise NotFoundError("Invitation not found.")
+
+    _ensure_invitation_is_pending(invitation)
+    _ensure_invitation_is_not_expired(invitation)
+
+    invitation.status = ORGANIZATION_INVITATION_STATUS_DECLINED
+
+    db.commit()
+    db.refresh(invitation)
+
+    return invitation
