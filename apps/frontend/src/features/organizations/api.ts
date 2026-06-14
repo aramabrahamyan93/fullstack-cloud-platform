@@ -121,3 +121,15 @@ export function getOrganizationInviteCandidates(
     `/organizations/${organizationId}/invite-candidates?${searchParams.toString()}`
   );
 }
+
+export function removeOrganizationMember(
+  organizationId: number,
+  memberId: number
+): Promise<void> {
+  return fetchJson<void>(
+    `/organizations/${organizationId}/members/${memberId}`,
+    {
+      method: "DELETE"
+    }
+  );
+}

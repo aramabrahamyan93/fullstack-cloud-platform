@@ -35,6 +35,7 @@ export function useWorkspaceController({
     isMemberSubmitting,
     loadMembers,
     addMember,
+    removeMember,
     clearMembers
   } = useOrganizationMembers();
 
@@ -116,6 +117,26 @@ export function useWorkspaceController({
     showMessage(result.message, result.success ? "success" : "error");
 
     return result.success;
+  }
+
+  async function handleRemoveWorkspaceMember(memberId: number): Promise<void> {
+    if (!selectedOrganization) {
+      showMessage("Please select a workspace first.", "error");
+
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Remove this member from the workspace?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const result = await removeMember(selectedOrganization.id, memberId);
+
+    showMessage(result.message, result.success ? "success" : "error");
   }
 
   async function loadWorkspaceInvitations(organizationId: number): Promise<void> {
@@ -243,6 +264,7 @@ export function useWorkspaceController({
     loadWorkspaceMembers,
     loadWorkspaceInvitations,
     handleAddWorkspaceMember,
+    handleRemoveWorkspaceMember,
     handleCreateWorkspaceInvitation,
     handleCancelWorkspaceInvitation,
     handleSearchWorkspaceInviteCandidates,

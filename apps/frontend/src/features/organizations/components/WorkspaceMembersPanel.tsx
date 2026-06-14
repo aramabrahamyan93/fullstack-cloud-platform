@@ -17,6 +17,7 @@ type WorkspaceMembersPanelProps = {
   canManageInvitations?: boolean;
   onCreateInvitation?: (email: string) => Promise<boolean>;
   onCancelInvitation?: (invitationId: number) => Promise<void>;
+  onRemoveMember?: (memberId: number) => Promise<void>;
   onSearchInviteCandidates?: (query: string) => Promise<void>;
 };
 
@@ -35,6 +36,7 @@ export function WorkspaceMembersPanel({
   canManageInvitations = false,
   onCreateInvitation,
   onCancelInvitation,
+  onRemoveMember,
   onSearchInviteCandidates
 }: WorkspaceMembersPanelProps) {
   const [invitationEmail, setInvitationEmail] = useState("");
@@ -135,7 +137,22 @@ export function WorkspaceMembersPanel({
                 <span>User #{member.user_id}</span>
               </div>
 
-              <span className="workspace-member-role">{member.role}</span>
+              <div className="workspace-invitation-actions">
+                <span className="workspace-member-role">{member.role}</span>
+
+                {canManageInvitations &&
+                member.role === "member" &&
+                onRemoveMember ? (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={isInvitationSubmitting}
+                    onClick={() => void onRemoveMember(member.id)}
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
             </article>
           ))}
         </div>

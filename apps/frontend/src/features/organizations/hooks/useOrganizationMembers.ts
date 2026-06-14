@@ -2,7 +2,8 @@ import { useState } from "react";
 import { getErrorCode, getErrorMessage } from "../../../shared/api/errors";
 import {
   addOrganizationMember,
-  getOrganizationMembers
+  getOrganizationMembers,
+  removeOrganizationMember
 } from "../api";
 import type { OrganizationMember } from "../types";
 
@@ -21,6 +22,10 @@ export type UseOrganizationMembersResult = {
   addMember: (
     organizationId: number,
     email: string
+  ) => Promise<OrganizationMembersActionResult>;
+  removeMember: (
+    organizationId: number,
+    memberId: number
   ) => Promise<OrganizationMembersActionResult>;
   clearMembers: () => void;
 };
@@ -113,6 +118,30 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     }
   }
 
+  async function removeMember(
+    organizationId: number,
+    memberId: number
+  ): Promise<OrganizationMembersActionResult> {
+    setIsMemberSubmitting(true);
+
+    try {
+      await removeOrganizationMember(organizationId, memberId);
+      await loadMembers(organizationId);
+
+      return {
+        success: true,
+        message: "Workspace member removed successfully."
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: getErrorMessage(error)
+      };
+    } finally {
+      setIsMemberSubmitting(false);
+    }
+  }
+
   function clearMembers(): void {
     setMembers([]);
     setIsMembersLoading(false);
@@ -125,6 +154,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     isMemberSubmitting,
     loadMembers,
     addMember,
+    removeMember,
     clearMembers
   };
 }

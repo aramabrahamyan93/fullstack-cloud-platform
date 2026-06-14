@@ -121,6 +121,7 @@ export function WorkspaceMembersRoute({
         canManageInvitations={canManageInvitations}
         onCreateInvitation={controller.handleCreateWorkspaceInvitation}
         onCancelInvitation={controller.handleCancelWorkspaceInvitation}
+        onRemoveMember={controller.handleRemoveWorkspaceMember}
         onSearchInviteCandidates={controller.handleSearchWorkspaceInviteCandidates}
       />
     </>
