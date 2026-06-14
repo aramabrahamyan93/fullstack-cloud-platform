@@ -11,7 +11,8 @@ export function WorkspaceTasksRoute({ controller }: WorkspaceTasksRouteProps) {
   const { routeWorkspace, isLoadingWorkspaceContext } =
     useWorkspaceRouteContext({
       controller,
-      loadTasks: true
+      loadTasks: true,
+      loadMembers: false
     });
 
   if (isLoadingWorkspaceContext) {

@@ -149,12 +149,16 @@ def list_organization_invitations(
     db: Session,
     *,
     organization_id: int,
+    status: str | None = None,
 ):
-    statement = (
-        select(OrganizationInvitation)
-        .where(OrganizationInvitation.organization_id == organization_id)
-        .order_by(OrganizationInvitation.id.asc())
+    statement = select(OrganizationInvitation).where(
+        OrganizationInvitation.organization_id == organization_id
     )
+
+    if status is not None:
+        statement = statement.where(OrganizationInvitation.status == status)
+
+    statement = statement.order_by(OrganizationInvitation.id.asc())
 
     return list(db.scalars(statement).all())
 

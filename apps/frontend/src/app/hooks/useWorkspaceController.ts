@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { User } from "../../features/auth/types";
+import { useOrganizationInvitations } from "../../features/organizations/hooks/useOrganizationInvitations";
 import { useOrganizationMembers } from "../../features/organizations/hooks/useOrganizationMembers";
 import { useOrganizations } from "../../features/organizations/hooks/useOrganizations";
 import type { MessageType } from "../../shared/components/Message";
@@ -35,6 +36,16 @@ export function useWorkspaceController({
     clearMembers
   } = useOrganizationMembers();
 
+  const {
+    invitations,
+    isInvitationsLoading,
+    isInvitationSubmitting,
+    loadInvitations,
+    createInvitation,
+    cancelInvitation,
+    clearInvitations
+  } = useOrganizationInvitations();
+
   async function handleCreateOrganization(name: string): Promise<void> {
     if (!currentUser) {
       showMessage("Please login before creating workspaces.", "error");
@@ -49,7 +60,7 @@ export function useWorkspaceController({
 
     if (result.success && result.organization) {
       await loadWorkspaceMembers(result.organization.id);
-      navigate(`/workspaces/${result.organization.id}/tasks`);
+      navigate(`/workspaces/${result.organization.id}/dashboard`);
     }
   }
 
@@ -88,9 +99,46 @@ export function useWorkspaceController({
     return result.success;
   }
 
+  async function loadWorkspaceInvitations(organizationId: number): Promise<void> {
+    const result = await loadInvitations(organizationId);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleCreateWorkspaceInvitation(email: string): Promise<boolean> {
+    if (!selectedOrganization) {
+      showMessage("Please select a workspace first.", "error");
+
+      return false;
+    }
+
+    const result = await createInvitation(selectedOrganization.id, email);
+
+    showMessage(result.message, result.success ? "success" : "error");
+
+    return result.success;
+  }
+
+  async function handleCancelWorkspaceInvitation(
+    invitationId: number
+  ): Promise<void> {
+    if (!selectedOrganization) {
+      showMessage("Please select a workspace first.", "error");
+
+      return;
+    }
+
+    const result = await cancelInvitation(selectedOrganization.id, invitationId);
+
+    showMessage(result.message, result.success ? "success" : "error");
+  }
+
   function clearWorkspaceState(): void {
     clearOrganizations();
     clearMembers();
+    clearInvitations();
   }
 
   return {
@@ -103,12 +151,20 @@ export function useWorkspaceController({
     isMembersLoading,
     isMemberSubmitting,
 
+    invitations,
+    isInvitationsLoading,
+    isInvitationSubmitting,
+
     loadOrganizations,
     clearOrganizations,
     clearMembers,
+    clearInvitations,
     clearWorkspaceState,
     loadWorkspaceMembers,
+    loadWorkspaceInvitations,
     handleAddWorkspaceMember,
+    handleCreateWorkspaceInvitation,
+    handleCancelWorkspaceInvitation,
 
     handleCreateOrganization,
     handleSelectOrganization,

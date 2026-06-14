@@ -14,11 +14,13 @@ type WorkspaceRouteContext = {
 type UseWorkspaceRouteContextOptions = {
   controller: AppController;
   loadTasks?: boolean;
+  loadMembers?: boolean;
 };
 
 export function useWorkspaceRouteContext({
   controller,
-  loadTasks = false
+  loadTasks = false,
+  loadMembers = false
 }: UseWorkspaceRouteContextOptions): WorkspaceRouteContext {
   const navigate = useNavigate();
   const { workspaceId } = useParams();
@@ -71,7 +73,9 @@ export function useWorkspaceRouteContext({
       void controller.loadWorkspaceTasks(routeWorkspace.id);
     }
 
-    void controller.loadWorkspaceMembers(routeWorkspace.id);
+    if (loadMembers) {
+      void controller.loadWorkspaceMembers(routeWorkspace.id);
+    }
   }, [
     workspaceId,
     isValidWorkspaceId,
@@ -82,6 +86,7 @@ export function useWorkspaceRouteContext({
     controller.selectedOrganization?.id,
     controller.activeTaskOrganizationId,
     loadTasks,
+    loadMembers,
     navigate
   ]);
 

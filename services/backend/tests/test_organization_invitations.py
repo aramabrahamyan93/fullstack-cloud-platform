@@ -231,5 +231,47 @@ def test_owner_can_cancel_invitation():
 
     invitations = list_response.json()
 
+    assert invitations == []
+
+
+def test_list_organization_invitations_returns_only_pending():
+    owner_headers = register_and_login("owner-pending-list@example.com")
+    organization = create_organization(
+        headers=owner_headers,
+        name="Pending List Workspace",
+    )
+
+    first_response = create_invitation(
+        headers=owner_headers,
+        organization_id=organization["id"],
+        email="same-person@example.com",
+    )
+    assert first_response.status_code == status.HTTP_201_CREATED
+
+    first_invitation = first_response.json()
+
+    cancel_response = client.delete(
+        f"/organizations/{organization['id']}/invitations/{first_invitation['id']}",
+        headers=owner_headers,
+    )
+    assert cancel_response.status_code == status.HTTP_204_NO_CONTENT
+
+    second_response = create_invitation(
+        headers=owner_headers,
+        organization_id=organization["id"],
+        email="same-person@example.com",
+    )
+    assert second_response.status_code == status.HTTP_201_CREATED
+
+    list_response = client.get(
+        f"/organizations/{organization['id']}/invitations",
+        headers=owner_headers,
+    )
+    assert list_response.status_code == status.HTTP_200_OK
+
+    invitations = list_response.json()
+
     assert len(invitations) == 1
-    assert invitations[0]["status"] == "cancelled"
+    assert invitations[0]["email"] == "same-person@example.com"
+    assert invitations[0]["status"] == "pending"
+

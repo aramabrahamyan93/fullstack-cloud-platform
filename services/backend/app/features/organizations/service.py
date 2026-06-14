@@ -291,6 +291,7 @@ def list_user_organization_invitations(
     return repository.list_organization_invitations(
         db,
         organization_id=organization_id,
+        status=ORGANIZATION_INVITATION_STATUS_PENDING,
     )
 
 

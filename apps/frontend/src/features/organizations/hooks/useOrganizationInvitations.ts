@@ -38,7 +38,7 @@ function getCreateInvitationErrorMessage(error: unknown): string {
   }
 
   if (code === "workspace_invitation_user_already_member") {
-    return "This user is already a member of this workspace.";
+    return "This email already belongs to a workspace member.";
   }
 
   if (code === "workspace_invitation_invalid_role") {

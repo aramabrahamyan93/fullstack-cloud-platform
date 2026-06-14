@@ -14,7 +14,8 @@ export function WorkspaceDashboardRoute({
   const { routeWorkspace, isLoadingWorkspaceContext } =
     useWorkspaceRouteContext({
       controller,
-      loadTasks: true
+      loadTasks: true,
+      loadMembers: false
     });
 
   if (isLoadingWorkspaceContext) {

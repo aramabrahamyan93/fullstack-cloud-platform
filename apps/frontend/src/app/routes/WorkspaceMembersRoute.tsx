@@ -1,5 +1,6 @@
-import { Message } from "../../shared/components/Message";
+import { useEffect, useRef } from "react";
 import { WorkspaceMembersPanel } from "../../features/organizations/components/WorkspaceMembersPanel";
+import { Message } from "../../shared/components/Message";
 import type { AppController } from "../hooks/useAppController";
 import { useWorkspaceRouteContext } from "./useWorkspaceRouteContext";
 
@@ -13,8 +14,29 @@ export function WorkspaceMembersRoute({
   const { routeWorkspace, isLoadingWorkspaceContext } =
     useWorkspaceRouteContext({
       controller,
-      loadTasks: false
+      loadTasks: false,
+      loadMembers: true
     });
+
+  const currentMember = controller.members.find(
+    (member) => member.user_id === controller.currentUser?.id
+  );
+  const canManageInvitations = currentMember?.role === "owner";
+  const loadedInvitationsWorkspaceIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!routeWorkspace || !canManageInvitations) {
+      loadedInvitationsWorkspaceIdRef.current = null;
+      return;
+    }
+
+    if (loadedInvitationsWorkspaceIdRef.current === routeWorkspace.id) {
+      return;
+    }
+
+    loadedInvitationsWorkspaceIdRef.current = routeWorkspace.id;
+    void controller.loadWorkspaceInvitations(routeWorkspace.id);
+  }, [canManageInvitations, routeWorkspace?.id]);
 
   if (isLoadingWorkspaceContext) {
     return (
@@ -75,11 +97,6 @@ export function WorkspaceMembersRoute({
     );
   }
 
-  const currentMember = controller.members.find(
-    (member) => member.user_id === controller.currentUser?.id
-  );
-  const canAddMembers = currentMember?.role === "owner";
-
   return (
     <>
       <Message message={controller.message} />
@@ -95,10 +112,13 @@ export function WorkspaceMembersRoute({
 
       <WorkspaceMembersPanel
         members={controller.members}
+        invitations={controller.invitations}
         isLoading={controller.isMembersLoading}
-        isSubmitting={controller.isMemberSubmitting}
-        canAddMembers={canAddMembers}
-        onAddMember={controller.handleAddWorkspaceMember}
+        isInvitationsLoading={controller.isInvitationsLoading}
+        isInvitationSubmitting={controller.isInvitationSubmitting}
+        canManageInvitations={canManageInvitations}
+        onCreateInvitation={controller.handleCreateWorkspaceInvitation}
+        onCancelInvitation={controller.handleCancelWorkspaceInvitation}
       />
     </>
   );
