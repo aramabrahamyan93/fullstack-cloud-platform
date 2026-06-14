@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   OrganizationInvitation,
   OrganizationInviteCandidate,
@@ -76,15 +76,37 @@ export function WorkspaceMembersPanel({
     }
   }
 
-  async function handleSearchChange(value: string): Promise<void> {
+  function handleSearchChange(value: string): void {
     setInvitationEmail(value);
+  }
 
-    if (!onSearchInviteCandidates) {
+  const onSearchInviteCandidatesRef = useRef(onSearchInviteCandidates);
+  const lastSearchQueryRef = useRef<string>("");
+
+  useEffect(() => {
+    onSearchInviteCandidatesRef.current = onSearchInviteCandidates;
+  }, [onSearchInviteCandidates]);
+
+  useEffect(() => {
+    if (!canManageInvitations || !onSearchInviteCandidatesRef.current) {
       return;
     }
 
-    await onSearchInviteCandidates(value);
-  }
+    const normalizedQuery = invitationEmail.trim();
+
+    const timeoutId = window.setTimeout(() => {
+      if (lastSearchQueryRef.current === normalizedQuery) {
+        return;
+      }
+
+      lastSearchQueryRef.current = normalizedQuery;
+      void onSearchInviteCandidatesRef.current?.(normalizedQuery);
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [canManageInvitations, invitationEmail]);
 
   return (
     <section className="card workspace-members-card">
@@ -125,7 +147,7 @@ export function WorkspaceMembersPanel({
             <div>
               <h3>Invite People</h3>
               <p className="card-subtitle">
-                Search registered users or invite a new email address.
+                Search registered users, or enter a full email to invite someone who is not registered yet.
               </p>
             </div>
           </div>
@@ -135,7 +157,7 @@ export function WorkspaceMembersPanel({
             onSubmit={handleCreateInvitationSubmit}
           >
             <label htmlFor="workspace-invitation-email">
-              Search by email or invite by email
+              Search registered users or enter full email
             </label>
 
             <div className="workspace-member-form-row">
@@ -145,7 +167,7 @@ export function WorkspaceMembersPanel({
                 value={invitationEmail}
                 placeholder="person@example.com"
                 disabled={isInvitationSubmitting}
-                onChange={(event) => void handleSearchChange(event.target.value)}
+                onChange={(event) => handleSearchChange(event.target.value)}
               />
 
               <button
@@ -162,8 +184,7 @@ export function WorkspaceMembersPanel({
             </div>
 
             <p className="workspace-member-help">
-              Registered users are shown below. Unknown emails can still receive
-              a pending invitation.
+              Search results show registered users only. Email-only invitations appear in Pending Invitations.
             </p>
           </form>
 
