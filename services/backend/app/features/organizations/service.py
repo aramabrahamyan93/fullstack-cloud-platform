@@ -539,3 +539,45 @@ def list_user_organization_invite_candidates(
         )
 
     return candidates
+
+
+def remove_member_from_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    member_id: int,
+    current_user: User,
+) -> None:
+    ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    member = repository.get_organization_member_by_id(
+        db,
+        organization_id=organization_id,
+        member_id=member_id,
+    )
+
+    if member is None:
+        raise NotFoundError("Workspace member not found.")
+
+    if member.user_id == current_user.id:
+        raise ForbiddenError(
+            "You cannot remove yourself from the workspace.",
+            error_code="workspace_member_self_remove_not_allowed",
+        )
+
+    if member.role == ORGANIZATION_ROLE_OWNER:
+        raise ForbiddenError(
+            "Workspace owner members cannot be removed for now.",
+            error_code="workspace_member_owner_remove_not_allowed",
+        )
+
+    repository.delete_organization_member(
+        db,
+        member=member,
+    )
+
+    db.commit()

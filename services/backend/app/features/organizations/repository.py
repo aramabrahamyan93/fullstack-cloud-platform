@@ -238,3 +238,27 @@ def get_pending_organization_invitation_by_user_email(
     )
 
     return db.scalars(statement).first()
+
+
+def get_organization_member_by_id(
+    db: Session,
+    *,
+    organization_id: int,
+    member_id: int,
+) -> OrganizationMember | None:
+    statement = (
+        select(OrganizationMember)
+        .where(OrganizationMember.organization_id == organization_id)
+        .where(OrganizationMember.id == member_id)
+    )
+
+    return db.scalars(statement).first()
+
+
+def delete_organization_member(
+    db: Session,
+    *,
+    member: OrganizationMember,
+) -> None:
+    db.delete(member)
+    db.flush()

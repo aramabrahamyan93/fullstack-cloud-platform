@@ -23,6 +23,7 @@ from app.features.organizations.service import (
     list_members_for_user_organization,
     list_user_organization_invitations,
     list_organizations_for_user,
+    remove_member_from_user_organization,
 )
 from app.features.users.models import User
 
@@ -211,3 +212,23 @@ def list_organization_invite_candidates(
         current_user=current_user,
         query=query,
     )
+
+
+@router.delete(
+    "/{organization_id}/members/{member_id}",
+    status_code=204,
+)
+def remove_organization_member(
+    organization_id: int,
+    member_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    remove_member_from_user_organization(
+        db,
+        organization_id=organization_id,
+        member_id=member_id,
+        current_user=current_user,
+    )
+
+    return Response(status_code=204)
