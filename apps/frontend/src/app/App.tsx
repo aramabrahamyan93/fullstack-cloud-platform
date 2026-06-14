@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppLayout } from "./AppLayout";
 import { useAppController } from "./hooks/useAppController";
 import { DashboardRoute } from "./routes/DashboardRoute";
@@ -10,6 +11,18 @@ import { WorkspaceMembersRoute } from "./routes/WorkspaceMembersRoute";
 
 export function App() {
   const controller = useAppController();
+  const location = useLocation();
+  const previousLocationKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (previousLocationKeyRef.current === null) {
+      previousLocationKeyRef.current = location.key;
+      return;
+    }
+
+    previousLocationKeyRef.current = location.key;
+    controller.clearMessage();
+  }, [location.key]);
 
   return (
     <AppLayout

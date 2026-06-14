@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getOrganization } from "../../features/organizations/api";
 import type { Organization } from "../../features/organizations/types";
 import type { AppController } from "../hooks/useAppController";
 
@@ -25,17 +26,34 @@ export function useWorkspaceRouteContext({
   const navigate = useNavigate();
   const { workspaceId } = useParams();
 
+  const [invalidWorkspaceId, setInvalidWorkspaceId] = useState<number | null>(
+    null
+  );
+  const [validatingWorkspaceId, setValidatingWorkspaceId] = useState<
+    number | null
+  >(null);
+
   const numericWorkspaceId = Number(workspaceId);
   const isValidWorkspaceId =
     Number.isInteger(numericWorkspaceId) && numericWorkspaceId > 0;
 
-  const routeWorkspace =
+  const routeWorkspaceFromState =
     controller.organizations.find(
       (organization) => organization.id === numericWorkspaceId
     ) ?? null;
 
+  const routeWorkspace =
+    invalidWorkspaceId === numericWorkspaceId ? null : routeWorkspaceFromState;
+
   const isLoadingWorkspaceContext =
-    controller.isAuthLoading || controller.isOrganizationsLoading;
+    controller.isAuthLoading ||
+    controller.isOrganizationsLoading ||
+    validatingWorkspaceId === numericWorkspaceId;
+
+  useEffect(() => {
+    setInvalidWorkspaceId(null);
+    setValidatingWorkspaceId(null);
+  }, [workspaceId]);
 
   useEffect(() => {
     if (!workspaceId || !isValidWorkspaceId) {
@@ -44,7 +62,7 @@ export function useWorkspaceRouteContext({
       return;
     }
 
-    if (isLoadingWorkspaceContext) {
+    if (controller.isAuthLoading || controller.isOrganizationsLoading) {
       return;
     }
 
@@ -56,33 +74,75 @@ export function useWorkspaceRouteContext({
       return;
     }
 
-    if (!routeWorkspace) {
+    if (!routeWorkspaceFromState) {
       controller.showMessage("Workspace was not found.", "error");
       navigate("/workspaces", { replace: true });
       return;
     }
 
-    if (controller.selectedOrganization?.id !== routeWorkspace.id) {
-      controller.selectWorkspaceFromRoute(routeWorkspace.id);
+    let isCancelled = false;
+
+    async function validateWorkspaceAccess(): Promise<void> {
+      setValidatingWorkspaceId(numericWorkspaceId);
+
+      try {
+        await getOrganization(numericWorkspaceId);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setInvalidWorkspaceId(null);
+
+        if (controller.selectedOrganization?.id !== numericWorkspaceId) {
+          controller.selectWorkspaceFromRoute(numericWorkspaceId);
+        }
+
+        if (
+          loadTasks &&
+          controller.activeTaskOrganizationId !== numericWorkspaceId
+        ) {
+          void controller.loadWorkspaceTasks(numericWorkspaceId);
+        }
+
+        if (loadMembers) {
+          void controller.loadWorkspaceMembers(numericWorkspaceId);
+        }
+      } catch {
+        if (isCancelled) {
+          return;
+        }
+
+        setInvalidWorkspaceId(numericWorkspaceId);
+        controller.showMessage("Workspace was not found.", "error");
+        controller.clearMembers();
+        controller.clearInvitations();
+        controller.clearTasks();
+
+        await controller.loadOrganizations();
+
+        navigate("/workspaces", { replace: true });
+      } finally {
+        if (!isCancelled) {
+          setValidatingWorkspaceId(null);
+        }
+      }
     }
 
-    if (
-      loadTasks &&
-      controller.activeTaskOrganizationId !== routeWorkspace.id
-    ) {
-      void controller.loadWorkspaceTasks(routeWorkspace.id);
-    }
+    void validateWorkspaceAccess();
 
-    if (loadMembers) {
-      void controller.loadWorkspaceMembers(routeWorkspace.id);
-    }
+    return () => {
+      isCancelled = true;
+    };
   }, [
     workspaceId,
+    numericWorkspaceId,
     isValidWorkspaceId,
-    isLoadingWorkspaceContext,
-    routeWorkspace?.id,
-    controller.currentUser,
+    controller.isAuthLoading,
+    controller.isOrganizationsLoading,
+    controller.currentUser?.id,
     controller.organizations.length,
+    routeWorkspaceFromState?.id,
     controller.selectedOrganization?.id,
     controller.activeTaskOrganizationId,
     loadTasks,
