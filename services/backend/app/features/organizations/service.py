@@ -627,3 +627,29 @@ def transfer_user_organization_ownership(
     target_member.role = ORGANIZATION_ROLE_OWNER
 
     db.commit()
+
+
+def leave_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> None:
+    membership = ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if membership.role == ORGANIZATION_ROLE_OWNER:
+        raise ForbiddenError(
+            "Transfer workspace ownership before leaving this workspace.",
+            error_code="workspace_owner_cannot_leave_before_transfer",
+        )
+
+    repository.delete_organization_member(
+        db,
+        member=membership,
+    )
+
+    db.commit()

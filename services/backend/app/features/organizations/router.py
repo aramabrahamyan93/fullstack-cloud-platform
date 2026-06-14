@@ -22,6 +22,7 @@ from app.features.organizations.service import (
     list_user_organization_invite_candidates,
     list_members_for_user_organization,
     list_user_organization_invitations,
+    leave_user_organization,
     list_organizations_for_user,
     remove_member_from_user_organization,
     transfer_user_organization_ownership,
@@ -249,6 +250,24 @@ def transfer_organization_ownership(
         db,
         organization_id=organization_id,
         member_id=member_id,
+        current_user=current_user,
+    )
+
+    return Response(status_code=204)
+
+
+@router.delete(
+    "/{organization_id}/membership",
+    status_code=204,
+)
+def leave_organization(
+    organization_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    leave_user_organization(
+        db,
+        organization_id=organization_id,
         current_user=current_user,
     )
 
