@@ -10,9 +10,19 @@ from app.features.organizations.schemas import OrganizationCreate
 from app.features.organizations.schemas import OrganizationInvitationCreate
 from app.features.users import repository as users_repository
 from app.features.users.models import User
-
-ORGANIZATION_ROLE_OWNER = "owner"
-ORGANIZATION_ROLE_MEMBER = "member"
+from app.features.organizations.permissions import (
+    ORGANIZATION_ROLE_MEMBER,
+    ORGANIZATION_ROLE_OWNER,
+    can_cancel_invitations,
+    can_invite_members,
+    can_invite_role,
+    can_leave_workspace,
+    can_remove_members,
+    can_transfer_ownership,
+    can_view_members,
+    is_member_role,
+    is_owner_role,
+)
 
 
 def create_user_organization(
@@ -108,8 +118,119 @@ def ensure_user_is_organization_owner(
         current_user=current_user,
     )
 
-    if membership.role != ORGANIZATION_ROLE_OWNER:
+    if not is_owner_role(membership.role):
         raise ForbiddenError("Organization owner role is required.")
+
+    return membership
+
+
+def ensure_user_can_view_members(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_view_members(membership.role):
+        raise ForbiddenError("Organization member role is required.")
+
+    return membership
+
+
+def ensure_user_can_invite_members(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_invite_members(membership.role):
+        raise ForbiddenError("Organization owner role is required.")
+
+    return membership
+
+
+def ensure_user_can_cancel_invitations(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_cancel_invitations(membership.role):
+        raise ForbiddenError("Organization owner role is required.")
+
+    return membership
+
+
+def ensure_user_can_remove_members(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_remove_members(membership.role):
+        raise ForbiddenError("Organization owner role is required.")
+
+    return membership
+
+
+def ensure_user_can_transfer_ownership(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_transfer_ownership(membership.role):
+        raise ForbiddenError("Organization owner role is required.")
+
+    return membership
+
+
+def ensure_user_can_leave_workspace(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_leave_workspace(membership.role):
+        raise ForbiddenError(
+            "Workspace owner cannot leave before transferring ownership.",
+            error_code="workspace_owner_cannot_leave_before_transfer",
+        )
 
     return membership
 
@@ -119,7 +240,7 @@ def list_members_for_user_organization(
     organization_id: int,
     current_user: User,
 ) -> list[dict[str, int | str]]:
-    ensure_user_is_organization_member(
+    ensure_user_can_view_members(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -149,13 +270,13 @@ def create_user_organization_invitation(
     current_user: User,
     invitation_create: OrganizationInvitationCreate,
 ):
-    ensure_user_is_organization_owner(
+    ensure_user_can_invite_members(
         db,
         organization_id=organization_id,
         current_user=current_user,
     )
 
-    if invitation_create.role != ORGANIZATION_ROLE_MEMBER:
+    if not can_invite_role(invitation_create.role):
         raise ForbiddenError(
             "Only member role can be invited for now.",
             error_code="workspace_invitation_invalid_role",
@@ -220,7 +341,7 @@ def list_user_organization_invitations(
     organization_id: int,
     current_user: User,
 ):
-    ensure_user_is_organization_owner(
+    ensure_user_can_cancel_invitations(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -240,7 +361,7 @@ def cancel_user_organization_invitation(
     invitation_id: int,
     current_user: User,
 ) -> None:
-    ensure_user_is_organization_owner(
+    ensure_user_can_cancel_invitations(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -423,7 +544,7 @@ def list_user_organization_invite_candidates(
     current_user: User,
     query: str,
 ) -> list[dict[str, int | str | None]]:
-    ensure_user_is_organization_owner(
+    ensure_user_can_invite_members(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -501,7 +622,7 @@ def remove_member_from_user_organization(
             error_code="workspace_member_self_remove_not_allowed",
         )
 
-    if member.role == ORGANIZATION_ROLE_OWNER:
+    if is_owner_role(member.role):
         raise ForbiddenError(
             "Workspace owner members cannot be removed for now.",
             error_code="workspace_member_owner_remove_not_allowed",
@@ -543,13 +664,13 @@ def transfer_user_organization_ownership(
             error_code="workspace_ownership_self_transfer_not_allowed",
         )
 
-    if target_member.role == ORGANIZATION_ROLE_OWNER:
+    if is_owner_role(target_member.role):
         raise ForbiddenError(
             "Target member is already an owner.",
             error_code="workspace_ownership_target_already_owner",
         )
 
-    if target_member.role != ORGANIZATION_ROLE_MEMBER:
+    if not is_member_role(target_member.role):
         raise ForbiddenError(
             "Ownership can only be transferred to a workspace member.",
             error_code="workspace_ownership_target_invalid_role",
@@ -573,7 +694,7 @@ def leave_user_organization(
         current_user=current_user,
     )
 
-    if membership.role == ORGANIZATION_ROLE_OWNER:
+    if is_owner_role(membership.role):
         raise ForbiddenError(
             "Transfer workspace ownership before leaving this workspace.",
             error_code="workspace_owner_cannot_leave_before_transfer",
