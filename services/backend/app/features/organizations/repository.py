@@ -31,9 +31,13 @@ def create_organization_member(
     return member
 
 
-def list_user_organizations(db: Session, *, user_id: int) -> list[Organization]:
+def list_user_organizations(db: Session, *, user_id: int) -> list[dict[str, int | str]]:
     statement = (
-        select(Organization)
+        select(
+            Organization.id,
+            Organization.name,
+            OrganizationMember.role,
+        )
         .join(
             OrganizationMember,
             OrganizationMember.organization_id == Organization.id,
@@ -42,7 +46,9 @@ def list_user_organizations(db: Session, *, user_id: int) -> list[Organization]:
         .order_by(Organization.id.asc())
     )
 
-    return list(db.scalars(statement).all())
+    rows = db.execute(statement).mappings().all()
+
+    return [dict(row) for row in rows]
 
 
 def get_user_organization(

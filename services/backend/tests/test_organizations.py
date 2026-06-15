@@ -1,12 +1,22 @@
 import pytest
+from fastapi import status
 from fastapi.testclient import TestClient
 
+from app.db.database import Base
+from app.db.database import engine
 from app.main import app
 
 
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def reset_database():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    yield
 
 
 def register_and_login(
@@ -76,7 +86,13 @@ def test_user_can_create_list_and_get_own_organization(client: TestClient) -> No
     )
 
     assert list_response.status_code == 200
-    assert list_response.json() == [created_organization]
+
+    organizations = list_response.json()
+
+    assert len(organizations) == 1
+    assert organizations[0]["id"] == created_organization["id"]
+    assert organizations[0]["name"] == created_organization["name"]
+    assert organizations[0]["role"] == "owner"
 
     get_response = client.get(
         f"/organizations/{created_organization['id']}",
@@ -127,3 +143,30 @@ def test_user_does_not_list_another_users_organization(client: TestClient) -> No
 
     assert list_response.status_code == 200
     assert list_response.json() == []
+
+
+
+def test_list_organizations_includes_current_user_role(client: TestClient) -> None:
+    token = register_and_login(
+        client,
+        email="organization-role-owner@example.com",
+    )
+
+    create_response = client.post(
+        "/organizations",
+        headers=auth_headers(token),
+        json={"name": "Role Workspace"},
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+
+    list_response = client.get(
+        "/organizations",
+        headers=auth_headers(token),
+    )
+    assert list_response.status_code == status.HTTP_200_OK
+
+    organizations = list_response.json()
+
+    assert len(organizations) == 1
+    assert organizations[0]["name"] == "Role Workspace"
+    assert organizations[0]["role"] == "owner"

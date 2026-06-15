@@ -15,6 +15,7 @@ class OrganizationRead(BaseModel):
 
     id: int
     name: str
+    role: str | None = None
 
 
 class OrganizationMemberCreate(BaseModel):
