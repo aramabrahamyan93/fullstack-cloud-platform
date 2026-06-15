@@ -2,7 +2,19 @@
 
 Fullstack Cloud Platform is a local-first cloud platform project built with FastAPI, React, TypeScript, Vite, Nginx, PostgreSQL, Docker Compose, Kubernetes, Helm, Terraform, and AWS deployment tooling.
 
-The project is focused on building a clean foundation for a production-ready platform: local development, authentication, protected APIs, local Kubernetes validation, cloud infrastructure, GitOps deployment, monitoring, and later AI/GenAI service capabilities.
+The project is focused on building a clean foundation for a production-ready platform: local development, authentication, protected APIs, workspace-based collaboration, local Kubernetes validation, cloud infrastructure, GitOps deployment, monitoring, and later AI/GenAI service capabilities.
+
+This repository is intentionally built step by step. The goal is not only to create a simple CRUD application, but to grow a realistic fullstack/cloud platform with clean architecture, strong validation, and production-style workflows.
+
+## Documentation split
+
+The README files are intentionally split by scope:
+
+- This root `README.md` explains the whole platform, main workflows, local architecture, validation, roadmap, and cross-cutting project decisions.
+- `services/backend/README.md` explains backend-specific APIs, backend architecture, service/repository rules, tests, and backend domain policy.
+- `apps/frontend/README.md` explains frontend-specific structure, routes, controllers, hooks, UI behavior, API usage, and frontend validation.
+
+General platform concepts stay in the root README. Backend implementation details stay in the backend README. Frontend UI/component/controller details stay in the frontend README.
 
 ## Quick start
 
@@ -84,6 +96,7 @@ That means the browser usually calls:
 ```text
 http://localhost:3000/api/auth/login
 http://localhost:3000/api/tasks
+http://localhost:3000/api/organizations
 ```
 
 Nginx forwards those requests internally to the backend:
@@ -91,6 +104,7 @@ Nginx forwards those requests internally to the backend:
 ```text
 http://backend:8000/auth/login
 http://backend:8000/tasks
+http://backend:8000/organizations
 ```
 
 Direct backend calls are also possible during local development:
@@ -98,6 +112,7 @@ Direct backend calls are also possible during local development:
 ```text
 http://localhost:8000/auth/login
 http://localhost:8000/tasks
+http://localhost:8000/organizations
 ```
 
 When calling the backend directly, do not include the `/api` prefix.
@@ -110,8 +125,8 @@ The platform currently supports a local JWT authentication foundation:
 - Login user
 - JWT access token
 - Current user endpoint
-- Protected task endpoints
-- Task ownership per user
+- Protected API endpoints
+- Authenticated workspace and task access
 
 Auth endpoints:
 
@@ -121,30 +136,7 @@ POST /auth/login
 GET  /auth/me
 ```
 
-Task endpoints are protected:
-
-```text
-GET    /tasks
-GET    /tasks/paginated
-GET    /tasks/stats
-POST   /tasks
-GET    /tasks/{task_id}
-PUT    /tasks/{task_id}
-DELETE /tasks/{task_id}
-```
-
-Task listing supports status filtering, title search, and pagination:
-
-```text
-GET /tasks?status=open
-GET /tasks?search=docker
-GET /tasks?status=open&search=docker&limit=10&offset=0
-GET /tasks/paginated?limit=5&offset=0
-GET /tasks/paginated?status=done&search=release&limit=10&offset=0
-GET /tasks/stats
-```
-
-Calling `/tasks` without a JWT access token returns `401 Unauthorized`.
+Calling protected endpoints without a JWT access token returns `401 Unauthorized`.
 
 ## Auth curl examples
 
@@ -177,7 +169,7 @@ curl http://localhost:3000/api/auth/me \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Verify that tasks are protected:
+Verify that protected APIs reject anonymous requests:
 
 ```bash
 curl -i http://localhost:3000/api/tasks
@@ -187,6 +179,31 @@ Expected result:
 
 ```text
 HTTP/1.1 401 Unauthorized
+```
+
+## Task workflow
+
+Task endpoints are protected:
+
+```text
+GET    /tasks
+GET    /tasks/paginated
+GET    /tasks/stats
+POST   /tasks
+GET    /tasks/{task_id}
+PUT    /tasks/{task_id}
+DELETE /tasks/{task_id}
+```
+
+Task listing supports status filtering, title search, and pagination:
+
+```text
+GET /tasks?status=open
+GET /tasks?search=docker
+GET /tasks?status=open&search=docker&limit=10&offset=0
+GET /tasks/paginated?limit=5&offset=0
+GET /tasks/paginated?status=done&search=release&limit=10&offset=0
+GET /tasks/stats
 ```
 
 List tasks with authentication:
@@ -233,18 +250,186 @@ curl -X POST http://localhost:3000/api/tasks \
   -d '{"title":"Protected task","status":"open"}'
 ```
 
-## Protected task ownership
+## Task ownership and workspace scope
 
-Tasks are owned by the authenticated user.
+The platform started with user-owned protected tasks and then evolved toward organization-aware task ownership.
 
-Current behavior:
+Current direction:
 
-- User A sees only User A tasks
-- User B sees only User B tasks
-- User B cannot read, update, or delete User A tasks
-- Requests for another user's task return `404 Not Found`
+- Tasks must be protected by authentication.
+- Tenant-owned data must be scoped by organization/workspace where applicable.
+- Requests for inaccessible resources should return `404 Not Found` instead of leaking whether another user's or another workspace's resource exists.
+- Future repository/service changes should continue enforcing organization scope consistently.
 
-This avoids leaking whether another user's task ID exists.
+## Organizations and workspaces
+
+The platform includes an organization/workspace foundation.
+
+Organization endpoints:
+
+```text
+POST /organizations
+GET  /organizations
+GET  /organizations/{organization_id}
+```
+
+The workspaces list returns the current user's role for each workspace:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "My Workspace",
+    "role": "owner"
+  },
+  {
+    "id": 2,
+    "name": "Team Workspace",
+    "role": "member"
+  }
+]
+```
+
+Current workspace rules:
+
+- A user may belong to multiple workspaces.
+- A workspace has members.
+- Each member has a role.
+- Current MVP roles are `owner` and `member`.
+- Workspace owners can invite users.
+- Workspace owners can cancel pending invitations.
+- Workspace owners can remove members.
+- Workspace owners can transfer ownership.
+- Workspace owners cannot leave before transferring ownership.
+- Workspace members can leave.
+- Workspace members cannot remove other members.
+- Workspace members cannot transfer ownership.
+- Workspace members cannot invite users.
+
+## Invite-first workspace membership policy
+
+Workspace membership is invite-first.
+
+Users can join a workspace only by accepting an invitation. Owners can create invitations, cancel pending invitations, remove existing members, transfer ownership, and manage workspace-level access.
+
+The direct member-add API is intentionally not exposed.
+
+Removed legacy endpoint:
+
+```text
+POST /organizations/{organization_id}/members
+```
+
+The supported membership lifecycle is:
+
+```text
+Owner creates invitation
+Invited user accepts invitation
+System creates OrganizationMember
+Member receives workspace access
+```
+
+The platform must not reintroduce a public endpoint that directly creates workspace members without invitation acceptance.
+
+Any future admin-only or internal member-management flow must be explicitly designed, protected, documented, and tested separately.
+
+## Workspace member endpoints
+
+```text
+GET    /organizations/{organization_id}/members
+DELETE /organizations/{organization_id}/members/{member_id}
+POST   /organizations/{organization_id}/members/{member_id}/transfer-ownership
+DELETE /organizations/{organization_id}/membership
+```
+
+## Workspace invitation endpoints
+
+```text
+POST   /organizations/{organization_id}/invitations
+GET    /organizations/{organization_id}/invitations
+DELETE /organizations/{organization_id}/invitations/{invitation_id}
+
+GET    /organizations/invitations/me
+POST   /organizations/invitations/{invitation_id}/accept
+POST   /organizations/invitations/{invitation_id}/decline
+GET    /organizations/{organization_id}/invite-candidates?query=<query>
+```
+
+## Workspace curl examples
+
+Create a workspace:
+
+```bash
+curl -X POST http://localhost:3000/api/organizations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"My Workspace"}'
+```
+
+List current user's workspaces:
+
+```bash
+curl http://localhost:3000/api/organizations \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+List workspace members:
+
+```bash
+curl http://localhost:3000/api/organizations/1/members \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Create invitation:
+
+```bash
+curl -X POST http://localhost:3000/api/organizations/1/invitations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"email":"member@example.com","role":"member"}'
+```
+
+List current user's pending invitations:
+
+```bash
+curl http://localhost:3000/api/organizations/invitations/me \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Accept invitation:
+
+```bash
+curl -X POST http://localhost:3000/api/organizations/invitations/1/accept \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Decline invitation:
+
+```bash
+curl -X POST http://localhost:3000/api/organizations/invitations/1/decline \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Leave workspace:
+
+```bash
+curl -X DELETE http://localhost:3000/api/organizations/1/membership \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Transfer ownership:
+
+```bash
+curl -X POST http://localhost:3000/api/organizations/1/members/2/transfer-ownership \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Remove member:
+
+```bash
+curl -X DELETE http://localhost:3000/api/organizations/1/members/2 \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ## Local database reset note
 
@@ -314,143 +499,58 @@ The production-like local preview also runs the smoke test:
 make local-preview
 ```
 
-## Frontend structure
+## Frontend overview
 
-The frontend is built with React, TypeScript, and Vite.
+The frontend is built with React, TypeScript, Vite, and Nginx.
 
-Current frontend structure follows an application/features/shared layout:
+High-level frontend concepts:
 
-- Application shell under `apps/frontend/src/app`
-- Auth feature under `apps/frontend/src/features/auth`
-- Task feature under `apps/frontend/src/features/tasks`
-- System API feature under `apps/frontend/src/features/system`
-- Shared API utilities under `apps/frontend/src/shared/api`
-- Shared UI components under `apps/frontend/src/shared/components`
+- Application shell and route composition live under `apps/frontend/src/app`.
+- Feature UI, hooks, and API modules live under `apps/frontend/src/features`.
+- Shared API client and reusable UI components live under `apps/frontend/src/shared`.
+- Detailed frontend structure and UI behavior are documented in `apps/frontend/README.md`.
 
-Current frontend source tree:
-
-```text
-apps/frontend/src/
-├── app/
-│   ├── App.tsx
-│   └── config.ts
-├── features/
-│   ├── auth/
-│   │   ├── api.ts
-│   │   ├── components/AuthPanel.tsx
-│   │   ├── hooks/useAuth.ts
-│   │   ├── tokenStorage.ts
-│   │   └── types.ts
-│   ├── system/
-│   │   └── api.ts
-│   └── tasks/
-│       ├── api.ts
-│       ├── components/
-│       │   ├── TaskDashboard.tsx
-│       │   ├── TaskForm.tsx
-│       │   ├── TaskItem.tsx
-│       │   └── TaskList.tsx
-│       ├── hooks/useTasks.ts
-│       └── types.ts
-├── shared/
-│   ├── api/
-│   │   ├── client.ts
-│   │   └── errors.ts
-│   └── components/
-│       ├── Message.tsx
-│       └── SystemStatus.tsx
-├── main.tsx
-└── styles.css
-```
-
-Current auth/task flow:
-
-```text
-app/App
- ├─ features/auth/hooks/useAuth
- │   ├─ login/register/logout
- │   ├─ token storage
- │   └─ current user restore
- ├─ features/tasks/hooks/useTasks
- │   ├─ load paginated tasks
- │   ├─ load task stats
- │   ├─ status filter
- │   ├─ title search
- │   ├─ page size handling
- │   ├─ create task
- │   ├─ update task
- │   └─ delete task
- ├─ features/auth/components/AuthPanel
- ├─ features/tasks/components/TaskForm
- ├─ features/tasks/components/TaskDashboard
- ├─ features/tasks/components/TaskList
- ├─ shared/components/Message
- └─ shared/components/SystemStatus
-```
-
-## Backend structure
+## Backend overview
 
 The backend is built with FastAPI and SQLAlchemy.
 
-Current backend structure follows a feature-based modular monolith layout:
+High-level backend concepts:
 
-- API router aggregation and system endpoints under `services/backend/app/api`
-- Core config/security/error handling under `services/backend/app/core`
-- Database setup under `services/backend/app/db`
-- Auth API/service/schemas under `services/backend/app/features/auth`
-- User model/repository under `services/backend/app/features/users`
-- Task API/model/repository/service/schemas/constants under `services/backend/app/features/tasks`
-- Tests under `services/backend/tests`
+- Route aggregation and system endpoints live under `services/backend/app/api`.
+- Core configuration, security, logging, and error handling live under `services/backend/app/core`.
+- Database setup and dependencies live under `services/backend/app/db`.
+- Feature modules live under `services/backend/app/features`.
+- Detailed backend structure, service/repository flow, and backend test details are documented in `services/backend/README.md`.
 
-Current backend application tree:
-
-```text
-services/backend/app/
-├── api/
-│   ├── exception_handlers.py
-│   ├── health.py
-│   ├── router.py
-│   └── version.py
-├── core/
-│   ├── config.py
-│   ├── errors.py
-│   ├── logging.py
-│   └── security.py
-├── db/
-│   ├── database.py
-│   ├── dependencies.py
-│   └── init_db.py
-├── features/
-│   ├── auth/
-│   │   ├── router.py
-│   │   ├── schemas.py
-│   │   └── service.py
-│   ├── tasks/
-│   │   ├── constants.py
-│   │   ├── models.py
-│   │   ├── repository.py
-│   │   ├── router.py
-│   │   ├── schemas.py
-│   │   └── service.py
-│   └── users/
-│       ├── models.py
-│       └── repository.py
-└── main.py
-```
-
-Task API follows this flow:
+Backend API follows this flow:
 
 ```text
 feature router -> feature service -> feature repository -> database
 ```
 
-Auth API includes:
+## Error handling and API contract
 
-- Password hashing
-- JWT access token creation
-- JWT validation
-- Current user dependency
-- Centralized AppError responses
+Backend error codes are part of the API contract.
+
+Frontend should map stable backend error codes to user-facing messages and should not rely on backend message text.
+
+Examples:
+
+```text
+not_found
+forbidden
+workspace_invitation_invalid_role
+workspace_invitation_user_already_member
+workspace_invitation_already_pending
+workspace_invitation_not_pending
+workspace_invitation_expired
+workspace_member_self_remove_not_allowed
+workspace_member_owner_remove_not_allowed
+workspace_ownership_self_transfer_not_allowed
+workspace_ownership_target_already_owner
+workspace_ownership_target_invalid_role
+workspace_owner_cannot_leave_before_transfer
+```
 
 ## Current validated status
 
@@ -463,8 +563,19 @@ Current validated capabilities:
 - Backend initializes database tables on startup
 - Backend exposes `/health`, `/health/live`, `/health/ready`, `/version`, and `/metrics`
 - Backend supports user register/login/current user flow
-- Backend protects `/tasks` with JWT authentication
-- Backend scopes tasks by authenticated user ownership
+- Backend protects protected APIs with JWT authentication
+- Backend supports organization/workspace creation
+- Backend returns current user role in organization list
+- Backend supports invite-first workspace membership
+- Backend creates members through invitation acceptance
+- Backend does not expose a direct member-add endpoint
+- Backend supports pending invitations
+- Backend supports invitation accept/decline
+- Backend supports invitation cancellation
+- Backend supports invite candidate search
+- Backend supports member removal
+- Backend supports ownership transfer
+- Backend supports leaving a workspace
 - Backend supports task status filtering
 - Backend supports task title search
 - Backend supports paginated task responses with total count
@@ -474,6 +585,7 @@ Current validated capabilities:
 - Frontend connects to the backend through the `/api` Nginx proxy
 - Frontend supports login/register/logout
 - Frontend sends JWT access token through the API client Authorization header
+- Frontend supports workspace list, workspace role display, invitations, members, ownership transfer, remove, and leave flows
 - Frontend can create, update, delete, and list protected tasks after login
 - Frontend supports task dashboard counters
 - Frontend supports task status filtering
@@ -485,6 +597,54 @@ Current validated capabilities:
 - Backend tests pass successfully
 - Frontend TypeScript build validation passes successfully
 - Helm chart renders and deploys successfully in local kind Kubernetes
+
+## Testing
+
+Run backend tests:
+
+```bash
+make test
+```
+
+Run frontend validation:
+
+```bash
+make frontend-validate
+```
+
+Run local smoke test:
+
+```bash
+make local-smoke-test
+```
+
+Run complete local validation:
+
+```bash
+make validate-local-all
+```
+
+Useful targeted backend test command:
+
+```bash
+bash scripts/compose.sh run --rm backend pytest tests -v
+```
+
+Useful organization-related targeted test command:
+
+```bash
+bash scripts/compose.sh run --rm backend pytest \
+  tests/test_organizations.py \
+  tests/test_organization_invite_first_policy.py \
+  tests/test_organization_invitations.py \
+  tests/test_organization_invitation_acceptance.py \
+  tests/test_organization_invite_candidates.py \
+  tests/test_organization_members_endpoint.py \
+  tests/test_organization_member_removal.py \
+  tests/test_organization_ownership_transfer.py \
+  tests/test_organization_leave.py \
+  -v
+```
 
 ## Documentation
 
@@ -500,22 +660,59 @@ Detailed documentation is available in the `docs/` directory:
 - [Operations](docs/OPERATIONS.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture standards](docs/ARCHITECTURE_STANDARDS.md)
+- [Backend README](services/backend/README.md)
+- [Frontend README](apps/frontend/README.md)
 
 ## Current roadmap
 
 Near-term roadmap:
 
 1. Keep backend/frontend architecture clean and extensible
-2. Update documentation as features are completed
-3. Improve request logging and observability
-4. Strengthen CI checks around the auth/task workflow
-5. Add Alembic migrations before using environments where data matters
-6. Add roles/permissions foundation
-7. Continue monitoring/logging improvements
-8. Prepare cloud deployment hardening
-9. Add AWS/AI integrations later
+2. Keep documentation aligned with completed features
+3. Introduce role and permission foundation
+4. Centralize workspace permission checks
+5. Improve request logging and observability
+6. Strengthen CI checks around auth/workspace/task workflows
+7. Add Alembic migrations before using environments where data matters
+8. Continue monitoring/logging improvements
+9. Prepare cloud deployment hardening
+10. Add AWS/AI integrations later
 
-## AWS cost note
+## Development workflow
+
+Recommended workflow after each meaningful step:
+
+```bash
+git status
+git diff --stat
+make test
+make frontend-validate
+git add ...
+git commit -m "<clear message>"
+git push
+```
+
+## Important project decisions
+
+### Alembic migrations
+
+Alembic migrations are intentionally postponed for the current MVP/local phase.
+
+Before using environments where data matters, add proper migrations with a safe migration/backfill plan.
+
+### Invite-first membership
+
+Direct workspace member creation was removed.
+
+Membership must be created through invitation acceptance.
+
+### Error codes
+
+Backend error codes are API contract.
+
+Frontend should depend on stable error codes, not backend message text.
+
+### Cloud cost control
 
 Local Docker Compose and local kind workflows do not create AWS resources.
 
