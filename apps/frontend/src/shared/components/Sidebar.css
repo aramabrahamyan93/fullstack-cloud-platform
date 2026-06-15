@@ -220,3 +220,62 @@
 .sidebar-nav-section + .sidebar-nav-section {
   padding-top: 12px;
 }
+
+/* Collapsible sidebar UX refinement */
+.sidebar-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.sidebar-section-toggle:hover {
+  color: #374151;
+}
+
+.workspace-switcher-content {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-collapsed-label {
+  overflow: hidden;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-nav-item {
+  grid-template-columns: 1fr;
+}
+
+.sidebar-nav-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-nav-item small {
+  margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .sidebar-section-toggle {
+    font-size: 0.72rem;
+  }
+}
+

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { appConfig } from "../../app/config";
 import { NAVIGATION_ITEMS, type AppRouteId } from "../../app/navigation";
@@ -31,6 +32,9 @@ export function Sidebar({
   onLogout
 }: SidebarProps) {
   const location = useLocation();
+  const [isWorkspaceSwitcherOpen, setIsWorkspaceSwitcherOpen] = useState(true);
+  const [isGlobalNavigationOpen, setIsGlobalNavigationOpen] = useState(true);
+  const [isWorkspaceNavigationOpen, setIsWorkspaceNavigationOpen] = useState(true);
 
   function getNavigationPath(routeId: AppRouteId): string {
     if (routeId === "global_dashboard") {
@@ -190,53 +194,91 @@ export function Sidebar({
       </div>
 
       <section className="workspace-switcher" aria-label="Workspace switcher">
-        <span className="sidebar-section-title">Current workspace</span>
+        <button
+          type="button"
+          className="sidebar-section-toggle"
+          aria-expanded={isWorkspaceSwitcherOpen}
+          onClick={() => setIsWorkspaceSwitcherOpen((isOpen) => !isOpen)}
+        >
+          <span>Current workspace</span>
+          <span aria-hidden="true">{isWorkspaceSwitcherOpen ? "−" : "+"}</span>
+        </button>
 
-        {currentUser ? (
-          <>
-            <select
-              className="workspace-select"
-              value={selectedOrganization?.id ?? ""}
-              disabled={isOrganizationsLoading || organizations.length === 0}
-              onChange={(event) => handleWorkspaceChange(event.target.value)}
-            >
-              <option value="">
-                {isOrganizationsLoading
-                  ? "Loading workspaces..."
-                  : "Select workspace"}
-              </option>
+        {isWorkspaceSwitcherOpen ? (
+          <div className="workspace-switcher-content">
+            {currentUser ? (
+              <>
+                <select
+                  className="workspace-select"
+                  value={selectedOrganization?.id ?? ""}
+                  disabled={isOrganizationsLoading || organizations.length === 0}
+                  onChange={(event) => handleWorkspaceChange(event.target.value)}
+                >
+                  <option value="">
+                    {isOrganizationsLoading
+                      ? "Loading workspaces..."
+                      : "Select workspace"}
+                  </option>
 
-              {organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>
-                  {organization.name}
-                </option>
-              ))}
-            </select>
+                  {organizations.map((organization) => (
+                    <option key={organization.id} value={organization.id}>
+                      {organization.name}
+                    </option>
+                  ))}
+                </select>
 
-            {organizations.length === 0 && !isOrganizationsLoading ? (
-              <NavLink className="workspace-create-link" to="/workspaces">
-                Create your first workspace
-              </NavLink>
-            ) : null}
-          </>
+                {organizations.length === 0 && !isOrganizationsLoading ? (
+                  <NavLink className="workspace-create-link" to="/workspaces">
+                    Create your first workspace
+                  </NavLink>
+                ) : null}
+              </>
+            ) : (
+              <strong className="workspace-guest">Login to use workspaces</strong>
+            )}
+          </div>
         ) : (
-          <strong className="workspace-guest">Login to use workspaces</strong>
+          <strong className="workspace-collapsed-label">
+            {selectedOrganization?.name ?? "No workspace selected"}
+          </strong>
         )}
       </section>
 
       <nav className="sidebar-nav" aria-label="Main navigation">
         <section className="sidebar-nav-section">
-          <span className="sidebar-section-title">Global</span>
-          <div className="sidebar-nav-group">
-            {renderNavigationItems(GLOBAL_NAVIGATION_ITEMS)}
-          </div>
+          <button
+            type="button"
+            className="sidebar-section-toggle"
+            aria-expanded={isGlobalNavigationOpen}
+            onClick={() => setIsGlobalNavigationOpen((isOpen) => !isOpen)}
+          >
+            <span>Global</span>
+            <span aria-hidden="true">{isGlobalNavigationOpen ? "−" : "+"}</span>
+          </button>
+
+          {isGlobalNavigationOpen ? (
+            <div className="sidebar-nav-group">
+              {renderNavigationItems(GLOBAL_NAVIGATION_ITEMS)}
+            </div>
+          ) : null}
         </section>
 
         <section className="sidebar-nav-section">
-          <span className="sidebar-section-title">Workspace</span>
-          <div className="sidebar-nav-group">
-            {renderNavigationItems(WORKSPACE_NAVIGATION_ITEMS)}
-          </div>
+          <button
+            type="button"
+            className="sidebar-section-toggle"
+            aria-expanded={isWorkspaceNavigationOpen}
+            onClick={() => setIsWorkspaceNavigationOpen((isOpen) => !isOpen)}
+          >
+            <span>Workspace</span>
+            <span aria-hidden="true">{isWorkspaceNavigationOpen ? "−" : "+"}</span>
+          </button>
+
+          {isWorkspaceNavigationOpen ? (
+            <div className="sidebar-nav-group">
+              {renderNavigationItems(WORKSPACE_NAVIGATION_ITEMS)}
+            </div>
+          ) : null}
         </section>
       </nav>
 
