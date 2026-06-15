@@ -129,19 +129,21 @@ def test_invite_candidates_marks_pending_invitation():
 
 def test_invite_candidates_marks_existing_member():
     owner_headers = register_and_login("candidate-member-owner@example.com")
-    register_and_login("candidate-member-user@example.com")
+    member_headers = register_and_login("candidate-member-user@example.com")
 
     organization = create_organization(headers=owner_headers)
 
-    add_member_response = client.post(
-        f"/organizations/{organization['id']}/members",
+    invitation = create_invitation(
         headers=owner_headers,
-        json={
-            "email": "candidate-member-user@example.com",
-            "role": "member",
-        },
+        organization_id=organization["id"],
+        email="candidate-member-user@example.com",
     )
-    assert add_member_response.status_code == status.HTTP_201_CREATED
+
+    accept_response = client.post(
+        f"/organizations/invitations/{invitation['id']}/accept",
+        headers=member_headers,
+    )
+    assert accept_response.status_code == status.HTTP_200_OK
 
     response = client.get(
         f"/organizations/{organization['id']}/invite-candidates",

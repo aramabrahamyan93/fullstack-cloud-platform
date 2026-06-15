@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { getErrorCode, getErrorMessage } from "../../../shared/api/errors";
 import {
-  addOrganizationMember,
   getOrganizationMembers,
   leaveOrganization,
   removeOrganizationMember,
@@ -20,10 +19,6 @@ export type UseOrganizationMembersResult = {
   isMemberSubmitting: boolean;
   loadMembers: (
     organizationId: number
-  ) => Promise<OrganizationMembersActionResult>;
-  addMember: (
-    organizationId: number,
-    email: string
   ) => Promise<OrganizationMembersActionResult>;
   removeMember: (
     organizationId: number,
@@ -90,42 +85,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     }
   }
 
-  async function addMember(
-    organizationId: number,
-    email: string
-  ): Promise<OrganizationMembersActionResult> {
-    const normalizedEmail = email.trim();
-
-    if (!normalizedEmail) {
-      return {
-        success: false,
-        message: "Member email is required."
-      };
-    }
-
-    setIsMemberSubmitting(true);
-
-    try {
-      await addOrganizationMember(organizationId, {
-        email: normalizedEmail,
-        role: "member"
-      });
-
-      await loadMembers(organizationId);
-
-      return {
-        success: true,
-        message: "Workspace member added successfully."
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: getAddMemberErrorMessage(error)
-      };
-    } finally {
-      setIsMemberSubmitting(false);
-    }
-  }
+  
 
   async function removeMember(
     organizationId: number,
@@ -210,7 +170,6 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     isMembersLoading,
     isMemberSubmitting,
     loadMembers,
-    addMember,
     removeMember,
     transferOwnership,
     leaveWorkspace,

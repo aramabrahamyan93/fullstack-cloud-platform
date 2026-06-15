@@ -6,13 +6,11 @@ from app.features.organizations.schemas import OrganizationCreate
 from app.features.organizations.schemas import OrganizationInvitationCreate
 from app.features.organizations.schemas import OrganizationInvitationRead
 from app.features.organizations.schemas import OrganizationInviteCandidateRead
-from app.features.organizations.schemas import OrganizationMemberCreate
 from app.features.organizations.schemas import OrganizationMemberRead
 from app.features.organizations.schemas import MyOrganizationInvitationRead
 from app.features.organizations.schemas import OrganizationRead
 from app.features.organizations.service import (
     accept_current_user_invitation,
-    add_member_to_user_organization,
     cancel_user_organization_invitation,
     create_user_organization_invitation,
     decline_current_user_invitation,
@@ -76,26 +74,6 @@ def list_organization_members(
         organization_id=organization_id,
         current_user=current_user,
     )
-
-@router.post(
-    "/{organization_id}/members",
-    response_model=OrganizationMemberRead,
-    status_code=201,
-)
-def add_organization_member(
-    organization_id: int,
-    member_create: OrganizationMemberCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> OrganizationMemberRead:
-    return add_member_to_user_organization(
-        db,
-        organization_id=organization_id,
-        current_user=current_user,
-        member_create=member_create,
-    )
-
-
 
 @router.post(
     "/{organization_id}/invitations",

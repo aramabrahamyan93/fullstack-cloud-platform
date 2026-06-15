@@ -58,23 +58,32 @@ def create_organization(
     return response.json()
 
 
-def add_member(
-    headers: dict[str, str],
+def invite_and_accept_member(
+    *,
+    owner_headers: dict[str, str],
+    member_headers: dict[str, str],
     organization_id: int,
     email: str,
 ) -> dict:
-    response = client.post(
-        f"/organizations/{organization_id}/members",
-        headers=headers,
+    invitation_response = client.post(
+        f"/organizations/{organization_id}/invitations",
+        headers=owner_headers,
         json={
             "email": email,
             "role": "member",
         },
     )
+    assert invitation_response.status_code == status.HTTP_201_CREATED
 
-    assert response.status_code == status.HTTP_201_CREATED
+    invitation = invitation_response.json()
 
-    return response.json()
+    accept_response = client.post(
+        f"/organizations/invitations/{invitation['id']}/accept",
+        headers=member_headers,
+    )
+    assert accept_response.status_code == status.HTTP_200_OK
+
+    return accept_response.json()
 
 
 def test_member_can_leave_workspace():
@@ -83,8 +92,9 @@ def test_member_can_leave_workspace():
 
     organization = create_organization(headers=owner_headers)
 
-    add_member(
-        headers=owner_headers,
+    invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=member_headers,
         organization_id=organization["id"],
         email="leave-member@example.com",
     )

@@ -18,11 +18,6 @@ class OrganizationRead(BaseModel):
     role: str | None = None
 
 
-class OrganizationMemberCreate(BaseModel):
-    email: EmailStr
-    role: str = Field(default="member", min_length=1, max_length=50)
-
-
 class OrganizationMemberRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

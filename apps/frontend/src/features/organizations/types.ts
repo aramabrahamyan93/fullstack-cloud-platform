@@ -1,6 +1,7 @@
 export type Organization = {
   id: number;
   name: string;
+  role?: OrganizationMemberRole | null;
 };
 
 export type CreateOrganizationRequest = {
@@ -15,11 +16,6 @@ export type OrganizationMember = {
   user_id: number;
   role: OrganizationMemberRole;
   email: string;
-};
-
-export type AddOrganizationMemberRequest = {
-  email: string;
-  role: OrganizationMemberRole;
 };
 
 export type OrganizationInvitationStatus =

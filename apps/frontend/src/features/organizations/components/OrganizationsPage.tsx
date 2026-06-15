@@ -130,6 +130,12 @@ export function OrganizationsPage({
                   </button>
 
                   <div className="organization-list-actions">
+                    {organization.role ? (
+                      <span className="workspace-member-role">
+                        {organization.role}
+                      </span>
+                    ) : null}
+
                     <button
                       type="button"
                       className="secondary-button"
@@ -139,7 +145,7 @@ export function OrganizationsPage({
                       Open
                     </button>
 
-                    {onLeaveOrganization ? (
+                    {organization.role === "member" && onLeaveOrganization ? (
                       <button
                         type="button"
                         className="danger-button"
@@ -148,6 +154,12 @@ export function OrganizationsPage({
                       >
                         Leave
                       </button>
+                    ) : null}
+
+                    {organization.role === "owner" ? (
+                      <span className="organization-owner-help">
+                        Transfer ownership before leaving
+                      </span>
                     ) : null}
                   </div>
                 </article>

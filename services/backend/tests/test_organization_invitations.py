@@ -163,19 +163,24 @@ def test_owner_cannot_create_duplicate_pending_invitation():
 
 def test_owner_cannot_invite_existing_workspace_member():
     owner_headers = register_and_login("invite-existing-owner@example.com")
-    register_and_login("invite-existing-member@example.com")
+    member_headers = register_and_login("invite-existing-member@example.com")
 
     organization = create_organization(headers=owner_headers)
 
-    add_member_response = client.post(
-        f"/organizations/{organization['id']}/members",
+    invitation_response = create_invitation(
         headers=owner_headers,
-        json={
-            "email": "invite-existing-member@example.com",
-            "role": "member",
-        },
+        organization_id=organization["id"],
+        email="invite-existing-member@example.com",
     )
-    assert add_member_response.status_code == status.HTTP_201_CREATED
+    assert invitation_response.status_code == status.HTTP_201_CREATED
+
+    invitation = invitation_response.json()
+
+    accept_response = client.post(
+        f"/organizations/invitations/{invitation['id']}/accept",
+        headers=member_headers,
+    )
+    assert accept_response.status_code == status.HTTP_200_OK
 
     response = create_invitation(
         headers=owner_headers,

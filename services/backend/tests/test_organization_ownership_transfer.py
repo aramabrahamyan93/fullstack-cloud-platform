@@ -58,23 +58,32 @@ def create_organization(
     return response.json()
 
 
-def add_member(
-    headers: dict[str, str],
+def invite_and_accept_member(
+    *,
+    owner_headers: dict[str, str],
+    member_headers: dict[str, str],
     organization_id: int,
     email: str,
 ) -> dict:
-    response = client.post(
-        f"/organizations/{organization_id}/members",
-        headers=headers,
+    invitation_response = client.post(
+        f"/organizations/{organization_id}/invitations",
+        headers=owner_headers,
         json={
             "email": email,
             "role": "member",
         },
     )
+    assert invitation_response.status_code == status.HTTP_201_CREATED
 
-    assert response.status_code == status.HTTP_201_CREATED
+    invitation = invitation_response.json()
 
-    return response.json()
+    accept_response = client.post(
+        f"/organizations/invitations/{invitation['id']}/accept",
+        headers=member_headers,
+    )
+    assert accept_response.status_code == status.HTTP_200_OK
+
+    return accept_response.json()
 
 
 def list_members(
@@ -103,8 +112,9 @@ def test_owner_can_transfer_ownership_to_member():
     new_owner_headers = register_and_login("transfer-new-owner@example.com")
 
     organization = create_organization(headers=owner_headers)
-    new_owner_member = add_member(
-        headers=owner_headers,
+    new_owner_member = invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=new_owner_headers,
         organization_id=organization["id"],
         email="transfer-new-owner@example.com",
     )
@@ -135,11 +145,12 @@ def test_owner_can_transfer_ownership_to_member():
 def test_new_owner_can_manage_members_after_transfer():
     owner_headers = register_and_login("transfer-manage-owner@example.com")
     new_owner_headers = register_and_login("transfer-manage-new-owner@example.com")
-    register_and_login("transfer-manage-target@example.com")
+    target_headers = register_and_login("transfer-manage-target@example.com")
 
     organization = create_organization(headers=owner_headers)
-    new_owner_member = add_member(
-        headers=owner_headers,
+    new_owner_member = invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=new_owner_headers,
         organization_id=organization["id"],
         email="transfer-manage-new-owner@example.com",
     )
@@ -151,26 +162,33 @@ def test_new_owner_can_manage_members_after_transfer():
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    add_response = client.post(
-        f"/organizations/{organization['id']}/members",
+    invitation_response = client.post(
+        f"/organizations/{organization['id']}/invitations",
         headers=new_owner_headers,
         json={
             "email": "transfer-manage-target@example.com",
             "role": "member",
         },
     )
+    assert invitation_response.status_code == status.HTTP_201_CREATED
 
-    assert add_response.status_code == status.HTTP_201_CREATED
+    invitation = invitation_response.json()
+
+    accept_response = client.post(
+        f"/organizations/invitations/{invitation['id']}/accept",
+        headers=target_headers,
+    )
+    assert accept_response.status_code == status.HTTP_200_OK
 
 
 def test_old_owner_can_no_longer_manage_members_after_transfer():
     owner_headers = register_and_login("transfer-old-owner@example.com")
-    register_and_login("transfer-old-new-owner@example.com")
-    register_and_login("transfer-old-target@example.com")
+    new_owner_headers = register_and_login("transfer-old-new-owner@example.com")
 
     organization = create_organization(headers=owner_headers)
-    new_owner_member = add_member(
-        headers=owner_headers,
+    new_owner_member = invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=new_owner_headers,
         organization_id=organization["id"],
         email="transfer-old-new-owner@example.com",
     )
@@ -182,8 +200,8 @@ def test_old_owner_can_no_longer_manage_members_after_transfer():
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    add_response = client.post(
-        f"/organizations/{organization['id']}/members",
+    invitation_response = client.post(
+        f"/organizations/{organization['id']}/invitations",
         headers=owner_headers,
         json={
             "email": "transfer-old-target@example.com",
@@ -191,23 +209,25 @@ def test_old_owner_can_no_longer_manage_members_after_transfer():
         },
     )
 
-    assert add_response.status_code == status.HTTP_403_FORBIDDEN
-    assert add_response.json()["error"]["code"] == "forbidden"
+    assert invitation_response.status_code == status.HTTP_403_FORBIDDEN
+    assert invitation_response.json()["error"]["code"] == "forbidden"
 
 
 def test_non_owner_cannot_transfer_ownership():
     owner_headers = register_and_login("transfer-private-owner@example.com")
     member_headers = register_and_login("transfer-private-member@example.com")
-    register_and_login("transfer-private-target@example.com")
+    target_headers = register_and_login("transfer-private-target@example.com")
 
     organization = create_organization(headers=owner_headers)
-    add_member(
-        headers=owner_headers,
+    invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=member_headers,
         organization_id=organization["id"],
         email="transfer-private-member@example.com",
     )
-    target_member = add_member(
-        headers=owner_headers,
+    target_member = invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=target_headers,
         organization_id=organization["id"],
         email="transfer-private-target@example.com",
     )

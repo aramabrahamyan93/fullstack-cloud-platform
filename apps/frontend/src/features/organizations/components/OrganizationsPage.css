@@ -115,3 +115,10 @@
 .organization-list-item.active .organization-list-main span {
   color: #6b7280;
 }
+
+.organization-owner-help {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}

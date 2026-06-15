@@ -34,7 +34,6 @@ export function useWorkspaceController({
     isMembersLoading,
     isMemberSubmitting,
     loadMembers,
-    addMember,
     removeMember,
     transferOwnership,
     leaveWorkspace,
@@ -107,19 +106,7 @@ export function useWorkspaceController({
     }
   }
 
-  async function handleAddWorkspaceMember(email: string): Promise<boolean> {
-    if (!selectedOrganization) {
-      showMessage("Please select a workspace first.", "error");
-
-      return false;
-    }
-
-    const result = await addMember(selectedOrganization.id, email);
-
-    showMessage(result.message, result.success ? "success" : "error");
-
-    return result.success;
-  }
+  
 
   async function handleRemoveWorkspaceMember(memberId: number): Promise<void> {
     if (!selectedOrganization) {
@@ -327,7 +314,6 @@ export function useWorkspaceController({
     clearWorkspaceState,
     loadWorkspaceMembers,
     loadWorkspaceInvitations,
-    handleAddWorkspaceMember,
     handleRemoveWorkspaceMember,
     handleTransferWorkspaceOwnership,
     handleLeaveWorkspace,
