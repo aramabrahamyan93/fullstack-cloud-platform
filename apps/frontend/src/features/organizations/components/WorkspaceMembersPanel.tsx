@@ -15,10 +15,12 @@ type WorkspaceMembersPanelProps = {
   isInviteCandidatesLoading?: boolean;
   isInvitationSubmitting?: boolean;
   canManageInvitations?: boolean;
+  canLeaveWorkspace?: boolean;
   onCreateInvitation?: (email: string) => Promise<boolean>;
   onCancelInvitation?: (invitationId: number) => Promise<void>;
   onRemoveMember?: (memberId: number) => Promise<void>;
   onTransferOwnership?: (memberId: number) => Promise<void>;
+  onLeaveWorkspace?: () => Promise<void>;
   onSearchInviteCandidates?: (query: string) => Promise<void>;
 };
 
@@ -35,10 +37,12 @@ export function WorkspaceMembersPanel({
   isInviteCandidatesLoading = false,
   isInvitationSubmitting = false,
   canManageInvitations = false,
+  canLeaveWorkspace = false,
   onCreateInvitation,
   onCancelInvitation,
   onRemoveMember,
   onTransferOwnership,
+  onLeaveWorkspace,
   onSearchInviteCandidates
 }: WorkspaceMembersPanelProps) {
   const [invitationEmail, setInvitationEmail] = useState("");
@@ -122,6 +126,17 @@ export function WorkspaceMembersPanel({
             workspace.
           </p>
         </div>
+
+        {canLeaveWorkspace && onLeaveWorkspace ? (
+          <button
+            type="button"
+            className="danger-button"
+            disabled={isInvitationSubmitting}
+            onClick={() => void onLeaveWorkspace()}
+          >
+            Leave workspace
+          </button>
+        ) : null}
       </div>
 
       {isLoading ? <div className="empty-state">Loading members...</div> : null}
@@ -160,7 +175,7 @@ export function WorkspaceMembersPanel({
                 onRemoveMember ? (
                   <button
                     type="button"
-                    className="secondary-button"
+                    className="danger-button"
                     disabled={isInvitationSubmitting}
                     onClick={() => void onRemoveMember(member.id)}
                   >

@@ -145,3 +145,14 @@ export function transferOrganizationOwnership(
     }
   );
 }
+
+export function leaveOrganization(
+  organizationId: number
+): Promise<void> {
+  return fetchJson<void>(
+    `/organizations/${organizationId}/membership`,
+    {
+      method: "DELETE"
+    }
+  );
+}

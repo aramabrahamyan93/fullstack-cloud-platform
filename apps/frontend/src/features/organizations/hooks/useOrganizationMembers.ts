@@ -3,6 +3,7 @@ import { getErrorCode, getErrorMessage } from "../../../shared/api/errors";
 import {
   addOrganizationMember,
   getOrganizationMembers,
+  leaveOrganization,
   removeOrganizationMember,
   transferOrganizationOwnership
 } from "../api";
@@ -31,6 +32,9 @@ export type UseOrganizationMembersResult = {
   transferOwnership: (
     organizationId: number,
     memberId: number
+  ) => Promise<OrganizationMembersActionResult>;
+  leaveWorkspace: (
+    organizationId: number
   ) => Promise<OrganizationMembersActionResult>;
   clearMembers: () => void;
 };
@@ -171,6 +175,30 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     }
   }
 
+  async function leaveWorkspace(
+    organizationId: number
+  ): Promise<OrganizationMembersActionResult> {
+    setIsMemberSubmitting(true);
+
+    try {
+      await leaveOrganization(organizationId);
+
+      setMembers([]);
+
+      return {
+        success: true,
+        message: "You left the workspace successfully."
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: getErrorMessage(error)
+      };
+    } finally {
+      setIsMemberSubmitting(false);
+    }
+  }
+
   function clearMembers(): void {
     setMembers([]);
     setIsMembersLoading(false);
@@ -185,6 +213,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     addMember,
     removeMember,
     transferOwnership,
+    leaveWorkspace,
     clearMembers
   };
 }

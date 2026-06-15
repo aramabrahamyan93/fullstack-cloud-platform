@@ -19,6 +19,7 @@ export function WorkspacesRoute({ controller }: WorkspacesRouteProps) {
         isSubmitting={controller.isOrganizationSubmitting}
         onCreateOrganization={controller.handleCreateOrganization}
         onSelectOrganization={controller.handleSelectOrganization}
+        onLeaveOrganization={controller.handleLeaveWorkspaceById}
       />
     </>
   );

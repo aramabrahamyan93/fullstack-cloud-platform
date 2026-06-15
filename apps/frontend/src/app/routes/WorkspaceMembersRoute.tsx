@@ -22,6 +22,7 @@ export function WorkspaceMembersRoute({
     (member) => member.user_id === controller.currentUser?.id
   );
   const canManageInvitations = currentMember?.role === "owner";
+  const canLeaveWorkspace = currentMember?.role === "member";
   const loadedInvitationsWorkspaceIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -119,10 +120,12 @@ export function WorkspaceMembersRoute({
         isInviteCandidatesLoading={controller.isInviteCandidatesLoading}
         isInvitationSubmitting={controller.isInvitationSubmitting}
         canManageInvitations={canManageInvitations}
+        canLeaveWorkspace={canLeaveWorkspace}
         onCreateInvitation={controller.handleCreateWorkspaceInvitation}
         onCancelInvitation={controller.handleCancelWorkspaceInvitation}
         onRemoveMember={controller.handleRemoveWorkspaceMember}
         onTransferOwnership={controller.handleTransferWorkspaceOwnership}
+        onLeaveWorkspace={controller.handleLeaveWorkspace}
         onSearchInviteCandidates={controller.handleSearchWorkspaceInviteCandidates}
       />
     </>

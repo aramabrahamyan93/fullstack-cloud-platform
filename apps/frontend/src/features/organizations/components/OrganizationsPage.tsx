@@ -10,6 +10,7 @@ type OrganizationsPageProps = {
   isSubmitting: boolean;
   onCreateOrganization: (name: string) => Promise<void>;
   onSelectOrganization: (organizationId: number) => void;
+  onLeaveOrganization?: (organizationId: number) => Promise<void>;
 };
 
 export function OrganizationsPage({
@@ -19,7 +20,8 @@ export function OrganizationsPage({
   isLoading,
   isSubmitting,
   onCreateOrganization,
-  onSelectOrganization
+  onSelectOrganization,
+  onLeaveOrganization
 }: OrganizationsPageProps) {
   const [name, setName] = useState("My Workspace");
 
@@ -108,19 +110,49 @@ export function OrganizationsPage({
           </div>
         ) : (
           <div className="organization-list">
-            {organizations.map((organization) => (
-              <button
-                key={organization.id}
-                type="button"
-                className={`organization-list-item ${
-                  selectedOrganization?.id === organization.id ? "active" : ""
-                }`}
-                onClick={() => onSelectOrganization(organization.id)}
-              >
-                <span>#{organization.id}</span>
-                <strong>{organization.name}</strong>
-              </button>
-            ))}
+            {organizations.map((organization) => {
+              const isSelected = selectedOrganization?.id === organization.id;
+
+              return (
+                <article
+                  key={organization.id}
+                  className={`organization-list-item ${
+                    isSelected ? "active" : ""
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className="organization-list-main"
+                    onClick={() => onSelectOrganization(organization.id)}
+                  >
+                    <span>#{organization.id}</span>
+                    <strong>{organization.name}</strong>
+                  </button>
+
+                  <div className="organization-list-actions">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={isSubmitting}
+                      onClick={() => onSelectOrganization(organization.id)}
+                    >
+                      Open
+                    </button>
+
+                    {onLeaveOrganization ? (
+                      <button
+                        type="button"
+                        className="danger-button"
+                        disabled={isSubmitting}
+                        onClick={() => void onLeaveOrganization(organization.id)}
+                      >
+                        Leave
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

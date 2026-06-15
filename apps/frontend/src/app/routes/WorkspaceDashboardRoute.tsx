@@ -15,8 +15,13 @@ export function WorkspaceDashboardRoute({
     useWorkspaceRouteContext({
       controller,
       loadTasks: true,
-      loadMembers: false
+      loadMembers: true
     });
+
+  const currentMember = controller.members.find(
+    (member) => member.user_id === controller.currentUser?.id
+  );
+  const canLeaveWorkspace = currentMember?.role === "member";
 
   if (isLoadingWorkspaceContext) {
     return (
@@ -90,6 +95,17 @@ export function WorkspaceDashboardRoute({
             Workspace dashboard and task overview.
           </p>
         </div>
+
+        {canLeaveWorkspace ? (
+          <button
+            type="button"
+            className="danger-button"
+            disabled={controller.isMemberSubmitting}
+            onClick={() => void controller.handleLeaveWorkspace()}
+          >
+            Leave workspace
+          </button>
+        ) : null}
       </section>
 
       <DashboardPage
