@@ -3,6 +3,7 @@ export type AppRouteId =
   | "dashboard"
   | "tasks"
   | "members"
+  | "settings"
   | "workspaces"
   | "system";
 
@@ -44,6 +45,12 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     id: "members",
     label: "Members",
     description: "Workspace access",
+    group: "workspace"
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    description: "Configuration",
     group: "workspace"
   },
   {

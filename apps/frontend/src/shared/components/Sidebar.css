@@ -184,3 +184,39 @@
   background: transparent;
   border-color: transparent;
 }
+
+/* Compact sidebar refinement */
+.sidebar {
+  gap: 18px;
+  padding: 20px;
+}
+
+.workspace-switcher,
+.sidebar-user {
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.sidebar-nav-group {
+  gap: 6px;
+}
+
+.sidebar-nav-item {
+  min-height: 48px;
+  padding: 10px 12px;
+  gap: 2px;
+}
+
+.sidebar-nav-item small {
+  display: none;
+}
+
+.sidebar-nav-item.active small,
+.sidebar-nav-item:hover small,
+.sidebar-nav-item:focus-visible small {
+  display: block;
+}
+
+.sidebar-nav-section + .sidebar-nav-section {
+  padding-top: 12px;
+}

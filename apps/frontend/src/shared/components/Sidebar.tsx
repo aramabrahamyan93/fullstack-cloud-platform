@@ -61,11 +61,20 @@ export function Sidebar({
       return `/workspaces/${selectedOrganization.id}/members`;
     }
 
+    if (routeId === "settings") {
+      return `/workspaces/${selectedOrganization.id}/settings`;
+    }
+
     return "/workspaces";
   }
 
   function isWorkspaceSpecificRoute(routeId: AppRouteId): boolean {
-    return routeId === "dashboard" || routeId === "tasks" || routeId === "members";
+    return (
+      routeId === "dashboard" ||
+      routeId === "tasks" ||
+      routeId === "members" ||
+      routeId === "settings"
+    );
   }
 
   function isNavigationItemDisabled(routeId: AppRouteId): boolean {
@@ -97,12 +106,20 @@ export function Sidebar({
       return /^\/workspaces\/[^/]+\/members$/.test(location.pathname);
     }
 
+    if (routeId === "settings") {
+      return /^\/workspaces\/[^/]+\/settings$/.test(location.pathname);
+    }
+
     return false;
   }
 
   function getWorkspaceSwitchPath(organizationId: number): string {
     if (location.pathname.includes("/members")) {
       return `/workspaces/${organizationId}/members`;
+    }
+
+    if (location.pathname.includes("/settings")) {
+      return `/workspaces/${organizationId}/settings`;
     }
 
     if (location.pathname.includes("/tasks")) {
