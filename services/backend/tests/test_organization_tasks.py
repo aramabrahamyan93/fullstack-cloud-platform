@@ -269,3 +269,76 @@ def test_organization_task_pagination_and_filtering():
     assert len(data["items"]) == 1
     assert data["items"][0]["title"] == "Alpha task"
     assert data["items"][0]["status"] == "open"
+
+
+def invite_and_accept_member(
+    owner_headers: dict[str, str],
+    member_headers: dict[str, str],
+    organization_id: int,
+    member_email: str,
+):
+    invitation_response = client.post(
+        f"/organizations/{organization_id}/invitations",
+        headers=owner_headers,
+        json={
+            "email": member_email,
+            "role": "member",
+        },
+    )
+    assert invitation_response.status_code == status.HTTP_201_CREATED
+
+    invitation_id = invitation_response.json()["id"]
+
+    accept_response = client.post(
+        f"/organizations/invitations/{invitation_id}/accept",
+        headers=member_headers,
+    )
+    assert accept_response.status_code == status.HTTP_200_OK
+
+    return accept_response.json()
+
+
+def test_invited_member_can_manage_organization_tasks():
+    owner_headers = register_and_login("organization-task-owner-member@example.com")
+    member_email = "organization-task-member@example.com"
+    member_headers = register_and_login(member_email)
+
+    organization = create_organization(headers=owner_headers)
+
+    invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=member_headers,
+        organization_id=organization["id"],
+        member_email=member_email,
+    )
+
+    create_response = create_organization_task(
+        headers=member_headers,
+        organization_id=organization["id"],
+        title="Member-created task",
+        task_status="open",
+    )
+
+    assert create_response.status_code == status.HTTP_201_CREATED
+
+    task_id = create_response.json()["id"]
+
+    update_response = client.put(
+        f"/organizations/{organization['id']}/tasks/{task_id}",
+        headers=member_headers,
+        json={
+            "title": "Member-updated task",
+            "status": "done",
+        },
+    )
+
+    assert update_response.status_code == status.HTTP_200_OK
+    assert update_response.json()["title"] == "Member-updated task"
+    assert update_response.json()["status"] == "done"
+
+    delete_response = client.delete(
+        f"/organizations/{organization['id']}/tasks/{task_id}",
+        headers=member_headers,
+    )
+
+    assert delete_response.status_code == status.HTTP_204_NO_CONTENT

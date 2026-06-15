@@ -17,6 +17,7 @@ from app.features.organizations.permissions import (
     can_invite_members,
     can_invite_role,
     can_leave_workspace,
+    can_manage_tasks,
     can_remove_members,
     can_transfer_ownership,
     can_view_members,
@@ -106,13 +107,31 @@ def ensure_user_is_organization_member(
     return membership
 
 
-def ensure_user_is_organization_owner(
+def ensure_user_can_manage_organization_tasks(
     db: Session,
     *,
     organization_id: int,
     current_user: User,
 ) -> OrganizationMember:
     membership = ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_manage_tasks(membership.role):
+        raise ForbiddenError("Organization member role is required.")
+
+    return membership
+
+
+def ensure_user_is_organization_owner(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -130,7 +149,7 @@ def ensure_user_can_view_members(
     organization_id: int,
     current_user: User,
 ) -> OrganizationMember:
-    membership = ensure_user_is_organization_member(
+    membership = ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -148,7 +167,7 @@ def ensure_user_can_invite_members(
     organization_id: int,
     current_user: User,
 ) -> OrganizationMember:
-    membership = ensure_user_is_organization_member(
+    membership = ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -166,7 +185,7 @@ def ensure_user_can_cancel_invitations(
     organization_id: int,
     current_user: User,
 ) -> OrganizationMember:
-    membership = ensure_user_is_organization_member(
+    membership = ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -184,7 +203,7 @@ def ensure_user_can_remove_members(
     organization_id: int,
     current_user: User,
 ) -> OrganizationMember:
-    membership = ensure_user_is_organization_member(
+    membership = ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -202,7 +221,7 @@ def ensure_user_can_transfer_ownership(
     organization_id: int,
     current_user: User,
 ) -> OrganizationMember:
-    membership = ensure_user_is_organization_member(
+    membership = ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -220,7 +239,7 @@ def ensure_user_can_leave_workspace(
     organization_id: int,
     current_user: User,
 ) -> OrganizationMember:
-    membership = ensure_user_is_organization_member(
+    membership = ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -688,7 +707,7 @@ def leave_user_organization(
     organization_id: int,
     current_user: User,
 ) -> None:
-    membership = ensure_user_is_organization_member(
+    membership = ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,

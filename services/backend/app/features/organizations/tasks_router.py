@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_current_user
 from app.db.dependencies import get_db
-from app.features.organizations.service import ensure_user_is_organization_member
+from app.features.organizations.service import ensure_user_can_manage_organization_tasks
 from app.features.tasks.constants import DEFAULT_TASK_LIMIT
 from app.features.tasks.constants import DEFAULT_TASK_OFFSET
 from app.features.tasks.constants import MAX_TASK_LIMIT
@@ -66,7 +66,7 @@ def list_organization_tasks(
         ge=MIN_TASK_OFFSET,
     ),
 ):
-    ensure_user_is_organization_member(
+    ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -110,7 +110,7 @@ def list_paginated_organization_tasks(
         ge=MIN_TASK_OFFSET,
     ),
 ):
-    ensure_user_is_organization_member(
+    ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -139,7 +139,7 @@ def get_organization_task_stats(
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_is_organization_member(
+    ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -162,7 +162,7 @@ def create_organization_task(
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_is_organization_member(
+    ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -186,7 +186,7 @@ def get_existing_organization_task(
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_is_organization_member(
+    ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -210,7 +210,7 @@ def update_existing_organization_task(
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_is_organization_member(
+    ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -234,7 +234,7 @@ def delete_existing_organization_task(
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_is_organization_member(
+    ensure_user_can_manage_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
