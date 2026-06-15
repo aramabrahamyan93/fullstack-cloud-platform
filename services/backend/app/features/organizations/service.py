@@ -8,6 +8,7 @@ from app.features.organizations import repository
 from app.features.organizations.models import Organization, OrganizationMember, OrganizationInvitation
 from app.features.organizations.schemas import OrganizationCreate
 from app.features.organizations.schemas import OrganizationInvitationCreate
+from app.features.organizations.schemas import OrganizationUpdate
 from app.features.users import repository as users_repository
 from app.features.users.models import User
 from app.features.organizations.permissions import (
@@ -74,6 +75,36 @@ def get_organization_for_user(
         raise NotFoundError("Organization not found.")
 
     return organization
+
+
+def update_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+    organization_update: OrganizationUpdate,
+) -> dict[str, int | str]:
+    membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    organization = db.get(Organization, organization_id)
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    organization.name = organization_update.name
+
+    db.commit()
+    db.refresh(organization)
+
+    return {
+        "id": organization.id,
+        "name": organization.name,
+        "role": membership.role,
+    }
 
 
 def get_user_organization_membership(

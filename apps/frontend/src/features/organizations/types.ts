@@ -8,6 +8,10 @@ export type CreateOrganizationRequest = {
   name: string;
 };
 
+export type UpdateOrganizationRequest = {
+  name: string;
+};
+
 export type OrganizationMemberRole = "owner" | "member";
 
 export type OrganizationMember = {

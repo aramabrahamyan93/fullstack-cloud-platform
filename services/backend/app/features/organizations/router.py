@@ -9,6 +9,7 @@ from app.features.organizations.schemas import OrganizationInviteCandidateRead
 from app.features.organizations.schemas import OrganizationMemberRead
 from app.features.organizations.schemas import MyOrganizationInvitationRead
 from app.features.organizations.schemas import OrganizationRead
+from app.features.organizations.schemas import OrganizationUpdate
 from app.features.organizations.service import (
     accept_current_user_invitation,
     cancel_user_organization_invitation,
@@ -22,6 +23,7 @@ from app.features.organizations.service import (
     list_user_organization_invitations,
     leave_user_organization,
     list_organizations_for_user,
+    update_user_organization,
     remove_member_from_user_organization,
     transfer_user_organization_ownership,
 )
@@ -250,3 +252,18 @@ def leave_organization(
     )
 
     return Response(status_code=204)
+
+@router.patch("/{organization_id}", response_model=OrganizationRead)
+def update_organization(
+    organization_id: int,
+    organization_update: OrganizationUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return update_user_organization(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+        organization_update=organization_update,
+    )
+

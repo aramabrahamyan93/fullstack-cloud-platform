@@ -96,7 +96,10 @@ export function WorkspaceSettingsRoute({
       <WorkspaceSettingsPage
         workspace={routeWorkspace}
         currentMember={currentMember}
-        isSubmitting={controller.isMemberSubmitting}
+        isSubmitting={
+          controller.isMemberSubmitting || controller.isOrganizationSubmitting
+        }
+        onRenameWorkspace={controller.handleRenameWorkspace}
         onLeaveWorkspace={controller.handleLeaveWorkspace}
       />
     </>

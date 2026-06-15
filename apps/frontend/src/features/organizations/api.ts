@@ -2,6 +2,7 @@ import { fetchJson } from "../../shared/api/client";
 import type {
   CreateOrganizationInvitationRequest,
   CreateOrganizationRequest,
+  UpdateOrganizationRequest,
   Organization,
   OrganizationInvitation,
   OrganizationInviteCandidate,
@@ -23,6 +24,16 @@ export function createOrganization(
 ): Promise<Organization> {
   return fetchJson<Organization>("/organizations", {
     method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateOrganization(
+  organizationId: number,
+  payload: UpdateOrganizationRequest
+): Promise<Organization> {
+  return fetchJson<Organization>(`/organizations/${organizationId}`, {
+    method: "PATCH",
     body: JSON.stringify(payload)
   });
 }

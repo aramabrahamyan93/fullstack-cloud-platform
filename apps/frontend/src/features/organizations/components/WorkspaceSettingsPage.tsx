@@ -1,3 +1,4 @@
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import type { Organization, OrganizationMember } from "../types";
 import "./WorkspaceSettingsPage.css";
@@ -6,6 +7,7 @@ type WorkspaceSettingsPageProps = {
   workspace: Organization;
   currentMember: OrganizationMember | null;
   isSubmitting: boolean;
+  onRenameWorkspace: (name: string) => Promise<boolean>;
   onLeaveWorkspace: () => Promise<void>;
 };
 
@@ -13,11 +15,37 @@ export function WorkspaceSettingsPage({
   workspace,
   currentMember,
   isSubmitting,
+  onRenameWorkspace,
   onLeaveWorkspace
 }: WorkspaceSettingsPageProps) {
+  const [workspaceName, setWorkspaceName] = useState(workspace.name);
+
   const role = currentMember?.role ?? workspace.role ?? "unknown";
   const isOwner = role === "owner";
   const isMember = role === "member";
+  const normalizedWorkspaceName = workspaceName.trim();
+  const hasWorkspaceNameChanged =
+    normalizedWorkspaceName.length > 0 && normalizedWorkspaceName !== workspace.name;
+
+  useEffect(() => {
+    setWorkspaceName(workspace.name);
+  }, [workspace.id, workspace.name]);
+
+  async function handleRenameSubmit(
+    event: FormEvent<HTMLFormElement>
+  ): Promise<void> {
+    event.preventDefault();
+
+    if (!isOwner || !hasWorkspaceNameChanged) {
+      return;
+    }
+
+    const wasRenamed = await onRenameWorkspace(normalizedWorkspaceName);
+
+    if (wasRenamed) {
+      setWorkspaceName(normalizedWorkspaceName);
+    }
+  }
 
   return (
     <div className="workspace-settings-layout">
@@ -36,6 +64,37 @@ export function WorkspaceSettingsPage({
             {role}
           </span>
         </div>
+
+        {isOwner ? (
+          <form
+            className="workspace-settings-rename-form"
+            onSubmit={handleRenameSubmit}
+          >
+            <label className="form-field">
+              Workspace name
+              <input
+                type="text"
+                value={workspaceName}
+                minLength={1}
+                maxLength={200}
+                disabled={isSubmitting}
+                onChange={(event) => setWorkspaceName(event.target.value)}
+              />
+            </label>
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={isSubmitting || !hasWorkspaceNameChanged}
+            >
+              {isSubmitting ? "Saving..." : "Rename workspace"}
+            </button>
+          </form>
+        ) : (
+          <div className="workspace-settings-readonly-note">
+            Only workspace owners can rename this workspace.
+          </div>
+        )}
 
         <div className="workspace-settings-grid">
           <article className="workspace-settings-item">

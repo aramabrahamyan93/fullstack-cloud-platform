@@ -26,7 +26,8 @@ export function useWorkspaceController({
     loadOrganizations,
     clearOrganizations,
     selectOrganization,
-    createUserOrganization
+    createUserOrganization,
+    renameUserOrganization
   } = useOrganizations();
 
   const {
@@ -66,6 +67,19 @@ export function useWorkspaceController({
     declineMyInvitation,
     clearMyInvitations
   } = useMyOrganizationInvitations();
+
+  async function handleRenameWorkspace(name: string): Promise<boolean> {
+    if (!selectedOrganization) {
+      showMessage("Please select a workspace first.", "error");
+      return false;
+    }
+
+    const result = await renameUserOrganization(selectedOrganization.id, name);
+
+    showMessage(result.message, result.success ? "success" : "error");
+
+    return result.success;
+  }
 
   async function handleCreateOrganization(name: string): Promise<void> {
     if (!currentUser) {
@@ -327,6 +341,7 @@ export function useWorkspaceController({
     handleDeclineMyInvitation,
 
     handleCreateOrganization,
+    handleRenameWorkspace,
     handleSelectOrganization,
     selectWorkspaceFromRoute
   };

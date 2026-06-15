@@ -1,7 +1,8 @@
 import { useState } from "react";
 import {
   createOrganization,
-  getOrganizations
+  getOrganizations,
+  updateOrganization
 } from "../api";
 import { getErrorMessage } from "../../../shared/api/errors";
 import type { Organization } from "../types";
@@ -21,6 +22,10 @@ export type UseOrganizationsResult = {
   clearOrganizations: () => void;
   selectOrganization: (organizationId: number) => Organization | null;
   createUserOrganization: (
+    name: string
+  ) => Promise<OrganizationActionResult>;
+  renameUserOrganization: (
+    organizationId: number,
     name: string
   ) => Promise<OrganizationActionResult>;
 };
@@ -126,6 +131,55 @@ export function useOrganizations(): UseOrganizationsResult {
     }
   }
 
+  async function renameUserOrganization(
+    organizationId: number,
+    name: string
+  ): Promise<OrganizationActionResult> {
+    const normalizedName = name.trim();
+
+    if (!normalizedName) {
+      return {
+        success: false,
+        message: "Workspace name is required."
+      };
+    }
+
+    setIsOrganizationSubmitting(true);
+
+    try {
+      const organization = await updateOrganization(organizationId, {
+        name: normalizedName
+      });
+
+      setOrganizations((currentOrganizations) =>
+        currentOrganizations.map((currentOrganization) =>
+          currentOrganization.id === organization.id
+            ? organization
+            : currentOrganization
+        )
+      );
+
+      setSelectedOrganization((currentSelectedOrganization) =>
+        currentSelectedOrganization?.id === organization.id
+          ? organization
+          : currentSelectedOrganization
+      );
+
+      return {
+        success: true,
+        message: "Workspace renamed successfully.",
+        organization
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: getErrorMessage(error)
+      };
+    } finally {
+      setIsOrganizationSubmitting(false);
+    }
+  }
+
   return {
     organizations,
     selectedOrganization,
@@ -134,6 +188,7 @@ export function useOrganizations(): UseOrganizationsResult {
     loadOrganizations,
     clearOrganizations,
     selectOrganization,
-    createUserOrganization
+    createUserOrganization,
+    renameUserOrganization
   };
 }
