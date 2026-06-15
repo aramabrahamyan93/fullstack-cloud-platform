@@ -169,7 +169,10 @@ def ensure_user_is_organization_owner(
     )
 
     if not is_owner_role(membership.role):
-        raise ForbiddenError("Organization owner role is required.")
+        raise ForbiddenError(
+            "Organization owner role is required.",
+            error_code="workspace_owner_required",
+        )
 
     return membership
 

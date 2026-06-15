@@ -24,8 +24,14 @@ export function WorkspaceSettingsPage({
   const isOwner = role === "owner";
   const isMember = role === "member";
   const normalizedWorkspaceName = workspaceName.trim();
+  const isWorkspaceNameEmpty = normalizedWorkspaceName.length === 0;
   const hasWorkspaceNameChanged =
-    normalizedWorkspaceName.length > 0 && normalizedWorkspaceName !== workspace.name;
+    !isWorkspaceNameEmpty && normalizedWorkspaceName !== workspace.name;
+  const renameHelperText = isWorkspaceNameEmpty
+    ? "Workspace name is required."
+    : hasWorkspaceNameChanged
+      ? "Save this change to rename the workspace."
+      : "No workspace name changes to save.";
 
   useEffect(() => {
     setWorkspaceName(workspace.name);
@@ -70,7 +76,7 @@ export function WorkspaceSettingsPage({
             className="workspace-settings-rename-form"
             onSubmit={handleRenameSubmit}
           >
-            <label className="form-field">
+            <label className="form-field workspace-settings-rename-field">
               Workspace name
               <input
                 type="text"
@@ -78,8 +84,20 @@ export function WorkspaceSettingsPage({
                 minLength={1}
                 maxLength={200}
                 disabled={isSubmitting}
+                aria-describedby="workspace-rename-help"
                 onChange={(event) => setWorkspaceName(event.target.value)}
               />
+
+              <small
+                id="workspace-rename-help"
+                className={
+                  isWorkspaceNameEmpty
+                    ? "workspace-settings-form-help error"
+                    : "workspace-settings-form-help"
+                }
+              >
+                {renameHelperText}
+              </small>
             </label>
 
             <button
@@ -87,12 +105,13 @@ export function WorkspaceSettingsPage({
               className="primary-button"
               disabled={isSubmitting || !hasWorkspaceNameChanged}
             >
-              {isSubmitting ? "Saving..." : "Rename workspace"}
+              {isSubmitting ? "Saving..." : "Save name"}
             </button>
           </form>
         ) : (
           <div className="workspace-settings-readonly-note">
-            Only workspace owners can rename this workspace.
+            Only workspace owners can rename this workspace. You can still use
+            tasks and view workspace details based on your role.
           </div>
         )}
 
