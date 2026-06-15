@@ -99,8 +99,12 @@ export function WorkspaceSettingsRoute({
         isSubmitting={
           controller.isMemberSubmitting || controller.isOrganizationSubmitting
         }
-        onRenameWorkspace={controller.handleRenameWorkspace}
-        onLeaveWorkspace={controller.handleLeaveWorkspace}
+        onRenameWorkspace={(name) =>
+          controller.handleRenameWorkspaceById(routeWorkspace.id, name)
+        }
+        onLeaveWorkspace={() =>
+          controller.handleLeaveWorkspaceById(routeWorkspace.id)
+        }
       />
     </>
   );

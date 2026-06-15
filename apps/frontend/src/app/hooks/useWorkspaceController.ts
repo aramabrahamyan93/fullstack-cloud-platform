@@ -68,17 +68,24 @@ export function useWorkspaceController({
     clearMyInvitations
   } = useMyOrganizationInvitations();
 
+  async function handleRenameWorkspaceById(
+    organizationId: number,
+    name: string
+  ): Promise<boolean> {
+    const result = await renameUserOrganization(organizationId, name);
+
+    showMessage(result.message, result.success ? "success" : "error");
+
+    return result.success;
+  }
+
   async function handleRenameWorkspace(name: string): Promise<boolean> {
     if (!selectedOrganization) {
       showMessage("Please select a workspace first.", "error");
       return false;
     }
 
-    const result = await renameUserOrganization(selectedOrganization.id, name);
-
-    showMessage(result.message, result.success ? "success" : "error");
-
-    return result.success;
+    return handleRenameWorkspaceById(selectedOrganization.id, name);
   }
 
   async function handleCreateOrganization(name: string): Promise<void> {
@@ -342,6 +349,7 @@ export function useWorkspaceController({
 
     handleCreateOrganization,
     handleRenameWorkspace,
+    handleRenameWorkspaceById,
     handleSelectOrganization,
     selectWorkspaceFromRoute
   };
