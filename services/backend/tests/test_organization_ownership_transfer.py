@@ -239,7 +239,7 @@ def test_non_owner_cannot_transfer_ownership():
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.json()["error"]["code"] == "forbidden"
+    assert response.json()["error"]["code"] == "workspace_owner_required"
 
 
 def test_owner_cannot_transfer_ownership_to_missing_member():
