@@ -258,6 +258,29 @@ check_protected_tasks_flow() {
     "${access_token}"
 }
 
+
+check_workspace_audit_logs_flow() {
+  local base_url="$1"
+  local label="$2"
+  local access_token="$3"
+  local organization_id="$4"
+
+  echo
+  echo "Checking ${label} workspace audit logs: ${base_url}/organizations/${organization_id}/audit-logs"
+
+  local response
+  response="$(
+    curl -sS \
+      -H "Authorization: Bearer ${access_token}" \
+      "${base_url}/organizations/${organization_id}/audit-logs"
+  )"
+
+  echo "${response}" | grep -q "workspace_renamed"
+  echo "${response}" | grep -q "workspace_created"
+
+  echo "OK: ${label} workspace audit logs"
+}
+
 check_workspace_rename_flow() {
   local base_url="$1"
   local route_prefix="$2"
@@ -272,6 +295,7 @@ check_workspace_rename_flow() {
 
   local organization_id
   organization_id="$(extract_json_field "id")"
+  SMOKE_LAST_WORKSPACE_ID="${organization_id}"
 
   check_patch_json \
     "${route_prefix} rename workspace with authentication" \
@@ -314,6 +338,7 @@ check_get \
 
 check_protected_tasks_flow "${BACKEND_URL}" "backend" "${ACCESS_TOKEN}"
 check_workspace_rename_flow "${BACKEND_URL}" "backend" "${ACCESS_TOKEN}"
+check_workspace_audit_logs_flow "${BACKEND_URL}" "backend" "${ACCESS_TOKEN}" "${SMOKE_LAST_WORKSPACE_ID}"
 
 if [ "${CHECK_FRONTEND}" = "true" ]; then
   wait_for_endpoint "frontend" "${FRONTEND_URL}"
@@ -331,6 +356,7 @@ if [ "${CHECK_FRONTEND}" = "true" ]; then
 
     check_protected_tasks_flow "${FRONTEND_URL}/api" "frontend API proxy" "${ACCESS_TOKEN}"
     check_workspace_rename_flow "${FRONTEND_URL}/api" "frontend API proxy" "${ACCESS_TOKEN}"
+    check_workspace_audit_logs_flow "${FRONTEND_URL}/api" "frontend API proxy" "${ACCESS_TOKEN}" "${SMOKE_LAST_WORKSPACE_ID}"
   fi
 else
   echo "Skipping frontend check."
