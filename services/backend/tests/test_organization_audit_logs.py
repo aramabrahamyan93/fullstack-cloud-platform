@@ -45,6 +45,39 @@ def create_workspace(headers: dict[str, str], name: str = "Audit Workspace") -> 
     return response.json()
 
 
+
+def create_invitation(
+    *,
+    owner_headers: dict[str, str],
+    organization_id: int,
+    email: str,
+) -> dict:
+    response = client.post(
+        f"/organizations/{organization_id}/invitations",
+        headers=owner_headers,
+        json={"email": email, "role": "member"},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+
+    return response.json()
+
+
+def list_audit_event_types(
+    *,
+    headers: dict[str, str],
+    organization_id: int,
+) -> list[str]:
+    response = client.get(
+        f"/organizations/{organization_id}/audit-logs",
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    return [log["event_type"] for log in response.json()]
+
+
 def invite_and_accept_member(
     *,
     owner_headers: dict[str, str],
@@ -145,7 +178,14 @@ def test_workspace_member_can_view_audit_logs():
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json()[0]["event_type"] == "workspace_created"
+
+    event_types = [log["event_type"] for log in response.json()]
+
+    assert event_types == [
+        "invitation_accepted",
+        "member_invited",
+        "workspace_created",
+    ]
 
 
 def test_non_member_cannot_view_audit_logs():
@@ -159,3 +199,158 @@ def test_non_member_cannot_view_audit_logs():
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+
+def test_invitation_lifecycle_adds_audit_logs():
+    owner_headers = register_and_login("audit-invite-owner@example.com")
+    invited_email = "audit-invited-user@example.com"
+    invited_headers = register_and_login(invited_email)
+    workspace = create_workspace(owner_headers)
+
+    invitation = create_invitation(
+        owner_headers=owner_headers,
+        organization_id=workspace["id"],
+        email=invited_email,
+    )
+
+    after_invite_events = list_audit_event_types(
+        headers=owner_headers,
+        organization_id=workspace["id"],
+    )
+
+    assert after_invite_events == [
+        "member_invited",
+        "workspace_created",
+    ]
+
+    accept_response = client.post(
+        f"/organizations/invitations/{invitation['id']}/accept",
+        headers=invited_headers,
+    )
+
+    assert accept_response.status_code == status.HTTP_200_OK
+
+    after_accept_events = list_audit_event_types(
+        headers=owner_headers,
+        organization_id=workspace["id"],
+    )
+
+    assert after_accept_events == [
+        "invitation_accepted",
+        "member_invited",
+        "workspace_created",
+    ]
+
+
+def test_invitation_decline_and_cancel_add_audit_logs():
+    owner_headers = register_and_login("audit-invite-control-owner@example.com")
+    decline_email = "audit-decline-user@example.com"
+    decline_headers = register_and_login(decline_email)
+    workspace = create_workspace(owner_headers)
+
+    decline_invitation = create_invitation(
+        owner_headers=owner_headers,
+        organization_id=workspace["id"],
+        email=decline_email,
+    )
+
+    decline_response = client.post(
+        f"/organizations/invitations/{decline_invitation['id']}/decline",
+        headers=decline_headers,
+    )
+
+    assert decline_response.status_code == status.HTTP_200_OK
+
+    cancel_invitation = create_invitation(
+        owner_headers=owner_headers,
+        organization_id=workspace["id"],
+        email="audit-cancel-user@example.com",
+    )
+
+    cancel_response = client.delete(
+        f"/organizations/{workspace['id']}/invitations/{cancel_invitation['id']}",
+        headers=owner_headers,
+    )
+
+    assert cancel_response.status_code == status.HTTP_204_NO_CONTENT
+
+    events = list_audit_event_types(
+        headers=owner_headers,
+        organization_id=workspace["id"],
+    )
+
+    assert events == [
+        "invitation_cancelled",
+        "member_invited",
+        "invitation_declined",
+        "member_invited",
+        "workspace_created",
+    ]
+
+
+def test_member_remove_transfer_and_leave_add_audit_logs():
+    owner_headers = register_and_login("audit-admin-owner@example.com")
+    remove_email = "audit-remove-member@example.com"
+    new_owner_email = "audit-new-owner@example.com"
+    leave_email = "audit-leave-member@example.com"
+
+    remove_headers = register_and_login(remove_email)
+    new_owner_headers = register_and_login(new_owner_email)
+    leave_headers = register_and_login(leave_email)
+
+    workspace = create_workspace(owner_headers)
+
+    remove_member = invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=remove_headers,
+        organization_id=workspace["id"],
+        email=remove_email,
+    )
+    new_owner_member = invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=new_owner_headers,
+        organization_id=workspace["id"],
+        email=new_owner_email,
+    )
+    invite_and_accept_member(
+        owner_headers=owner_headers,
+        member_headers=leave_headers,
+        organization_id=workspace["id"],
+        email=leave_email,
+    )
+
+    remove_response = client.delete(
+        f"/organizations/{workspace['id']}/members/{remove_member['id']}",
+        headers=owner_headers,
+    )
+
+    assert remove_response.status_code == status.HTTP_204_NO_CONTENT
+
+    transfer_response = client.post(
+        f"/organizations/{workspace['id']}/members/{new_owner_member['id']}/transfer-ownership",
+        headers=owner_headers,
+    )
+
+    assert transfer_response.status_code == status.HTTP_204_NO_CONTENT
+
+    leave_response = client.delete(
+        f"/organizations/{workspace['id']}/membership",
+        headers=leave_headers,
+    )
+
+    assert leave_response.status_code == status.HTTP_204_NO_CONTENT
+
+    events = list_audit_event_types(
+        headers=new_owner_headers,
+        organization_id=workspace["id"],
+    )
+
+    assert events[:4] == [
+        "workspace_left",
+        "ownership_transferred",
+        "member_removed",
+        "invitation_accepted",
+    ]
+
+    assert "workspace_created" in events

@@ -28,6 +28,13 @@ from app.features.organizations.permissions import (
 
 ORGANIZATION_AUDIT_EVENT_WORKSPACE_CREATED = "workspace_created"
 ORGANIZATION_AUDIT_EVENT_WORKSPACE_RENAMED = "workspace_renamed"
+ORGANIZATION_AUDIT_EVENT_MEMBER_INVITED = "member_invited"
+ORGANIZATION_AUDIT_EVENT_INVITATION_ACCEPTED = "invitation_accepted"
+ORGANIZATION_AUDIT_EVENT_INVITATION_DECLINED = "invitation_declined"
+ORGANIZATION_AUDIT_EVENT_INVITATION_CANCELLED = "invitation_cancelled"
+ORGANIZATION_AUDIT_EVENT_MEMBER_REMOVED = "member_removed"
+ORGANIZATION_AUDIT_EVENT_OWNERSHIP_TRANSFERRED = "ownership_transferred"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_LEFT = "workspace_left"
 
 
 def record_organization_audit_log(
@@ -440,6 +447,18 @@ def create_user_organization_invitation(
         + timedelta(days=ORGANIZATION_INVITATION_EXPIRATION_DAYS),
     )
 
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_MEMBER_INVITED,
+        metadata_json={
+            "invitation_id": invitation.id,
+            "email": invitation.email,
+            "role": invitation.role,
+        },
+    )
+
     db.commit()
     db.refresh(invitation)
 
@@ -488,6 +507,18 @@ def cancel_user_organization_invitation(
         raise NotFoundError("Invitation not found.")
 
     invitation.status = ORGANIZATION_INVITATION_STATUS_CANCELLED
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_INVITATION_CANCELLED,
+        metadata_json={
+            "invitation_id": invitation.id,
+            "email": invitation.email,
+            "role": invitation.role,
+        },
+    )
 
     db.commit()
 
@@ -589,6 +620,22 @@ def accept_current_user_invitation(
 
     if existing_member is not None:
         invitation.status = ORGANIZATION_INVITATION_STATUS_ACCEPTED
+
+        record_organization_audit_log(
+            db,
+            organization_id=invitation.organization_id,
+            actor_user_id=current_user.id,
+            event_type=ORGANIZATION_AUDIT_EVENT_INVITATION_ACCEPTED,
+            metadata_json={
+                "invitation_id": invitation.id,
+                "member_id": existing_member.id,
+                "user_id": existing_member.user_id,
+                "email": current_user.email,
+                "role": existing_member.role,
+                "already_member": True,
+            },
+        )
+
         db.commit()
 
         return {
@@ -607,6 +654,20 @@ def accept_current_user_invitation(
     )
 
     invitation.status = ORGANIZATION_INVITATION_STATUS_ACCEPTED
+
+    record_organization_audit_log(
+        db,
+        organization_id=invitation.organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_INVITATION_ACCEPTED,
+        metadata_json={
+            "invitation_id": invitation.id,
+            "member_id": member.id,
+            "user_id": member.user_id,
+            "email": current_user.email,
+            "role": member.role,
+        },
+    )
 
     db.commit()
     db.refresh(member)
@@ -641,6 +702,18 @@ def decline_current_user_invitation(
     _ensure_invitation_is_not_expired(invitation)
 
     invitation.status = ORGANIZATION_INVITATION_STATUS_DECLINED
+
+    record_organization_audit_log(
+        db,
+        organization_id=invitation.organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_INVITATION_DECLINED,
+        metadata_json={
+            "invitation_id": invitation.id,
+            "email": invitation.email,
+            "role": invitation.role,
+        },
+    )
 
     db.commit()
     db.refresh(invitation)
@@ -739,9 +812,23 @@ def remove_member_from_user_organization(
             error_code="workspace_member_owner_remove_not_allowed",
         )
 
+    removed_member_metadata = {
+        "member_id": member.id,
+        "user_id": member.user_id,
+        "role": member.role,
+    }
+
     repository.delete_organization_member(
         db,
         member=member,
+    )
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_MEMBER_REMOVED,
+        metadata_json=removed_member_metadata,
     )
 
     db.commit()
@@ -787,8 +874,24 @@ def transfer_user_organization_ownership(
             error_code="workspace_ownership_target_invalid_role",
         )
 
+    previous_owner_user_id = current_owner_membership.user_id
+    new_owner_user_id = target_member.user_id
+
     current_owner_membership.role = ORGANIZATION_ROLE_MEMBER
     target_member.role = ORGANIZATION_ROLE_OWNER
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_OWNERSHIP_TRANSFERRED,
+        metadata_json={
+            "previous_owner_member_id": current_owner_membership.id,
+            "previous_owner_user_id": previous_owner_user_id,
+            "new_owner_member_id": target_member.id,
+            "new_owner_user_id": new_owner_user_id,
+        },
+    )
 
     db.commit()
 
@@ -811,9 +914,23 @@ def leave_user_organization(
             error_code="workspace_owner_cannot_leave_before_transfer",
         )
 
+    left_member_metadata = {
+        "member_id": membership.id,
+        "user_id": membership.user_id,
+        "role": membership.role,
+    }
+
     repository.delete_organization_member(
         db,
         member=membership,
+    )
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_LEFT,
+        metadata_json=left_member_metadata,
     )
 
     db.commit()
