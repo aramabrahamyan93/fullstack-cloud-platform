@@ -11,6 +11,7 @@ from app.features.organizations.schemas import OrganizationInvitationCreate
 from app.features.organizations.schemas import OrganizationUpdate
 from app.features.users import repository as users_repository
 from app.features.users.models import User
+from app.features.tasks.repository import TaskRepository
 from app.features.organizations.permissions import (
     ORGANIZATION_ROLE_MEMBER,
     ORGANIZATION_ROLE_OWNER,
@@ -170,6 +171,43 @@ def list_user_organization_audit_logs(
         db,
         organization_id=organization_id,
     )
+
+
+
+def get_user_organization_dashboard(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> dict[str, int | dict[str, int]]:
+    ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    task_repository = TaskRepository(db)
+    task_counts = task_repository.count_organization_tasks_by_status(
+        organization_id=organization_id,
+    )
+
+    return {
+        "organization_id": organization_id,
+        "task_counts": task_counts,
+        "members_count": repository.count_organization_members(
+            db,
+            organization_id=organization_id,
+        ),
+        "pending_invitations_count": repository.count_organization_invitations(
+            db,
+            organization_id=organization_id,
+            status=ORGANIZATION_INVITATION_STATUS_PENDING,
+        ),
+        "recent_activity_count": repository.count_organization_audit_logs(
+            db,
+            organization_id=organization_id,
+        ),
+    }
 
 
 def get_user_organization_membership(

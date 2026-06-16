@@ -22,6 +22,22 @@ class OrganizationRead(BaseModel):
     role: str | None = None
 
 
+
+class OrganizationTaskCountsRead(BaseModel):
+    all: int
+    open: int
+    in_progress: int
+    done: int
+
+
+class OrganizationDashboardRead(BaseModel):
+    organization_id: int
+    task_counts: OrganizationTaskCountsRead
+    members_count: int
+    pending_invitations_count: int
+    recent_activity_count: int
+
+
 class OrganizationMemberRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

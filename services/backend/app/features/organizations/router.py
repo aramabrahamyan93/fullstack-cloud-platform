@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.dependencies import get_current_user, get_db
 from app.features.organizations.schemas import OrganizationAuditLogRead
 from app.features.organizations.schemas import OrganizationCreate
+from app.features.organizations.schemas import OrganizationDashboardRead
 from app.features.organizations.schemas import OrganizationInvitationCreate
 from app.features.organizations.schemas import OrganizationInvitationRead
 from app.features.organizations.schemas import OrganizationInviteCandidateRead
@@ -18,6 +19,7 @@ from app.features.organizations.service import (
     decline_current_user_invitation,
     create_user_organization,
     get_organization_for_user,
+    get_user_organization_dashboard,
     list_current_user_pending_invitations,
     list_user_organization_invite_candidates,
     list_members_for_user_organization,
@@ -62,6 +64,22 @@ def get_organization(
     db: Session = Depends(get_db),
 ) -> OrganizationRead:
     return get_organization_for_user(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+
+@router.get(
+    "/{organization_id}/dashboard",
+    response_model=OrganizationDashboardRead,
+)
+def get_organization_dashboard(
+    organization_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> OrganizationDashboardRead:
+    return get_user_organization_dashboard(
         db,
         organization_id=organization_id,
         current_user=current_user,
