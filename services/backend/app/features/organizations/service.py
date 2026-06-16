@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ForbiddenError, NotFoundError
 from app.features.organizations import repository
-from app.features.organizations.models import Organization, OrganizationMember, OrganizationInvitation
+from app.features.organizations.models import Organization, OrganizationAuditLog, OrganizationMember, OrganizationInvitation
 from app.features.organizations.schemas import OrganizationCreate
 from app.features.organizations.schemas import OrganizationInvitationCreate
 from app.features.organizations.schemas import OrganizationUpdate
@@ -26,6 +26,26 @@ from app.features.organizations.permissions import (
     is_owner_role,
 )
 
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_CREATED = "workspace_created"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_RENAMED = "workspace_renamed"
+
+
+def record_organization_audit_log(
+    db: Session,
+    *,
+    organization_id: int,
+    actor_user_id: int,
+    event_type: str,
+    metadata_json: dict | None = None,
+) -> OrganizationAuditLog:
+    return repository.create_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=actor_user_id,
+        event_type=event_type,
+        metadata_json=metadata_json,
+    )
+
 
 def create_user_organization(
     db: Session,
@@ -43,6 +63,14 @@ def create_user_organization(
         organization_id=organization.id,
         user_id=current_user.id,
         role=ORGANIZATION_ROLE_OWNER,
+    )
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_CREATED,
+        metadata_json={"name": organization.name},
     )
 
     db.commit()
@@ -95,7 +123,19 @@ def update_user_organization(
     if organization is None:
         raise NotFoundError("Organization not found.")
 
+    previous_name = organization.name
     organization.name = organization_update.name
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_RENAMED,
+        metadata_json={
+            "previous_name": previous_name,
+            "new_name": organization.name,
+        },
+    )
 
     db.commit()
     db.refresh(organization)
@@ -105,6 +145,24 @@ def update_user_organization(
         "name": organization.name,
         "role": membership.role,
     }
+
+
+def list_user_organization_audit_logs(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> list[OrganizationAuditLog]:
+    ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    return repository.list_organization_audit_logs(
+        db,
+        organization_id=organization_id,
+    )
 
 
 def get_user_organization_membership(

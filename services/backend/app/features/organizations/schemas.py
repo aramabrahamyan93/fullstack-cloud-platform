@@ -67,3 +67,15 @@ class OrganizationInviteCandidateRead(BaseModel):
     email: str
     membership_status: str
     invitation_status: str | None = None
+
+
+
+class OrganizationAuditLogRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    organization_id: int
+    actor_user_id: int
+    event_type: str
+    metadata_json: dict
+    created_at: datetime

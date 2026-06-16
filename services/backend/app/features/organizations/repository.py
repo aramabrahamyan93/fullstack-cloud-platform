@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.features.organizations.models import Organization, OrganizationInvitation, OrganizationMember
+from app.features.organizations.models import Organization, OrganizationAuditLog, OrganizationInvitation, OrganizationMember
 from app.features.users.models import User
 
 
@@ -268,3 +268,42 @@ def delete_organization_member(
 ) -> None:
     db.delete(member)
     db.flush()
+
+
+
+def create_organization_audit_log(
+    db: Session,
+    *,
+    organization_id: int,
+    actor_user_id: int,
+    event_type: str,
+    metadata_json: dict | None = None,
+) -> OrganizationAuditLog:
+    audit_log = OrganizationAuditLog(
+        organization_id=organization_id,
+        actor_user_id=actor_user_id,
+        event_type=event_type,
+        metadata_json=metadata_json or {},
+    )
+
+    db.add(audit_log)
+    db.flush()
+    db.refresh(audit_log)
+
+    return audit_log
+
+
+def list_organization_audit_logs(
+    db: Session,
+    *,
+    organization_id: int,
+    limit: int = 50,
+) -> list[OrganizationAuditLog]:
+    statement = (
+        select(OrganizationAuditLog)
+        .where(OrganizationAuditLog.organization_id == organization_id)
+        .order_by(OrganizationAuditLog.id.desc())
+        .limit(limit)
+    )
+
+    return list(db.scalars(statement).all())

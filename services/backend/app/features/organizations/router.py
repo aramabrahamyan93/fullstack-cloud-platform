@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_current_user, get_db
+from app.features.organizations.schemas import OrganizationAuditLogRead
 from app.features.organizations.schemas import OrganizationCreate
 from app.features.organizations.schemas import OrganizationInvitationCreate
 from app.features.organizations.schemas import OrganizationInvitationRead
@@ -20,6 +21,7 @@ from app.features.organizations.service import (
     list_current_user_pending_invitations,
     list_user_organization_invite_candidates,
     list_members_for_user_organization,
+    list_user_organization_audit_logs,
     list_user_organization_invitations,
     leave_user_organization,
     list_organizations_for_user,
@@ -252,6 +254,22 @@ def leave_organization(
     )
 
     return Response(status_code=204)
+
+@router.get(
+    "/{organization_id}/audit-logs",
+    response_model=list[OrganizationAuditLogRead],
+)
+def list_organization_audit_logs(
+    organization_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[OrganizationAuditLogRead]:
+    return list_user_organization_audit_logs(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
 
 @router.patch("/{organization_id}", response_model=OrganizationRead)
 def update_organization(
