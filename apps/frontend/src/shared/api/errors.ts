@@ -1,77 +1,85 @@
-export type ApiErrorBody = {
-  error?: {
-    code?: string;
-    message?: string;
-  };
-  detail?: string;
-};
-
 export class ApiError extends Error {
-  readonly status: number;
-  readonly code: string;
-  readonly details?: unknown;
+  status: number;
+  code: string;
 
-  constructor({
-    status,
-    code,
-    message,
-    details
-  }: {
-    status: number;
-    code: string;
-    message: string;
-    details?: unknown;
-  }) {
+  constructor(message: string, status: number, code = "unknown_error") {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
-    this.details = details;
   }
 }
 
+type ApiErrorResponse = {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+};
+
+export function isApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError;
+}
+
+const API_ERROR_MESSAGE_BY_CODE: Record<string, string> = {
+  workspace_owner_required:
+    "Only workspace owners can perform this action.",
+  workspace_owner_cannot_leave_before_transfer:
+    "Transfer ownership before leaving this workspace.",
+  workspace_invitation_invalid_role:
+    "Only member invitations are supported for now.",
+  workspace_invitation_user_already_member:
+    "This user is already a workspace member.",
+  workspace_invitation_already_pending:
+    "A pending invitation already exists for this email.",
+  workspace_invitation_not_pending:
+    "This invitation is no longer pending.",
+  workspace_invitation_expired:
+    "This invitation has expired.",
+  workspace_member_self_remove_not_allowed:
+    "You cannot remove yourself from the workspace.",
+  workspace_member_owner_remove_not_allowed:
+    "Workspace owners cannot be removed directly."
+};
+
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    return error.message;
+    return API_ERROR_MESSAGE_BY_CODE[error.code] ?? error.message;
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return "Unexpected error.";
+  return "Something went wrong.";
+}
+
+export function getErrorCode(error: unknown): string | null {
+  if (error instanceof ApiError) {
+    return error.code;
+  }
+
+  return null;
+}
+
+export async function parseApiErrorResponse(
+  response: Response
+): Promise<ApiError> {
+  let body: ApiErrorResponse | null = null;
+
+  try {
+    body = (await response.json()) as ApiErrorResponse;
+  } catch {
+    body = null;
+  }
+
+  return new ApiError(
+    body?.error?.message ?? "Request failed.",
+    response.status,
+    body?.error?.code ?? "unknown_error"
+  );
 }
 
 export async function createApiError(response: Response): Promise<ApiError> {
-  const responseText = await response.text();
-
-  if (!responseText) {
-    return new ApiError({
-      status: response.status,
-      code: "http_error",
-      message: `Request failed with status ${response.status}`
-    });
-  }
-
-  try {
-    const body = JSON.parse(responseText) as ApiErrorBody;
-    const code = body.error?.code || "http_error";
-    const message =
-      body.error?.message ||
-      body.detail ||
-      `Request failed with status ${response.status}`;
-
-    return new ApiError({
-      status: response.status,
-      code,
-      message,
-      details: body
-    });
-  } catch {
-    return new ApiError({
-      status: response.status,
-      code: "http_error",
-      message: responseText
-    });
-  }
+  return parseApiErrorResponse(response);
 }

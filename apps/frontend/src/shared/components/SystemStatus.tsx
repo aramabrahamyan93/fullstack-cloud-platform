@@ -1,3 +1,4 @@
+import "./SystemStatus.css";
 import { API_BASE_URL } from "../api/client";
 
 type SystemStatusProps = {

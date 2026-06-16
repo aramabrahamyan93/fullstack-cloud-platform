@@ -1,0 +1,40 @@
+button {
+  padding: 11px 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+  font-weight: 700;
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease,
+    background 0.12s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #1d4ed8;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #eef2ff;
+  color: #1d4ed8;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+button.danger {
+  background: #b91c1c;
+}
+
+button.danger:hover:not(:disabled) {
+  background: #991b1b;
+}

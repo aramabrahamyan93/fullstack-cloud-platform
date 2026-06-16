@@ -1,3 +1,4 @@
+import "./TaskForm.css";
 import { FormEvent, useState } from "react";
 import type { TaskStatus } from "../types";
 
@@ -32,7 +33,7 @@ export function TaskForm({ isSubmitting, onCreateTask }: TaskFormProps) {
         <div>
           <h2>Create Task</h2>
           <p className="card-subtitle">
-            New tasks are private and attached to the signed-in user.
+            New tasks are attached to the selected workspace.
           </p>
         </div>
       </div>

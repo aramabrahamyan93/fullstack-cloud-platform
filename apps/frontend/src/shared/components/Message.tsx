@@ -1,3 +1,4 @@
+import "./Message.css";
 export type MessageType = "muted" | "success" | "error";
 
 export type MessageState = {
