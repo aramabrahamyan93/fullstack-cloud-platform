@@ -278,3 +278,138 @@ stronger observability
 ```
 
 Until then, the current workspace foundation should remain simple, explicit, and backend-enforced.
+
+
+## Workspace Audit Logs
+
+The workspace audit log is a read-only activity history for important workspace actions.
+
+Backend endpoint:
+
+```text
+GET /organizations/{organization_id}/audit-logs
+```
+
+Access policy:
+
+- authenticated workspace owners can view audit logs
+- authenticated workspace members can view audit logs
+- non-members receive `404 Not Found`
+- unauthenticated users receive `401 Unauthorized`
+
+The endpoint returns the latest events first.
+
+Current audit event types:
+
+```text
+workspace_created
+workspace_renamed
+member_invited
+invitation_accepted
+invitation_declined
+invitation_cancelled
+member_removed
+ownership_transferred
+workspace_left
+```
+
+Each audit log item includes:
+
+```text
+id
+organization_id
+actor_user_id
+event_type
+metadata_json
+created_at
+```
+
+### Event metadata
+
+Audit metadata is intentionally stored as flexible JSON so each event can carry only the fields that are useful for that action.
+
+Examples:
+
+```text
+workspace_created:
+  name
+
+workspace_renamed:
+  previous_name
+  new_name
+
+member_invited:
+  invitation_id
+  email
+  role
+
+invitation_accepted:
+  invitation_id
+  member_id
+  user_id
+  email
+  role
+
+invitation_declined:
+  invitation_id
+  email
+  role
+
+invitation_cancelled:
+  invitation_id
+  email
+  role
+
+member_removed:
+  member_id
+  user_id
+  role
+
+ownership_transferred:
+  previous_owner_member_id
+  previous_owner_user_id
+  new_owner_member_id
+  new_owner_user_id
+
+workspace_left:
+  member_id
+  user_id
+  role
+```
+
+### Frontend Activity Page
+
+The frontend exposes workspace audit logs as a read-only activity page:
+
+```text
+/workspaces/:workspaceId/activity
+```
+
+The Activity page is reachable from the Workspace navigation sidebar and displays:
+
+- human-readable event label
+- raw event code
+- actor user id
+- audit log id
+- event date/time
+- metadata fields
+
+### Smoke Coverage
+
+`scripts/local-smoke-test.sh` verifies that workspace create/rename actions produce audit log records.
+
+The smoke test checks both:
+
+```text
+http://localhost:8000/organizations/{id}/audit-logs
+http://localhost:3000/api/organizations/{id}/audit-logs
+```
+
+Expected smoke events:
+
+```text
+workspace_created
+workspace_renamed
+```
+
+The smoke coverage is intentionally minimal. Full lifecycle coverage for invitations, member removal, ownership transfer, and workspace leave actions is handled by backend tests.

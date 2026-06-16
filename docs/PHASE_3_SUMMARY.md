@@ -144,3 +144,74 @@ Possible Phase 4 packages:
 - billing/subscription placeholder
 - admin commands
 - stronger observability
+
+
+## Phase 4: Audit Log Foundation
+
+After the workspace foundation was completed, the next productization step added a workspace audit log foundation.
+
+### Backend Implementation
+
+Added:
+
+- `OrganizationAuditLog` model
+- audit log repository helpers
+- audit log service helpers
+- `GET /organizations/{organization_id}/audit-logs`
+- member-only audit log visibility
+- audit event recording inside existing workspace service flows
+
+The audit log currently records these workspace events:
+
+```text
+workspace_created
+workspace_renamed
+member_invited
+invitation_accepted
+invitation_declined
+invitation_cancelled
+member_removed
+ownership_transferred
+workspace_left
+```
+
+### Frontend Implementation
+
+Added:
+
+- `OrganizationAuditLog` frontend type
+- `getOrganizationAuditLogs(...)` API client
+- `useOrganizationAuditLogs(...)` hook
+- workspace controller integration
+- `WorkspaceActivityRoute`
+- `WorkspaceActivityPage`
+- Sidebar navigation item: `Activity`
+
+Frontend route:
+
+```text
+/workspaces/:workspaceId/activity
+```
+
+### Validation
+
+Backend validation:
+
+- audit log foundation tests
+- invitation lifecycle audit tests
+- member removal audit tests
+- ownership transfer audit tests
+- workspace leave audit tests
+- full backend test suite
+
+Frontend validation:
+
+- TypeScript build/typecheck
+- frontend image build
+- local preview
+
+Smoke validation:
+
+- backend audit log endpoint
+- frontend API proxy audit log endpoint
+- expected workspace create/rename audit events

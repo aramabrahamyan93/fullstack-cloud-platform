@@ -110,3 +110,47 @@ For example, settings actions should operate on `routeWorkspace.id` from:
 This avoids coupling route actions only to global selected workspace state.
 
 The global selected workspace is still useful for sidebar navigation and default workspace context, but route-specific actions should be grounded in the route context when available.
+
+
+## Workspace Audit Log Architecture
+
+Workspace audit logging is implemented inside the organizations feature because audit events are scoped to a workspace.
+
+The audit log is intentionally read-only from the API consumer perspective. Events are written by backend service methods as part of existing domain actions.
+
+Design rules:
+
+- the backend is the source of truth for audit events
+- frontend only reads and displays activity
+- audit log writes happen in the same service flow as the business action
+- non-members should not be able to infer workspace existence
+- event names are stable API/domain contracts
+- metadata is flexible JSON to avoid schema churn for small event-specific details
+
+Current backend layers:
+
+```text
+router -> service -> repository -> model
+```
+
+Current model:
+
+```text
+OrganizationAuditLog
+```
+
+Current endpoint:
+
+```text
+GET /organizations/{organization_id}/audit-logs
+```
+
+Visibility rule:
+
+```text
+workspace owner/member -> 200
+non-member              -> 404
+unauthenticated         -> 401
+```
+
+The audit log is not currently paginated beyond a repository-level limit. Future improvements can add cursor pagination, filters by event type, actor, or date range.

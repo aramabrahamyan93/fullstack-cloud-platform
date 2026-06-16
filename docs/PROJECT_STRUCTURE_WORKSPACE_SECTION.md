@@ -96,3 +96,39 @@ Examples:
 /workspaces/1/members  -> /workspaces/2/members
 /workspaces/1/settings -> /workspaces/2/settings
 ```
+
+
+## Audit Log Files
+
+Backend files involved in workspace audit logging:
+
+```text
+services/backend/app/features/organizations/models.py
+services/backend/app/features/organizations/schemas.py
+services/backend/app/features/organizations/repository.py
+services/backend/app/features/organizations/service.py
+services/backend/app/features/organizations/router.py
+services/backend/app/db/init_db.py
+services/backend/tests/test_organization_audit_logs.py
+```
+
+Frontend files involved in workspace activity page:
+
+```text
+apps/frontend/src/features/organizations/types.ts
+apps/frontend/src/features/organizations/api.ts
+apps/frontend/src/features/organizations/hooks/useOrganizationAuditLogs.ts
+apps/frontend/src/features/organizations/components/WorkspaceActivityPage.tsx
+apps/frontend/src/features/organizations/components/WorkspaceActivityPage.css
+apps/frontend/src/app/routes/WorkspaceActivityRoute.tsx
+apps/frontend/src/app/hooks/useWorkspaceController.ts
+apps/frontend/src/app/App.tsx
+apps/frontend/src/app/navigation.ts
+apps/frontend/src/shared/components/Sidebar.tsx
+```
+
+Smoke coverage:
+
+```text
+scripts/local-smoke-test.sh
+```
