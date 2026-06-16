@@ -78,3 +78,19 @@ export type OrganizationAuditLog = {
   metadata_json: Record<string, unknown>;
   created_at: string;
 };
+
+
+export type OrganizationTaskCounts = {
+  all: number;
+  open: number;
+  in_progress: number;
+  done: number;
+};
+
+export type OrganizationDashboardSummary = {
+  organization_id: number;
+  task_counts: OrganizationTaskCounts;
+  members_count: number;
+  pending_invitations_count: number;
+  recent_activity_count: number;
+};

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { DashboardPage } from "../../features/dashboard/components/DashboardPage";
 import { WorkspaceMembersPanel } from "../../features/organizations/components/WorkspaceMembersPanel";
 import { Message } from "../../shared/components/Message";
@@ -17,6 +18,23 @@ export function WorkspaceDashboardRoute({
       loadTasks: true,
       loadMembers: true
     });
+
+  const loadedDashboardSummaryWorkspaceIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!routeWorkspace) {
+      loadedDashboardSummaryWorkspaceIdRef.current = null;
+      controller.clearDashboardSummary();
+      return;
+    }
+
+    if (loadedDashboardSummaryWorkspaceIdRef.current === routeWorkspace.id) {
+      return;
+    }
+
+    loadedDashboardSummaryWorkspaceIdRef.current = routeWorkspace.id;
+    void controller.loadWorkspaceDashboardSummary(routeWorkspace.id);
+  }, [routeWorkspace?.id]);
 
   const currentMember = controller.members.find(
     (member) => member.user_id === controller.currentUser?.id
@@ -111,6 +129,8 @@ export function WorkspaceDashboardRoute({
       <DashboardPage
         currentUser={controller.currentUser}
         taskCounters={controller.taskCounters}
+        workspaceSummary={controller.dashboardSummary}
+        isWorkspaceSummaryLoading={controller.isDashboardSummaryLoading}
       />
 
       <WorkspaceMembersPanel

@@ -5,6 +5,7 @@ import { useOrganizationInviteCandidates } from "../../features/organizations/ho
 import { useOrganizationInvitations } from "../../features/organizations/hooks/useOrganizationInvitations";
 import { useOrganizationMembers } from "../../features/organizations/hooks/useOrganizationMembers";
 import { useOrganizationAuditLogs } from "../../features/organizations/hooks/useOrganizationAuditLogs";
+import { useOrganizationDashboardSummary } from "../../features/organizations/hooks/useOrganizationDashboardSummary";
 import { useOrganizations } from "../../features/organizations/hooks/useOrganizations";
 import type { MessageType } from "../../shared/components/Message";
 
@@ -77,6 +78,14 @@ export function useWorkspaceController({
     clearAuditLogs
   } = useOrganizationAuditLogs();
 
+
+  const {
+    dashboardSummary,
+    isDashboardSummaryLoading,
+    loadDashboardSummary,
+    clearDashboardSummary
+  } = useOrganizationDashboardSummary();
+
   async function handleRenameWorkspaceById(
     organizationId: number,
     name: string
@@ -130,6 +139,16 @@ export function useWorkspaceController({
 
   async function loadWorkspaceMembers(organizationId: number): Promise<void> {
     const result = await loadMembers(organizationId);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function loadWorkspaceDashboardSummary(
+    organizationId: number
+  ): Promise<void> {
+    const result = await loadDashboardSummary(organizationId);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -323,6 +342,7 @@ export function useWorkspaceController({
     clearInviteCandidates();
     clearMyInvitations();
     clearAuditLogs();
+    clearDashboardSummary();
   }
 
   return {
@@ -349,15 +369,20 @@ export function useWorkspaceController({
     auditLogs,
     isAuditLogsLoading,
 
+    dashboardSummary,
+    isDashboardSummaryLoading,
+
     loadOrganizations,
     clearOrganizations,
     clearMembers,
     clearInvitations,
     clearAuditLogs,
+    clearDashboardSummary,
     clearWorkspaceState,
     loadWorkspaceMembers,
     loadWorkspaceInvitations,
     loadWorkspaceAuditLogs,
+    loadWorkspaceDashboardSummary,
     handleRemoveWorkspaceMember,
     handleTransferWorkspaceOwnership,
     handleLeaveWorkspace,
