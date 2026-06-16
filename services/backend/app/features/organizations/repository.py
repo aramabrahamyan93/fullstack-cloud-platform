@@ -107,6 +107,46 @@ def list_organization_members(
 
     return [dict(row) for row in rows]
 
+
+def count_organization_members(
+    db: Session,
+    *,
+    organization_id: int,
+) -> int:
+    statement = select(OrganizationMember).where(
+        OrganizationMember.organization_id == organization_id
+    )
+
+    return len(list(db.scalars(statement).all()))
+
+
+def count_organization_invitations(
+    db: Session,
+    *,
+    organization_id: int,
+    status: str | None = None,
+) -> int:
+    statement = select(OrganizationInvitation).where(
+        OrganizationInvitation.organization_id == organization_id
+    )
+
+    if status is not None:
+        statement = statement.where(OrganizationInvitation.status == status)
+
+    return len(list(db.scalars(statement).all()))
+
+
+def count_organization_audit_logs(
+    db: Session,
+    *,
+    organization_id: int,
+) -> int:
+    statement = select(OrganizationAuditLog).where(
+        OrganizationAuditLog.organization_id == organization_id
+    )
+
+    return len(list(db.scalars(statement).all()))
+
 def get_organization_member_by_user_id(
     db: Session,
     *,

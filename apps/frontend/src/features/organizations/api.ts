@@ -5,6 +5,7 @@ import type {
   UpdateOrganizationRequest,
   Organization,
   OrganizationAuditLog,
+  OrganizationDashboardSummary,
   OrganizationInvitation,
   OrganizationInviteCandidate,
   OrganizationMember
@@ -162,5 +163,15 @@ export function getOrganizationAuditLogs(
 ): Promise<OrganizationAuditLog[]> {
   return fetchJson<OrganizationAuditLog[]>(
     `/organizations/${organizationId}/audit-logs`
+  );
+}
+
+
+
+export function getOrganizationDashboardSummary(
+  organizationId: number
+): Promise<OrganizationDashboardSummary> {
+  return fetchJson<OrganizationDashboardSummary>(
+    `/organizations/${organizationId}/dashboard`
   );
 }
