@@ -76,6 +76,11 @@
   font-weight: 700;
 }
 
+.workspace-activity-description {
+  color: #4b5563 !important;
+  font-weight: 700 !important;
+}
+
 .workspace-activity-event-code {
   flex-shrink: 0;
   padding: 6px 10px;
@@ -85,6 +90,26 @@
   font-size: 0.74rem !important;
   font-weight: 900 !important;
   text-transform: uppercase;
+}
+
+.workspace-activity-event-code--workspace {
+  background: #eff6ff;
+  color: #1d4ed8 !important;
+}
+
+.workspace-activity-event-code--invitation {
+  background: #ecfdf5;
+  color: #047857 !important;
+}
+
+.workspace-activity-event-code--membership {
+  background: #fef3c7;
+  color: #92400e !important;
+}
+
+.workspace-activity-event-code--ownership {
+  background: #f5f3ff;
+  color: #6d28d9 !important;
 }
 
 .workspace-activity-meta-grid {
@@ -122,6 +147,16 @@
   font-size: 0.86rem;
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.workspace-activity-no-metadata {
+  padding: 12px;
+  border: 1px dashed #d1d5db;
+  border-radius: 14px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 
 @media (max-width: 900px) {
