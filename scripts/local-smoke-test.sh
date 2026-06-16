@@ -281,6 +281,32 @@ check_workspace_audit_logs_flow() {
   echo "OK: ${label} workspace audit logs"
 }
 
+
+check_workspace_dashboard_flow() {
+  local base_url="$1"
+  local label="$2"
+  local access_token="$3"
+  local organization_id="$4"
+
+  echo
+  echo "Checking ${label} workspace dashboard summary: ${base_url}/organizations/${organization_id}/dashboard"
+
+  local response
+  response="$(
+    curl -sS \
+      -H "Authorization: Bearer ${access_token}" \
+      "${base_url}/organizations/${organization_id}/dashboard"
+  )"
+
+  echo "${response}" | grep -q "\"organization_id\":${organization_id}"
+  echo "${response}" | grep -q "\"task_counts\""
+  echo "${response}" | grep -q "\"members_count\""
+  echo "${response}" | grep -q "\"pending_invitations_count\""
+  echo "${response}" | grep -q "\"recent_activity_count\""
+
+  echo "OK: ${label} workspace dashboard summary"
+}
+
 check_workspace_rename_flow() {
   local base_url="$1"
   local route_prefix="$2"
@@ -339,6 +365,7 @@ check_get \
 check_protected_tasks_flow "${BACKEND_URL}" "backend" "${ACCESS_TOKEN}"
 check_workspace_rename_flow "${BACKEND_URL}" "backend" "${ACCESS_TOKEN}"
 check_workspace_audit_logs_flow "${BACKEND_URL}" "backend" "${ACCESS_TOKEN}" "${SMOKE_LAST_WORKSPACE_ID}"
+check_workspace_dashboard_flow "${BACKEND_URL}" "backend" "${ACCESS_TOKEN}" "${SMOKE_LAST_WORKSPACE_ID}"
 
 if [ "${CHECK_FRONTEND}" = "true" ]; then
   wait_for_endpoint "frontend" "${FRONTEND_URL}"
@@ -357,6 +384,7 @@ if [ "${CHECK_FRONTEND}" = "true" ]; then
     check_protected_tasks_flow "${FRONTEND_URL}/api" "frontend API proxy" "${ACCESS_TOKEN}"
     check_workspace_rename_flow "${FRONTEND_URL}/api" "frontend API proxy" "${ACCESS_TOKEN}"
     check_workspace_audit_logs_flow "${FRONTEND_URL}/api" "frontend API proxy" "${ACCESS_TOKEN}" "${SMOKE_LAST_WORKSPACE_ID}"
+    check_workspace_dashboard_flow "${FRONTEND_URL}/api" "frontend API proxy" "${ACCESS_TOKEN}" "${SMOKE_LAST_WORKSPACE_ID}"
   fi
 else
   echo "Skipping frontend check."
