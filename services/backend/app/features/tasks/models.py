@@ -31,3 +31,9 @@ class Task(Base):
         nullable=False,
         index=True,
     )
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )

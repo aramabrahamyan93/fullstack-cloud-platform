@@ -1,3 +1,4 @@
+import "./TaskDashboard.css";
 import type {
   TaskStatusCounters,
   TaskStatusFilter
@@ -42,7 +43,7 @@ export function TaskDashboard({
         <div>
           <h2>Task Dashboard</h2>
           <p className="card-subtitle">
-            Filter your protected tasks by current status.
+            Filter workspace tasks by current status.
           </p>
         </div>
       </div>

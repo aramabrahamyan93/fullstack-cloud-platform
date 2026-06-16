@@ -188,6 +188,138 @@ class TaskService:
 
         logger.info("Task deleted with id=%s owner_id=%s", task_id, owner_id)
 
+    def get_organization_tasks(
+        self,
+        organization_id: int,
+        query: TaskListQuery,
+    ) -> list[Task]:
+        logger.info(
+            (
+                "Fetching tasks from database for organization_id=%s "
+                "status=%s search=%s limit=%s offset=%s"
+            ),
+            organization_id,
+            query.status,
+            query.search,
+            query.limit,
+            query.offset,
+        )
+
+        tasks = self.repository.list_organization_tasks(
+            organization_id=organization_id,
+            query=query,
+        )
+
+        logger.info(
+            (
+                "Fetched %s tasks for organization_id=%s "
+                "status=%s search=%s limit=%s offset=%s"
+            ),
+            len(tasks),
+            organization_id,
+            query.status,
+            query.search,
+            query.limit,
+            query.offset,
+        )
+
+        return tasks
+
+    def get_paginated_organization_tasks(
+        self,
+        organization_id: int,
+        query: TaskListQuery,
+    ) -> PaginatedTaskResponse:
+        tasks = self.repository.list_organization_tasks(
+            organization_id=organization_id,
+            query=query,
+        )
+        total = self.repository.count_organization_tasks(
+            organization_id=organization_id,
+            query=query,
+        )
+
+        return PaginatedTaskResponse(
+            items=tasks,
+            total=total,
+            limit=query.limit,
+            offset=query.offset,
+        )
+
+    def get_organization_task_stats(
+        self,
+        organization_id: int,
+    ) -> TaskStatsResponse:
+        stats = self.repository.count_organization_tasks_by_status(
+            organization_id=organization_id,
+        )
+
+        return TaskStatsResponse(**stats)
+
+    def get_organization_task(
+        self,
+        task_id: int,
+        organization_id: int,
+    ) -> Task:
+        task = self.repository.get_by_id_in_organization(
+            task_id=task_id,
+            organization_id=organization_id,
+        )
+
+        if task is None:
+            raise TaskNotFoundError(task_id)
+
+        return task
+
+    def create_organization_task(
+        self,
+        task: TaskCreate,
+        owner_id: int,
+        organization_id: int,
+    ) -> Task:
+        db_task = Task(
+            title=task.title,
+            status=task.status,
+            owner_id=owner_id,
+            organization_id=organization_id,
+        )
+
+        self.repository.add(db_task)
+        self.repository.commit()
+        self.repository.refresh(db_task)
+
+        return db_task
+
+    def update_organization_task(
+        self,
+        task_id: int,
+        task: TaskUpdate,
+        organization_id: int,
+    ) -> Task:
+        db_task = self.get_organization_task(
+            task_id=task_id,
+            organization_id=organization_id,
+        )
+        db_task.title = task.title
+        db_task.status = task.status
+
+        self.repository.commit()
+        self.repository.refresh(db_task)
+
+        return db_task
+
+    def delete_organization_task(
+        self,
+        task_id: int,
+        organization_id: int,
+    ) -> None:
+        db_task = self.get_organization_task(
+            task_id=task_id,
+            organization_id=organization_id,
+        )
+        self.repository.delete(db_task)
+        self.repository.commit()
+
 
 def create_task_service(repository: TaskRepository) -> TaskService:
     return TaskService(repository)

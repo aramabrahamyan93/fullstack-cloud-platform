@@ -1,0 +1,11 @@
+.task-form {
+  align-items: end;
+}
+
+.task-title-field {
+  flex: 1 1 320px;
+}
+
+.task-status-field {
+  flex: 0 1 180px;
+}
