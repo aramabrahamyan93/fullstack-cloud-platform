@@ -9,6 +9,7 @@ import { WorkspaceTasksRoute } from "./routes/WorkspaceTasksRoute";
 import { WorkspaceSettingsRoute } from "./routes/WorkspaceSettingsRoute";
 import { WorkspaceDashboardRoute } from "./routes/WorkspaceDashboardRoute";
 import { WorkspaceMembersRoute } from "./routes/WorkspaceMembersRoute";
+import { WorkspaceActivityRoute } from "./routes/WorkspaceActivityRoute";
 
 export function App() {
   const controller = useAppController();
@@ -59,6 +60,10 @@ export function App() {
         <Route
           path="/workspaces/:workspaceId/settings"
           element={<WorkspaceSettingsRoute controller={controller} />}
+        />
+        <Route
+          path="/workspaces/:workspaceId/activity"
+          element={<WorkspaceActivityRoute controller={controller} />}
         />
         <Route
           path="/system"

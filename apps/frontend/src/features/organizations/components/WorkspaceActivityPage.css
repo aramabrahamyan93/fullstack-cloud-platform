@@ -1,0 +1,140 @@
+.workspace-activity-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.workspace-activity-summary-card,
+.workspace-activity-card {
+  display: grid;
+  gap: 18px;
+}
+
+.workspace-activity-eyebrow {
+  color: #2563eb;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-activity-summary-card h2 {
+  margin: 4px 0 0;
+}
+
+.workspace-activity-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.workspace-activity-summary-item,
+.workspace-activity-meta-item {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.workspace-activity-summary-item span,
+.workspace-activity-meta-item span {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.workspace-activity-list {
+  display: grid;
+  gap: 12px;
+}
+
+.workspace-activity-item {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.workspace-activity-item-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.workspace-activity-item-main div {
+  display: grid;
+  gap: 4px;
+}
+
+.workspace-activity-item-main span {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.workspace-activity-event-code {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8 !important;
+  font-size: 0.74rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+}
+
+.workspace-activity-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workspace-activity-metadata {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.workspace-activity-metadata div {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.workspace-activity-metadata dt {
+  color: #6b7280;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.workspace-activity-metadata dd {
+  min-width: 0;
+  margin: 0;
+  color: #111827;
+  font-size: 0.86rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .workspace-activity-summary-grid,
+  .workspace-activity-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-activity-item-main {
+    flex-direction: column;
+  }
+
+  .workspace-activity-metadata div {
+    grid-template-columns: 1fr;
+  }
+}

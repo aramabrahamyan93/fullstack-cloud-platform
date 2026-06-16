@@ -4,6 +4,7 @@ import type {
   CreateOrganizationRequest,
   UpdateOrganizationRequest,
   Organization,
+  OrganizationAuditLog,
   OrganizationInvitation,
   OrganizationInviteCandidate,
   OrganizationMember
@@ -151,5 +152,15 @@ export function leaveOrganization(
     {
       method: "DELETE"
     }
+  );
+}
+
+
+
+export function getOrganizationAuditLogs(
+  organizationId: number
+): Promise<OrganizationAuditLog[]> {
+  return fetchJson<OrganizationAuditLog[]>(
+    `/organizations/${organizationId}/audit-logs`
   );
 }

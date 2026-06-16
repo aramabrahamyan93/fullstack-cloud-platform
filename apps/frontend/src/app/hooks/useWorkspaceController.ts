@@ -4,6 +4,7 @@ import { useMyOrganizationInvitations } from "../../features/organizations/hooks
 import { useOrganizationInviteCandidates } from "../../features/organizations/hooks/useOrganizationInviteCandidates";
 import { useOrganizationInvitations } from "../../features/organizations/hooks/useOrganizationInvitations";
 import { useOrganizationMembers } from "../../features/organizations/hooks/useOrganizationMembers";
+import { useOrganizationAuditLogs } from "../../features/organizations/hooks/useOrganizationAuditLogs";
 import { useOrganizations } from "../../features/organizations/hooks/useOrganizations";
 import type { MessageType } from "../../shared/components/Message";
 
@@ -68,6 +69,14 @@ export function useWorkspaceController({
     clearMyInvitations
   } = useMyOrganizationInvitations();
 
+
+  const {
+    auditLogs,
+    isAuditLogsLoading,
+    loadAuditLogs,
+    clearAuditLogs
+  } = useOrganizationAuditLogs();
+
   async function handleRenameWorkspaceById(
     organizationId: number,
     name: string
@@ -128,6 +137,14 @@ export function useWorkspaceController({
   }
 
   
+
+  async function loadWorkspaceAuditLogs(organizationId: number): Promise<void> {
+    const result = await loadAuditLogs(organizationId);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
 
   async function handleRemoveWorkspaceMember(memberId: number): Promise<void> {
     if (!selectedOrganization) {
@@ -305,6 +322,7 @@ export function useWorkspaceController({
     clearInvitations();
     clearInviteCandidates();
     clearMyInvitations();
+    clearAuditLogs();
   }
 
   return {
@@ -328,13 +346,18 @@ export function useWorkspaceController({
     isMyInvitationsLoading,
     isMyInvitationSubmitting,
 
+    auditLogs,
+    isAuditLogsLoading,
+
     loadOrganizations,
     clearOrganizations,
     clearMembers,
     clearInvitations,
+    clearAuditLogs,
     clearWorkspaceState,
     loadWorkspaceMembers,
     loadWorkspaceInvitations,
+    loadWorkspaceAuditLogs,
     handleRemoveWorkspaceMember,
     handleTransferWorkspaceOwnership,
     handleLeaveWorkspace,

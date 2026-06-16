@@ -4,6 +4,7 @@ export type AppRouteId =
   | "tasks"
   | "members"
   | "settings"
+  | "activity"
   | "workspaces"
   | "system";
 
@@ -51,6 +52,12 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     id: "settings",
     label: "Settings",
     description: "Configuration",
+    group: "workspace"
+  },
+  {
+    id: "activity",
+    label: "Activity",
+    description: "Audit history",
     group: "workspace"
   },
   {

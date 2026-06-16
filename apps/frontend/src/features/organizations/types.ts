@@ -56,3 +56,25 @@ export type OrganizationInviteCandidate = {
   membership_status: "member" | "not_member";
   invitation_status: "pending" | null;
 };
+
+
+
+export type OrganizationAuditLogEventType =
+  | "workspace_created"
+  | "workspace_renamed"
+  | "member_invited"
+  | "invitation_accepted"
+  | "invitation_declined"
+  | "invitation_cancelled"
+  | "member_removed"
+  | "ownership_transferred"
+  | "workspace_left";
+
+export type OrganizationAuditLog = {
+  id: number;
+  organization_id: number;
+  actor_user_id: number;
+  event_type: OrganizationAuditLogEventType;
+  metadata_json: Record<string, unknown>;
+  created_at: string;
+};
