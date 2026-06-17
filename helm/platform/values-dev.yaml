@@ -25,7 +25,7 @@ backend:
     maxUnavailable: 1
     maxSurge: 0
   image:
-    tag: "c7b5983"
+    tag: "11f0709"
     pullPolicy: IfNotPresent
   config:
     sqlEcho: false
@@ -40,7 +40,7 @@ frontend:
     maxUnavailable: 1
     maxSurge: 0
   image:
-    tag: "c7b5983"
+    tag: "11f0709"
     pullPolicy: IfNotPresent
 ingress:
   enabled: true
