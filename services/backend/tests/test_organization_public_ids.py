@@ -94,3 +94,74 @@ def test_workspace_dashboard_returns_public_id(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json()["organization_id"] == workspace["id"]
     assert response.json()["organization_public_id"] == workspace["public_id"]
+
+
+def test_workspace_can_be_read_by_public_id(client: TestClient) -> None:
+    token = register_and_login(client, unique_email("public-id-read-owner"))
+    workspace = create_workspace(client, token)
+
+    response = client.get(
+        f"/organizations/{workspace['public_id']}",
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == workspace
+
+
+def test_workspace_can_be_renamed_by_public_id(client: TestClient) -> None:
+    token = register_and_login(client, unique_email("public-id-rename-owner"))
+    workspace = create_workspace(client, token, name="Old Public Name")
+
+    response = client.patch(
+        f"/organizations/{workspace['public_id']}",
+        json={"name": "New Public Name"},
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == workspace["id"]
+    assert response.json()["public_id"] == workspace["public_id"]
+    assert response.json()["name"] == "New Public Name"
+    assert response.json()["role"] == "owner"
+
+
+def test_workspace_dashboard_can_be_read_by_public_id(client: TestClient) -> None:
+    token = register_and_login(client, unique_email("public-id-dashboard-api-owner"))
+    workspace = create_workspace(client, token)
+
+    response = client.get(
+        f"/organizations/{workspace['public_id']}/dashboard",
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["organization_id"] == workspace["id"]
+    assert response.json()["organization_public_id"] == workspace["public_id"]
+
+
+def test_workspace_audit_logs_can_be_read_by_public_id(client: TestClient) -> None:
+    token = register_and_login(client, unique_email("public-id-audit-owner"))
+    workspace = create_workspace(client, token)
+
+    response = client.get(
+        f"/organizations/{workspace['public_id']}/audit-logs",
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 200
+    assert response.json()[0]["organization_id"] == workspace["id"]
+    assert response.json()[0]["event_type"] == "workspace_created"
+
+
+def test_non_member_cannot_read_workspace_by_public_id(client: TestClient) -> None:
+    owner_token = register_and_login(client, unique_email("public-id-private-owner"))
+    outsider_token = register_and_login(client, unique_email("public-id-private-outsider"))
+    workspace = create_workspace(client, owner_token)
+
+    response = client.get(
+        f"/organizations/{workspace['public_id']}",
+        headers=auth_headers(outsider_token),
+    )
+
+    assert response.status_code == 404

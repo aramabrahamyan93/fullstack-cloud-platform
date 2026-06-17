@@ -19,6 +19,7 @@ from app.features.organizations.service import (
     decline_current_user_invitation,
     create_user_organization,
     get_organization_for_user,
+    resolve_organization_for_user,
     get_user_organization_dashboard,
     list_current_user_pending_invitations,
     list_user_organization_invite_candidates,
@@ -34,6 +35,23 @@ from app.features.organizations.service import (
 from app.features.users.models import User
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
+
+
+
+def resolve_organization_id(
+    db: Session,
+    *,
+    organization_ref: str,
+    current_user: User,
+) -> int:
+    organization = resolve_organization_for_user(
+        db,
+        organization_ref=organization_ref,
+        current_user=current_user,
+    )
+
+    return organization.id
+
 
 
 @router.post("", response_model=OrganizationRead, status_code=201)
@@ -59,15 +77,17 @@ def list_organizations(
 
 @router.get("/{organization_id}", response_model=OrganizationRead)
 def get_organization(
-    organization_id: int,
+    organization_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> OrganizationRead:
-    return get_organization_for_user(
+    organization = resolve_organization_for_user(
         db,
-        organization_id=organization_id,
+        organization_ref=organization_id,
         current_user=current_user,
     )
+
+    return organization
 
 
 @router.get(
@@ -75,13 +95,19 @@ def get_organization(
     response_model=OrganizationDashboardRead,
 )
 def get_organization_dashboard(
-    organization_id: int,
+    organization_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> OrganizationDashboardRead:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     return get_user_organization_dashboard(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         current_user=current_user,
     )
 
@@ -278,27 +304,39 @@ def leave_organization(
     response_model=list[OrganizationAuditLogRead],
 )
 def list_organization_audit_logs(
-    organization_id: int,
+    organization_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[OrganizationAuditLogRead]:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     return list_user_organization_audit_logs(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         current_user=current_user,
     )
 
 
 @router.patch("/{organization_id}", response_model=OrganizationRead)
 def update_organization(
-    organization_id: int,
+    organization_id: str,
     organization_update: OrganizationUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     return update_user_organization(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         current_user=current_user,
         organization_update=organization_update,
     )

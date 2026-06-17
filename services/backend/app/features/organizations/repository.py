@@ -95,6 +95,25 @@ def get_user_organization(
     return db.scalars(statement).first()
 
 
+def get_user_organization_by_public_id(
+    db: Session,
+    *,
+    public_id: str,
+    user_id: int,
+) -> Organization | None:
+    statement = (
+        select(Organization)
+        .join(
+            OrganizationMember,
+            OrganizationMember.organization_id == Organization.id,
+        )
+        .where(Organization.public_id == public_id)
+        .where(OrganizationMember.user_id == user_id)
+    )
+
+    return db.scalars(statement).first()
+
+
 def get_user_organization_membership(
     db: Session,
     *,
