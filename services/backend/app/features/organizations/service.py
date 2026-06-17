@@ -113,6 +113,31 @@ def get_organization_for_user(
     return organization
 
 
+def resolve_organization_for_user(
+    db: Session,
+    *,
+    organization_ref: str,
+    current_user: User,
+) -> Organization:
+    if organization_ref.isdigit():
+        return get_organization_for_user(
+            db,
+            organization_id=int(organization_ref),
+            current_user=current_user,
+        )
+
+    organization = repository.get_user_organization_by_public_id(
+        db,
+        public_id=organization_ref,
+        user_id=current_user.id,
+    )
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    return organization
+
+
 def update_user_organization(
     db: Session,
     *,
