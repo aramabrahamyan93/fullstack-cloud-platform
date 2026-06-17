@@ -1,5 +1,6 @@
 export type Organization = {
   id: number;
+  public_id: string;
   name: string;
   role?: OrganizationMemberRole | null;
 };
@@ -89,6 +90,7 @@ export type OrganizationTaskCounts = {
 
 export type OrganizationDashboardSummary = {
   organization_id: number;
+  organization_public_id: string;
   task_counts: OrganizationTaskCounts;
   members_count: number;
   pending_invitations_count: number;
