@@ -1,16 +1,40 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.public_ids import generate_workspace_public_id
 from app.features.organizations.models import Organization, OrganizationAuditLog, OrganizationInvitation, OrganizationMember
 from app.features.users.models import User
 
 
 def create_organization(db: Session, *, name: str) -> Organization:
-    organization = Organization(name=name)
+    organization = Organization(
+        name=name,
+        public_id=create_unique_organization_public_id(db),
+    )
     db.add(organization)
     db.flush()
     db.refresh(organization)
     return organization
+
+
+def create_unique_organization_public_id(db: Session) -> str:
+    for _ in range(10):
+        public_id = generate_workspace_public_id()
+
+        if get_organization_by_public_id(db, public_id=public_id) is None:
+            return public_id
+
+    raise RuntimeError("Could not generate a unique organization public_id.")
+
+
+def get_organization_by_public_id(
+    db: Session,
+    *,
+    public_id: str,
+) -> Organization | None:
+    statement = select(Organization).where(Organization.public_id == public_id)
+
+    return db.scalars(statement).first()
 
 
 def create_organization_member(
@@ -35,6 +59,7 @@ def list_user_organizations(db: Session, *, user_id: int) -> list[dict[str, int 
     statement = (
         select(
             Organization.id,
+            Organization.public_id,
             Organization.name,
             OrganizationMember.role,
         )

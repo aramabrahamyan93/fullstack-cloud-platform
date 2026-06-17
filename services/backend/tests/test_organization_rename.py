@@ -108,6 +108,7 @@ def test_owner_can_rename_workspace(client: TestClient) -> None:
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "id": workspace["id"],
+        "public_id": workspace["public_id"],
         "name": "Renamed Workspace",
         "role": "owner",
     }

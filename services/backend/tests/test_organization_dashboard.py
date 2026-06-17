@@ -8,7 +8,8 @@ from app.main import app
 
 @pytest.fixture()
 def client() -> TestClient:
-    return TestClient(app)
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 def unique_email(prefix: str) -> str:
@@ -139,6 +140,7 @@ def test_workspace_owner_can_view_dashboard_summary(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "organization_id": workspace["id"],
+        "organization_public_id": workspace["public_id"],
         "task_counts": {
             "all": 3,
             "open": 1,

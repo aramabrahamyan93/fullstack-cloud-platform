@@ -150,6 +150,7 @@ def update_user_organization(
 
     return {
         "id": organization.id,
+        "public_id": organization.public_id,
         "name": organization.name,
         "role": membership.role,
     }
@@ -186,6 +187,15 @@ def get_user_organization_dashboard(
         current_user=current_user,
     )
 
+    organization = repository.get_user_organization(
+        db,
+        organization_id=organization_id,
+        user_id=current_user.id,
+    )
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
     task_repository = TaskRepository(db)
     task_counts = task_repository.count_organization_tasks_by_status(
         organization_id=organization_id,
@@ -193,6 +203,7 @@ def get_user_organization_dashboard(
 
     return {
         "organization_id": organization_id,
+        "organization_public_id": organization.public_id,
         "task_counts": task_counts,
         "members_count": repository.count_organization_members(
             db,
