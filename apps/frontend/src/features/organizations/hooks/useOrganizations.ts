@@ -5,7 +5,7 @@ import {
   updateOrganization
 } from "../api";
 import { getErrorMessage } from "../../../shared/api/errors";
-import type { Organization } from "../types";
+import type { Organization, OrganizationRef } from "../types";
 
 export type OrganizationActionResult = {
   success: boolean;
@@ -25,7 +25,7 @@ export type UseOrganizationsResult = {
     name: string
   ) => Promise<OrganizationActionResult>;
   renameUserOrganization: (
-    organizationId: number,
+    organizationRef: OrganizationRef,
     name: string
   ) => Promise<OrganizationActionResult>;
 };
@@ -132,7 +132,7 @@ export function useOrganizations(): UseOrganizationsResult {
   }
 
   async function renameUserOrganization(
-    organizationId: number,
+    organizationRef: OrganizationRef,
     name: string
   ): Promise<OrganizationActionResult> {
     const normalizedName = name.trim();
@@ -147,7 +147,7 @@ export function useOrganizations(): UseOrganizationsResult {
     setIsOrganizationSubmitting(true);
 
     try {
-      const organization = await updateOrganization(organizationId, {
+      const organization = await updateOrganization(organizationRef, {
         name: normalizedName
       });
 

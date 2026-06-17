@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getOrganizationDashboardSummary } from "../api";
 import { getErrorMessage } from "../../../shared/api/errors";
-import type { OrganizationDashboardSummary } from "../types";
+import type { OrganizationDashboardSummary, OrganizationRef } from "../types";
 
 export type OrganizationDashboardSummaryActionResult = {
   success: boolean;
@@ -12,7 +12,7 @@ export type UseOrganizationDashboardSummaryResult = {
   dashboardSummary: OrganizationDashboardSummary | null;
   isDashboardSummaryLoading: boolean;
   loadDashboardSummary: (
-    organizationId: number
+    organizationRef: OrganizationRef
   ) => Promise<OrganizationDashboardSummaryActionResult>;
   clearDashboardSummary: () => void;
 };
@@ -24,13 +24,13 @@ export function useOrganizationDashboardSummary(): UseOrganizationDashboardSumma
     useState(false);
 
   async function loadDashboardSummary(
-    organizationId: number
+    organizationRef: OrganizationRef
   ): Promise<OrganizationDashboardSummaryActionResult> {
     setIsDashboardSummaryLoading(true);
 
     try {
       const loadedDashboardSummary =
-        await getOrganizationDashboardSummary(organizationId);
+        await getOrganizationDashboardSummary(organizationRef);
 
       setDashboardSummary(loadedDashboardSummary);
 
