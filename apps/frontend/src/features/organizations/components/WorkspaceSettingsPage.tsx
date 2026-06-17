@@ -146,7 +146,7 @@ export function WorkspaceSettingsPage({
         <div className="workspace-settings-actions-grid">
           <Link
             className="workspace-settings-action-card"
-            to={`/workspaces/${workspace.id}/tasks`}
+            to={`/workspaces/${workspace.public_id}/tasks`}
           >
             <strong>Tasks</strong>
             <span>Open workspace-scoped task board.</span>
@@ -154,7 +154,7 @@ export function WorkspaceSettingsPage({
 
           <Link
             className="workspace-settings-action-card"
-            to={`/workspaces/${workspace.id}/members`}
+            to={`/workspaces/${workspace.public_id}/members`}
           >
             <strong>Members</strong>
             <span>

@@ -120,7 +120,7 @@ export function useWorkspaceController({
 
     if (result.success && result.organization) {
       await loadWorkspaceMembers(result.organization.id);
-      navigate(`/workspaces/${result.organization.id}/dashboard`);
+      navigate(`/workspaces/${result.organization.public_id}/dashboard`);
     }
   }
 
@@ -130,7 +130,17 @@ export function useWorkspaceController({
   ): void {
     selectOrganization(organizationId);
     void loadWorkspaceMembers(organizationId);
-    navigate(targetPath ?? `/workspaces/${organizationId}/dashboard`);
+
+    const organization = organizations.find(
+      (candidate) => candidate.id === organizationId
+    );
+
+    navigate(
+      targetPath ??
+        (organization
+          ? `/workspaces/${organization.public_id}/dashboard`
+          : "/workspaces")
+    );
   }
 
   function selectWorkspaceFromRoute(organizationId: number): void {

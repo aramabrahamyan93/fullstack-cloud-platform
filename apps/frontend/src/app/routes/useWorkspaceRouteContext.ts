@@ -18,6 +18,10 @@ type UseWorkspaceRouteContextOptions = {
   loadMembers?: boolean;
 };
 
+function isValidWorkspacePublicId(workspaceId: string | undefined): boolean {
+  return Boolean(workspaceId && /^ws_[A-Za-z0-9_-]+$/.test(workspaceId));
+}
+
 export function useWorkspaceRouteContext({
   controller,
   loadTasks = false,
@@ -26,33 +30,33 @@ export function useWorkspaceRouteContext({
   const navigate = useNavigate();
   const { workspaceId } = useParams();
 
-  const [invalidWorkspaceId, setInvalidWorkspaceId] = useState<number | null>(
-    null
-  );
-  const [validatingWorkspaceId, setValidatingWorkspaceId] = useState<
-    number | null
+  const [invalidWorkspacePublicId, setInvalidWorkspacePublicId] = useState<
+    string | null
+  >(null);
+  const [validatingWorkspacePublicId, setValidatingWorkspacePublicId] = useState<
+    string | null
   >(null);
 
-  const numericWorkspaceId = Number(workspaceId);
-  const isValidWorkspaceId =
-    Number.isInteger(numericWorkspaceId) && numericWorkspaceId > 0;
+  const isValidWorkspaceId = isValidWorkspacePublicId(workspaceId);
 
   const routeWorkspaceFromState =
     controller.organizations.find(
-      (organization) => organization.id === numericWorkspaceId
+      (organization) => organization.public_id === workspaceId
     ) ?? null;
 
   const routeWorkspace =
-    invalidWorkspaceId === numericWorkspaceId ? null : routeWorkspaceFromState;
+    invalidWorkspacePublicId === workspaceId ? null : routeWorkspaceFromState;
+
+  const numericWorkspaceId = routeWorkspace?.id ?? 0;
 
   const isLoadingWorkspaceContext =
     controller.isAuthLoading ||
     controller.isOrganizationsLoading ||
-    validatingWorkspaceId === numericWorkspaceId;
+    validatingWorkspacePublicId === workspaceId;
 
   useEffect(() => {
-    setInvalidWorkspaceId(null);
-    setValidatingWorkspaceId(null);
+    setInvalidWorkspacePublicId(null);
+    setValidatingWorkspacePublicId(null);
   }, [workspaceId]);
 
   useEffect(() => {
@@ -80,40 +84,43 @@ export function useWorkspaceRouteContext({
       return;
     }
 
+    const workspacePublicId = workspaceId;
+    const resolvedWorkspace = routeWorkspaceFromState;
+
     let isCancelled = false;
 
     async function validateWorkspaceAccess(): Promise<void> {
-      setValidatingWorkspaceId(numericWorkspaceId);
+      setValidatingWorkspacePublicId(workspacePublicId);
 
       try {
-        await getOrganization(numericWorkspaceId);
+        await getOrganization(resolvedWorkspace.id);
 
         if (isCancelled) {
           return;
         }
 
-        setInvalidWorkspaceId(null);
+        setInvalidWorkspacePublicId(null);
 
-        if (controller.selectedOrganization?.id !== numericWorkspaceId) {
-          controller.selectWorkspaceFromRoute(numericWorkspaceId);
+        if (controller.selectedOrganization?.id !== resolvedWorkspace.id) {
+          controller.selectWorkspaceFromRoute(resolvedWorkspace.id);
         }
 
         if (
           loadTasks &&
-          controller.activeTaskOrganizationId !== numericWorkspaceId
+          controller.activeTaskOrganizationId !== resolvedWorkspace.id
         ) {
-          void controller.loadWorkspaceTasks(numericWorkspaceId);
+          void controller.loadWorkspaceTasks(resolvedWorkspace.id);
         }
 
         if (loadMembers) {
-          void controller.loadWorkspaceMembers(numericWorkspaceId);
+          void controller.loadWorkspaceMembers(resolvedWorkspace.id);
         }
       } catch {
         if (isCancelled) {
           return;
         }
 
-        setInvalidWorkspaceId(numericWorkspaceId);
+        setInvalidWorkspacePublicId(workspacePublicId);
         controller.showMessage("Workspace was not found.", "error");
         controller.clearMembers();
         controller.clearInvitations();
@@ -124,7 +131,7 @@ export function useWorkspaceRouteContext({
         navigate("/workspaces", { replace: true });
       } finally {
         if (!isCancelled) {
-          setValidatingWorkspaceId(null);
+          setValidatingWorkspacePublicId(null);
         }
       }
     }
@@ -136,7 +143,6 @@ export function useWorkspaceRouteContext({
     };
   }, [
     workspaceId,
-    numericWorkspaceId,
     isValidWorkspaceId,
     controller.isAuthLoading,
     controller.isOrganizationsLoading,
