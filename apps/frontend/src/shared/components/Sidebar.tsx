@@ -54,23 +54,23 @@ export function Sidebar({
     }
 
     if (routeId === "dashboard") {
-      return `/workspaces/${selectedOrganization.id}/dashboard`;
+      return `/workspaces/${selectedOrganization.public_id}/dashboard`;
     }
 
     if (routeId === "tasks") {
-      return `/workspaces/${selectedOrganization.id}/tasks`;
+      return `/workspaces/${selectedOrganization.public_id}/tasks`;
     }
 
     if (routeId === "members") {
-      return `/workspaces/${selectedOrganization.id}/members`;
+      return `/workspaces/${selectedOrganization.public_id}/members`;
     }
 
     if (routeId === "settings") {
-      return `/workspaces/${selectedOrganization.id}/settings`;
+      return `/workspaces/${selectedOrganization.public_id}/settings`;
     }
 
     if (routeId === "activity") {
-      return `/workspaces/${selectedOrganization.id}/activity`;
+      return `/workspaces/${selectedOrganization.public_id}/activity`;
     }
 
     return "/workspaces";
@@ -126,38 +126,40 @@ export function Sidebar({
     return false;
   }
 
-  function getWorkspaceSwitchPath(organizationId: number): string {
+  function getWorkspaceSwitchPath(organization: Organization): string {
     if (location.pathname.includes("/activity")) {
-      return `/workspaces/${organizationId}/activity`;
+      return `/workspaces/${organization.public_id}/activity`;
     }
 
     if (location.pathname.includes("/members")) {
-      return `/workspaces/${organizationId}/members`;
+      return `/workspaces/${organization.public_id}/members`;
     }
 
     if (location.pathname.includes("/settings")) {
-      return `/workspaces/${organizationId}/settings`;
+      return `/workspaces/${organization.public_id}/settings`;
     }
 
     if (location.pathname.includes("/tasks")) {
-      return `/workspaces/${organizationId}/tasks`;
+      return `/workspaces/${organization.public_id}/tasks`;
     }
 
     if (location.pathname.includes("/dashboard")) {
-      return `/workspaces/${organizationId}/dashboard`;
+      return `/workspaces/${organization.public_id}/dashboard`;
     }
 
-    return `/workspaces/${organizationId}/dashboard`;
+    return `/workspaces/${organization.public_id}/dashboard`;
   }
 
   function handleWorkspaceChange(value: string): void {
-    const organizationId = Number(value);
+    const organization = organizations.find(
+      (candidate) => candidate.public_id === value
+    );
 
-    if (!Number.isInteger(organizationId) || organizationId <= 0) {
+    if (!organization) {
       return;
     }
 
-    onSelectOrganization(organizationId, getWorkspaceSwitchPath(organizationId));
+    onSelectOrganization(organization.id, getWorkspaceSwitchPath(organization));
   }
 
   function renderNavigationItems(items: typeof NAVIGATION_ITEMS) {
@@ -223,7 +225,7 @@ export function Sidebar({
               <>
                 <select
                   className="workspace-select"
-                  value={selectedOrganization?.id ?? ""}
+                  value={selectedOrganization?.public_id ?? ""}
                   disabled={isOrganizationsLoading || organizations.length === 0}
                   onChange={(event) => handleWorkspaceChange(event.target.value)}
                 >
@@ -234,7 +236,7 @@ export function Sidebar({
                   </option>
 
                   {organizations.map((organization) => (
-                    <option key={organization.id} value={organization.id}>
+                    <option key={organization.id} value={organization.public_id}>
                       {organization.name}
                     </option>
                   ))}
