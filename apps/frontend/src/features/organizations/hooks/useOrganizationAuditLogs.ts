@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getOrganizationAuditLogs } from "../api";
 import { getErrorMessage } from "../../../shared/api/errors";
-import type { OrganizationAuditLog } from "../types";
+import type { OrganizationAuditLog, OrganizationRef } from "../types";
 
 export type OrganizationAuditLogActionResult = {
   success: boolean;
@@ -12,7 +12,7 @@ export type UseOrganizationAuditLogsResult = {
   auditLogs: OrganizationAuditLog[];
   isAuditLogsLoading: boolean;
   loadAuditLogs: (
-    organizationId: number
+    organizationRef: OrganizationRef
   ) => Promise<OrganizationAuditLogActionResult>;
   clearAuditLogs: () => void;
 };
@@ -22,12 +22,12 @@ export function useOrganizationAuditLogs(): UseOrganizationAuditLogsResult {
   const [isAuditLogsLoading, setIsAuditLogsLoading] = useState(false);
 
   async function loadAuditLogs(
-    organizationId: number
+    organizationRef: OrganizationRef
   ): Promise<OrganizationAuditLogActionResult> {
     setIsAuditLogsLoading(true);
 
     try {
-      const loadedAuditLogs = await getOrganizationAuditLogs(organizationId);
+      const loadedAuditLogs = await getOrganizationAuditLogs(organizationRef);
 
       setAuditLogs(loadedAuditLogs);
 

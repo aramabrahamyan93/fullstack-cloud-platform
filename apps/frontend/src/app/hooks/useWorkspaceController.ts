@@ -86,11 +86,21 @@ export function useWorkspaceController({
     clearDashboardSummary
   } = useOrganizationDashboardSummary();
 
+  function getOrganizationPublicApiRef(organizationId: number): string | number {
+    return (
+      organizations.find((organization) => organization.id === organizationId)
+        ?.public_id ?? organizationId
+    );
+  }
+
   async function handleRenameWorkspaceById(
     organizationId: number,
     name: string
   ): Promise<boolean> {
-    const result = await renameUserOrganization(organizationId, name);
+    const result = await renameUserOrganization(
+      getOrganizationPublicApiRef(organizationId),
+      name
+    );
 
     showMessage(result.message, result.success ? "success" : "error");
 
@@ -158,7 +168,9 @@ export function useWorkspaceController({
   async function loadWorkspaceDashboardSummary(
     organizationId: number
   ): Promise<void> {
-    const result = await loadDashboardSummary(organizationId);
+    const result = await loadDashboardSummary(
+      getOrganizationPublicApiRef(organizationId)
+    );
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -168,7 +180,9 @@ export function useWorkspaceController({
   
 
   async function loadWorkspaceAuditLogs(organizationId: number): Promise<void> {
-    const result = await loadAuditLogs(organizationId);
+    const result = await loadAuditLogs(
+      getOrganizationPublicApiRef(organizationId)
+    );
 
     if (!result.success) {
       showMessage(result.message, "error");

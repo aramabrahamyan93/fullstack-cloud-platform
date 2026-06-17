@@ -93,7 +93,7 @@ export function useWorkspaceRouteContext({
       setValidatingWorkspacePublicId(workspacePublicId);
 
       try {
-        await getOrganization(resolvedWorkspace.id);
+        await getOrganization(resolvedWorkspace.public_id);
 
         if (isCancelled) {
           return;

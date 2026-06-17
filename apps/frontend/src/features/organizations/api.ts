@@ -4,6 +4,7 @@ import type {
   CreateOrganizationRequest,
   UpdateOrganizationRequest,
   Organization,
+  OrganizationRef,
   OrganizationAuditLog,
   OrganizationDashboardSummary,
   OrganizationInvitation,
@@ -11,14 +12,20 @@ import type {
   OrganizationMember
 } from "./types";
 
+function toOrganizationPathRef(organizationRef: OrganizationRef): string {
+  return encodeURIComponent(String(organizationRef));
+}
+
 export function getOrganizations(): Promise<Organization[]> {
   return fetchJson<Organization[]>("/organizations");
 }
 
 export function getOrganization(
-  organizationId: number
+  organizationRef: OrganizationRef
 ): Promise<Organization> {
-  return fetchJson<Organization>(`/organizations/${organizationId}`);
+  return fetchJson<Organization>(
+    `/organizations/${toOrganizationPathRef(organizationRef)}`
+  );
 }
 
 export function createOrganization(
@@ -31,13 +38,16 @@ export function createOrganization(
 }
 
 export function updateOrganization(
-  organizationId: number,
+  organizationRef: OrganizationRef,
   payload: UpdateOrganizationRequest
 ): Promise<Organization> {
-  return fetchJson<Organization>(`/organizations/${organizationId}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload)
-  });
+  return fetchJson<Organization>(
+    `/organizations/${toOrganizationPathRef(organizationRef)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    }
+  );
 }
 
 export function getOrganizationMembers(
@@ -159,19 +169,19 @@ export function leaveOrganization(
 
 
 export function getOrganizationAuditLogs(
-  organizationId: number
+  organizationRef: OrganizationRef
 ): Promise<OrganizationAuditLog[]> {
   return fetchJson<OrganizationAuditLog[]>(
-    `/organizations/${organizationId}/audit-logs`
+    `/organizations/${toOrganizationPathRef(organizationRef)}/audit-logs`
   );
 }
 
 
 
 export function getOrganizationDashboardSummary(
-  organizationId: number
+  organizationRef: OrganizationRef
 ): Promise<OrganizationDashboardSummary> {
   return fetchJson<OrganizationDashboardSummary>(
-    `/organizations/${organizationId}/dashboard`
+    `/organizations/${toOrganizationPathRef(organizationRef)}/dashboard`
   );
 }
