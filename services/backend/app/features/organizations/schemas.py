@@ -18,6 +18,7 @@ class OrganizationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    public_id: str
     name: str
     role: str | None = None
 
@@ -32,6 +33,7 @@ class OrganizationTaskCountsRead(BaseModel):
 
 class OrganizationDashboardRead(BaseModel):
     organization_id: int
+    organization_public_id: str
     task_counts: OrganizationTaskCountsRead
     members_count: int
     pending_invitations_count: int
