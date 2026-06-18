@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { User } from "../../features/auth/types";
-import type { Organization } from "../../features/organizations/types";
+import type { Organization, OrganizationRef } from "../../features/organizations/types";
 import { useTasks } from "../../features/tasks/hooks/useTasks";
 import type {
   TaskPageSize,
@@ -56,7 +56,7 @@ export function useTaskController({
   ): Promise<void> {
     const result = await changeTaskStatusFilter(
       statusFilter,
-      selectedOrganization?.id
+      selectedOrganization?.public_id
     );
 
     if (!result.success) {
@@ -69,7 +69,7 @@ export function useTaskController({
   ): Promise<void> {
     const result = await changeTaskPageSize(
       nextPageSize,
-      selectedOrganization?.id
+      selectedOrganization?.public_id
     );
 
     if (!result.success) {
@@ -78,7 +78,7 @@ export function useTaskController({
   }
 
   async function handleTaskSearch(search: string): Promise<void> {
-    const result = await changeTaskSearch(search, selectedOrganization?.id);
+    const result = await changeTaskSearch(search, selectedOrganization?.public_id);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -86,7 +86,7 @@ export function useTaskController({
   }
 
   async function handleClearTaskSearch(): Promise<void> {
-    const result = await clearTaskSearch(selectedOrganization?.id);
+    const result = await clearTaskSearch(selectedOrganization?.public_id);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -94,7 +94,7 @@ export function useTaskController({
   }
 
   async function handlePreviousTaskPage(): Promise<void> {
-    const result = await goToPreviousTaskPage(selectedOrganization?.id);
+    const result = await goToPreviousTaskPage(selectedOrganization?.public_id);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -102,7 +102,7 @@ export function useTaskController({
   }
 
   async function handleNextTaskPage(): Promise<void> {
-    const result = await goToNextTaskPage(selectedOrganization?.id);
+    const result = await goToNextTaskPage(selectedOrganization?.public_id);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -132,7 +132,7 @@ export function useTaskController({
     const result = await createUserTask(
       title,
       status,
-      selectedOrganization.id
+      selectedOrganization.public_id
     );
 
     showMessage(result.message, result.success ? "success" : "error");
@@ -154,7 +154,7 @@ export function useTaskController({
       taskId,
       title,
       status,
-      selectedOrganization?.id
+      selectedOrganization?.public_id
     );
 
     showMessage(result.message, result.success ? "success" : "error");
@@ -168,14 +168,14 @@ export function useTaskController({
 
     showMessage(`Deleting task #${taskId}...`, "muted");
 
-    const result = await deleteUserTask(taskId, selectedOrganization?.id);
+    const result = await deleteUserTask(taskId, selectedOrganization?.public_id);
 
     showMessage(result.message, result.success ? "success" : "error");
   }
 
-  async function loadWorkspaceTasks(organizationId: number): Promise<void> {
+  async function loadWorkspaceTasks(organizationRef: OrganizationRef): Promise<void> {
     const result = await loadTasks({
-      organizationId,
+      organizationId: organizationRef,
       page: 1,
       refreshCounters: true
     });

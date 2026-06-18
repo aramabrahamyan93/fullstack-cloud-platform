@@ -1,4 +1,5 @@
 import { fetchJson } from "../../shared/api/client";
+import type { OrganizationRef } from "../organizations/types";
 import type {
   CreateTaskRequest,
   PaginatedTasksResponse,
@@ -36,9 +37,13 @@ function buildTaskQueryString({
   return queryParams.toString();
 }
 
-function getTaskBasePath(organizationId?: number): string {
-  if (organizationId !== undefined) {
-    return `/organizations/${organizationId}/tasks`;
+function toTaskOrganizationPathRef(organizationRef: OrganizationRef): string {
+  return encodeURIComponent(String(organizationRef));
+}
+
+function getTaskBasePath(organizationRef?: OrganizationRef): string {
+  if (organizationRef !== undefined) {
+    return `/organizations/${toTaskOrganizationPathRef(organizationRef)}/tasks`;
   }
 
   return "/tasks";
@@ -46,10 +51,10 @@ function getTaskBasePath(organizationId?: number): string {
 
 export function getTasks(
   params: TaskQueryParams = {},
-  organizationId?: number
+  organizationRef?: OrganizationRef
 ): Promise<Task[]> {
   const query = buildTaskQueryString(params);
-  const basePath = getTaskBasePath(organizationId);
+  const basePath = getTaskBasePath(organizationRef);
   const path = query ? `${basePath}?${query}` : basePath;
 
   return fetchJson<Task[]>(path);
@@ -57,33 +62,33 @@ export function getTasks(
 
 export function getPaginatedTasks(
   params: TaskQueryParams = {},
-  organizationId?: number
+  organizationRef?: OrganizationRef
 ): Promise<PaginatedTasksResponse> {
   const query = buildTaskQueryString(params);
-  const basePath = getTaskBasePath(organizationId);
+  const basePath = getTaskBasePath(organizationRef);
   const path = query ? `${basePath}/paginated?${query}` : `${basePath}/paginated`;
 
   return fetchJson<PaginatedTasksResponse>(path);
 }
 
 export function getTaskStats(
-  organizationId?: number
+  organizationRef?: OrganizationRef
 ): Promise<TaskStatsResponse> {
-  return fetchJson<TaskStatsResponse>(`${getTaskBasePath(organizationId)}/stats`);
+  return fetchJson<TaskStatsResponse>(`${getTaskBasePath(organizationRef)}/stats`);
 }
 
 export function getTask(
   taskId: number,
-  organizationId?: number
+  organizationRef?: OrganizationRef
 ): Promise<Task> {
-  return fetchJson<Task>(`${getTaskBasePath(organizationId)}/${taskId}`);
+  return fetchJson<Task>(`${getTaskBasePath(organizationRef)}/${taskId}`);
 }
 
 export function createTask(
   payload: CreateTaskRequest,
-  organizationId?: number
+  organizationRef?: OrganizationRef
 ): Promise<Task> {
-  return fetchJson<Task>(getTaskBasePath(organizationId), {
+  return fetchJson<Task>(getTaskBasePath(organizationRef), {
     method: "POST",
     body: JSON.stringify(payload)
   });
@@ -92,9 +97,9 @@ export function createTask(
 export function updateTask(
   taskId: number,
   payload: UpdateTaskRequest,
-  organizationId?: number
+  organizationRef?: OrganizationRef
 ): Promise<Task> {
-  return fetchJson<Task>(`${getTaskBasePath(organizationId)}/${taskId}`, {
+  return fetchJson<Task>(`${getTaskBasePath(organizationRef)}/${taskId}`, {
     method: "PUT",
     body: JSON.stringify(payload)
   });
@@ -102,9 +107,9 @@ export function updateTask(
 
 export function deleteTask(
   taskId: number,
-  organizationId?: number
+  organizationRef?: OrganizationRef
 ): Promise<void> {
-  return fetchJson<void>(`${getTaskBasePath(organizationId)}/${taskId}`, {
+  return fetchJson<void>(`${getTaskBasePath(organizationRef)}/${taskId}`, {
     method: "DELETE"
   });
 }

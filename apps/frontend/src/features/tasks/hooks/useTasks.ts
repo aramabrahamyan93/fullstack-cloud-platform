@@ -7,6 +7,7 @@ import {
   updateTask
 } from "../api";
 import { getErrorMessage } from "../../../shared/api/errors";
+import type { OrganizationRef } from "../../organizations/types";
 import type {
   Task,
   TaskPageSize,
@@ -21,7 +22,7 @@ export type TaskActionResult = {
 };
 
 type LoadTasksOptions = {
-  organizationId?: number;
+  organizationId?: OrganizationRef;
   statusFilter?: TaskStatusFilter;
   page?: number;
   refreshCounters?: boolean;
@@ -44,38 +45,38 @@ export type UseTasksResult = {
   isTasksLoading: boolean;
   isSubmitting: boolean;
   isMutating: boolean;
-  activeTaskOrganizationId: number | null;
+  activeTaskOrganizationId: OrganizationRef | null;
   changeTaskStatusFilter: (
     statusFilter: TaskStatusFilter,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ) => Promise<TaskActionResult>;
   changeTaskPageSize: (
     pageSize: TaskPageSize,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ) => Promise<TaskActionResult>;
   changeTaskSearch: (
     search: string,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ) => Promise<TaskActionResult>;
-  clearTaskSearch: (organizationId?: number) => Promise<TaskActionResult>;
-  goToPreviousTaskPage: (organizationId?: number) => Promise<TaskActionResult>;
-  goToNextTaskPage: (organizationId?: number) => Promise<TaskActionResult>;
+  clearTaskSearch: (organizationId?: OrganizationRef) => Promise<TaskActionResult>;
+  goToPreviousTaskPage: (organizationId?: OrganizationRef) => Promise<TaskActionResult>;
+  goToNextTaskPage: (organizationId?: OrganizationRef) => Promise<TaskActionResult>;
   loadTasks: (options?: LoadTasksOptions) => Promise<TaskActionResult>;
   clearTasks: () => void;
   createUserTask: (
     title: string,
     status: TaskStatus,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ) => Promise<TaskActionResult>;
   updateUserTask: (
     taskId: number,
     title: string,
     status: TaskStatus,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ) => Promise<TaskActionResult>;
   deleteUserTask: (
     taskId: number,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ) => Promise<TaskActionResult>;
 };
 
@@ -103,7 +104,7 @@ export function useTasks(): UseTasksResult {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [activeTaskOrganizationId, setActiveTaskOrganizationId] =
-    useState<number | null>(null);
+    useState<OrganizationRef | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const hasPreviousPage = currentPage > 1;
@@ -171,7 +172,7 @@ export function useTasks(): UseTasksResult {
 
   async function changeTaskStatusFilter(
     statusFilter: TaskStatusFilter,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ): Promise<TaskActionResult> {
     return loadTasks({
       organizationId,
@@ -183,7 +184,7 @@ export function useTasks(): UseTasksResult {
 
   async function changeTaskPageSize(
     nextPageSize: TaskPageSize,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ): Promise<TaskActionResult> {
     return loadTasks({
       organizationId,
@@ -195,7 +196,7 @@ export function useTasks(): UseTasksResult {
 
   async function changeTaskSearch(
     search: string,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ): Promise<TaskActionResult> {
     return loadTasks({
       organizationId,
@@ -206,7 +207,7 @@ export function useTasks(): UseTasksResult {
   }
 
   async function clearTaskSearch(
-    organizationId?: number
+    organizationId?: OrganizationRef
   ): Promise<TaskActionResult> {
     return loadTasks({
       organizationId,
@@ -217,7 +218,7 @@ export function useTasks(): UseTasksResult {
   }
 
   async function goToPreviousTaskPage(
-    organizationId?: number
+    organizationId?: OrganizationRef
   ): Promise<TaskActionResult> {
     if (!hasPreviousPage) {
       return {
@@ -234,7 +235,7 @@ export function useTasks(): UseTasksResult {
   }
 
   async function goToNextTaskPage(
-    organizationId?: number
+    organizationId?: OrganizationRef
   ): Promise<TaskActionResult> {
     if (!hasNextPage) {
       return {
@@ -265,7 +266,7 @@ export function useTasks(): UseTasksResult {
   async function createUserTask(
     title: string,
     status: TaskStatus,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ): Promise<TaskActionResult> {
     const nextOrganizationId =
       organizationId ?? activeTaskOrganizationId ?? undefined;
@@ -304,7 +305,7 @@ export function useTasks(): UseTasksResult {
     taskId: number,
     title: string,
     status: TaskStatus,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ): Promise<TaskActionResult> {
     const nextOrganizationId =
       organizationId ?? activeTaskOrganizationId ?? undefined;
@@ -342,7 +343,7 @@ export function useTasks(): UseTasksResult {
 
   async function deleteUserTask(
     taskId: number,
-    organizationId?: number
+    organizationId?: OrganizationRef
   ): Promise<TaskActionResult> {
     const nextOrganizationId =
       organizationId ?? activeTaskOrganizationId ?? undefined;
