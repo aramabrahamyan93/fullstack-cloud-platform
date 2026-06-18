@@ -51,27 +51,27 @@ export function updateOrganization(
 }
 
 export function getOrganizationMembers(
-  organizationId: number
+  organizationRef: OrganizationRef
 ): Promise<OrganizationMember[]> {
   return fetchJson<OrganizationMember[]>(
-    `/organizations/${organizationId}/members`
+    `/organizations/${toOrganizationPathRef(organizationRef)}/members`
   );
 }
 
 export function getOrganizationInvitations(
-  organizationId: number
+  organizationRef: OrganizationRef
 ): Promise<OrganizationInvitation[]> {
   return fetchJson<OrganizationInvitation[]>(
-    `/organizations/${organizationId}/invitations`
+    `/organizations/${toOrganizationPathRef(organizationRef)}/invitations`
   );
 }
 
 export function createOrganizationInvitation(
-  organizationId: number,
+  organizationRef: OrganizationRef,
   payload: CreateOrganizationInvitationRequest
 ): Promise<OrganizationInvitation> {
   return fetchJson<OrganizationInvitation>(
-    `/organizations/${organizationId}/invitations`,
+    `/organizations/${toOrganizationPathRef(organizationRef)}/invitations`,
     {
       method: "POST",
       body: JSON.stringify(payload)
@@ -80,11 +80,11 @@ export function createOrganizationInvitation(
 }
 
 export function cancelOrganizationInvitation(
-  organizationId: number,
+  organizationRef: OrganizationRef,
   invitationId: number
 ): Promise<void> {
   return fetchJson<void>(
-    `/organizations/${organizationId}/invitations/${invitationId}`,
+    `/organizations/${toOrganizationPathRef(organizationRef)}/invitations/${invitationId}`,
     {
       method: "DELETE"
     }
@@ -119,7 +119,7 @@ export function declineMyOrganizationInvitation(
 }
 
 export function getOrganizationInviteCandidates(
-  organizationId: number,
+  organizationRef: OrganizationRef,
   query: string
 ): Promise<OrganizationInviteCandidate[]> {
   const searchParams = new URLSearchParams({
@@ -127,16 +127,16 @@ export function getOrganizationInviteCandidates(
   });
 
   return fetchJson<OrganizationInviteCandidate[]>(
-    `/organizations/${organizationId}/invite-candidates?${searchParams.toString()}`
+    `/organizations/${toOrganizationPathRef(organizationRef)}/invite-candidates?${searchParams.toString()}`
   );
 }
 
 export function removeOrganizationMember(
-  organizationId: number,
+  organizationRef: OrganizationRef,
   memberId: number
 ): Promise<void> {
   return fetchJson<void>(
-    `/organizations/${organizationId}/members/${memberId}`,
+    `/organizations/${toOrganizationPathRef(organizationRef)}/members/${memberId}`,
     {
       method: "DELETE"
     }
@@ -144,11 +144,11 @@ export function removeOrganizationMember(
 }
 
 export function transferOrganizationOwnership(
-  organizationId: number,
+  organizationRef: OrganizationRef,
   memberId: number
 ): Promise<void> {
   return fetchJson<void>(
-    `/organizations/${organizationId}/members/${memberId}/transfer-ownership`,
+    `/organizations/${toOrganizationPathRef(organizationRef)}/members/${memberId}/transfer-ownership`,
     {
       method: "POST"
     }
@@ -156,10 +156,10 @@ export function transferOrganizationOwnership(
 }
 
 export function leaveOrganization(
-  organizationId: number
+  organizationRef: OrganizationRef
 ): Promise<void> {
   return fetchJson<void>(
-    `/organizations/${organizationId}/membership`,
+    `/organizations/${toOrganizationPathRef(organizationRef)}/membership`,
     {
       method: "DELETE"
     }
