@@ -107,9 +107,9 @@ export function useWorkspaceRouteContext({
 
         if (
           loadTasks &&
-          controller.activeTaskOrganizationId !== resolvedWorkspace.id
+          controller.activeTaskOrganizationId !== resolvedWorkspace.public_id
         ) {
-          void controller.loadWorkspaceTasks(resolvedWorkspace.id);
+          void controller.loadWorkspaceTasks(resolvedWorkspace.public_id);
         }
 
         if (loadMembers) {
