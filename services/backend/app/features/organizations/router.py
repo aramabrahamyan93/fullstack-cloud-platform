@@ -113,15 +113,22 @@ def get_organization_dashboard(
 
 @router.get("/{organization_id}/members", response_model=list[OrganizationMemberRead])
 def list_organization_members(
-    organization_id: int,
+    organization_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[OrganizationMemberRead]:
-    return list_members_for_user_organization(
+    resolved_organization_id = resolve_organization_id(
         db,
-        organization_id=organization_id,
+        organization_ref=organization_id,
         current_user=current_user,
     )
+
+    return list_members_for_user_organization(
+        db,
+        organization_id=resolved_organization_id,
+        current_user=current_user,
+    )
+
 
 @router.post(
     "/{organization_id}/invitations",
@@ -129,14 +136,20 @@ def list_organization_members(
     status_code=201,
 )
 def create_organization_invitation(
-    organization_id: int,
+    organization_id: str,
     invitation_create: OrganizationInvitationCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> OrganizationInvitationRead:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     return create_user_organization_invitation(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         current_user=current_user,
         invitation_create=invitation_create,
     )
@@ -147,13 +160,19 @@ def create_organization_invitation(
     response_model=list[OrganizationInvitationRead],
 )
 def list_organization_invitations(
-    organization_id: int,
+    organization_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[OrganizationInvitationRead]:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     return list_user_organization_invitations(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         current_user=current_user,
     )
 
@@ -163,14 +182,20 @@ def list_organization_invitations(
     status_code=204,
 )
 def cancel_organization_invitation(
-    organization_id: int,
+    organization_id: str,
     invitation_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     cancel_user_organization_invitation(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         invitation_id=invitation_id,
         current_user=current_user,
     )
@@ -229,14 +254,20 @@ def decline_my_organization_invitation(
     response_model=list[OrganizationInviteCandidateRead],
 )
 def list_organization_invite_candidates(
-    organization_id: int,
+    organization_id: str,
     query: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[OrganizationInviteCandidateRead]:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     return list_user_organization_invite_candidates(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         current_user=current_user,
         query=query,
     )
@@ -247,14 +278,20 @@ def list_organization_invite_candidates(
     status_code=204,
 )
 def remove_organization_member(
-    organization_id: int,
+    organization_id: str,
     member_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     remove_member_from_user_organization(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         member_id=member_id,
         current_user=current_user,
     )
@@ -267,14 +304,20 @@ def remove_organization_member(
     status_code=204,
 )
 def transfer_organization_ownership(
-    organization_id: int,
+    organization_id: str,
     member_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     transfer_user_organization_ownership(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         member_id=member_id,
         current_user=current_user,
     )
@@ -287,17 +330,24 @@ def transfer_organization_ownership(
     status_code=204,
 )
 def leave_organization(
-    organization_id: int,
+    organization_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
     leave_user_organization(
         db,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         current_user=current_user,
     )
 
     return Response(status_code=204)
+
 
 @router.get(
     "/{organization_id}/audit-logs",
