@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.db.dependencies import get_current_user
 from app.db.dependencies import get_db
 from app.features.organizations.service import ensure_user_can_manage_organization_tasks
+from app.features.organizations.service import resolve_organization_for_user
 from app.features.tasks.constants import DEFAULT_TASK_LIMIT
 from app.features.tasks.constants import DEFAULT_TASK_OFFSET
 from app.features.tasks.constants import MAX_TASK_LIMIT
@@ -41,12 +42,48 @@ def get_task_service(
     return create_task_service(repository)
 
 
+def resolve_organization_id(
+    db: Session,
+    *,
+    organization_ref: str,
+    current_user: User,
+) -> int:
+    organization = resolve_organization_for_user(
+        db,
+        organization_ref=organization_ref,
+        current_user=current_user,
+    )
+
+    return organization.id
+
+
+def resolve_manageable_organization_id(
+    db: Session,
+    *,
+    organization_ref: str,
+    current_user: User,
+) -> int:
+    organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_ref,
+        current_user=current_user,
+    )
+
+    ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    return organization_id
+
+
 @router.get(
     "",
     response_model=list[TaskResponse],
 )
 def list_organization_tasks(
-    organization_id: int,
+    organization_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
@@ -66,9 +103,9 @@ def list_organization_tasks(
         ge=MIN_TASK_OFFSET,
     ),
 ):
-    ensure_user_can_manage_organization_tasks(
+    resolved_organization_id = resolve_manageable_organization_id(
         db,
-        organization_id=organization_id,
+        organization_ref=organization_id,
         current_user=current_user,
     )
 
@@ -80,7 +117,7 @@ def list_organization_tasks(
     )
 
     return service.get_organization_tasks(
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         query=query,
     )
 
@@ -90,7 +127,7 @@ def list_organization_tasks(
     response_model=PaginatedTaskResponse,
 )
 def list_paginated_organization_tasks(
-    organization_id: int,
+    organization_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
@@ -110,9 +147,9 @@ def list_paginated_organization_tasks(
         ge=MIN_TASK_OFFSET,
     ),
 ):
-    ensure_user_can_manage_organization_tasks(
+    resolved_organization_id = resolve_manageable_organization_id(
         db,
-        organization_id=organization_id,
+        organization_ref=organization_id,
         current_user=current_user,
     )
 
@@ -124,7 +161,7 @@ def list_paginated_organization_tasks(
     )
 
     return service.get_paginated_organization_tasks(
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
         query=query,
     )
 
@@ -134,19 +171,19 @@ def list_paginated_organization_tasks(
     response_model=TaskStatsResponse,
 )
 def get_organization_task_stats(
-    organization_id: int,
+    organization_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_can_manage_organization_tasks(
+    resolved_organization_id = resolve_manageable_organization_id(
         db,
-        organization_id=organization_id,
+        organization_ref=organization_id,
         current_user=current_user,
     )
 
     return service.get_organization_task_stats(
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
     )
 
 
@@ -156,22 +193,22 @@ def get_organization_task_stats(
     status_code=status.HTTP_201_CREATED,
 )
 def create_organization_task(
-    organization_id: int,
+    organization_id: str,
     task: TaskCreate,
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_can_manage_organization_tasks(
+    resolved_organization_id = resolve_manageable_organization_id(
         db,
-        organization_id=organization_id,
+        organization_ref=organization_id,
         current_user=current_user,
     )
 
     return service.create_organization_task(
         task=task,
         owner_id=current_user.id,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
     )
 
 
@@ -180,21 +217,21 @@ def create_organization_task(
     response_model=TaskResponse,
 )
 def get_existing_organization_task(
-    organization_id: int,
+    organization_id: str,
     task_id: int,
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_can_manage_organization_tasks(
+    resolved_organization_id = resolve_manageable_organization_id(
         db,
-        organization_id=organization_id,
+        organization_ref=organization_id,
         current_user=current_user,
     )
 
     return service.get_organization_task(
         task_id=task_id,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
     )
 
 
@@ -203,23 +240,23 @@ def get_existing_organization_task(
     response_model=TaskResponse,
 )
 def update_existing_organization_task(
-    organization_id: int,
+    organization_id: str,
     task_id: int,
     task: TaskUpdate,
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_can_manage_organization_tasks(
+    resolved_organization_id = resolve_manageable_organization_id(
         db,
-        organization_id=organization_id,
+        organization_ref=organization_id,
         current_user=current_user,
     )
 
     return service.update_organization_task(
         task_id=task_id,
         task=task,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
     )
 
 
@@ -228,19 +265,19 @@ def update_existing_organization_task(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_existing_organization_task(
-    organization_id: int,
+    organization_id: str,
     task_id: int,
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    ensure_user_can_manage_organization_tasks(
+    resolved_organization_id = resolve_manageable_organization_id(
         db,
-        organization_id=organization_id,
+        organization_ref=organization_id,
         current_user=current_user,
     )
 
     service.delete_organization_task(
         task_id=task_id,
-        organization_id=organization_id,
+        organization_id=resolved_organization_id,
     )
