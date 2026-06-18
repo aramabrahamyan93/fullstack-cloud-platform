@@ -5,7 +5,7 @@ import {
   createOrganizationInvitation,
   getOrganizationInvitations
 } from "../api";
-import type { OrganizationInvitation } from "../types";
+import type { OrganizationInvitation, OrganizationRef } from "../types";
 
 export type OrganizationInvitationsActionResult = {
   success: boolean;
@@ -17,14 +17,14 @@ export type UseOrganizationInvitationsResult = {
   isInvitationsLoading: boolean;
   isInvitationSubmitting: boolean;
   loadInvitations: (
-    organizationId: number
+    organizationId: OrganizationRef
   ) => Promise<OrganizationInvitationsActionResult>;
   createInvitation: (
-    organizationId: number,
+    organizationId: OrganizationRef,
     email: string
   ) => Promise<OrganizationInvitationsActionResult>;
   cancelInvitation: (
-    organizationId: number,
+    organizationId: OrganizationRef,
     invitationId: number
   ) => Promise<OrganizationInvitationsActionResult>;
   clearInvitations: () => void;
@@ -54,7 +54,7 @@ export function useOrganizationInvitations(): UseOrganizationInvitationsResult {
   const [isInvitationSubmitting, setIsInvitationSubmitting] = useState(false);
 
   async function loadInvitations(
-    organizationId: number
+    organizationId: OrganizationRef
   ): Promise<OrganizationInvitationsActionResult> {
     setIsInvitationsLoading(true);
 
@@ -78,7 +78,7 @@ export function useOrganizationInvitations(): UseOrganizationInvitationsResult {
   }
 
   async function createInvitation(
-    organizationId: number,
+    organizationId: OrganizationRef,
     email: string
   ): Promise<OrganizationInvitationsActionResult> {
     const normalizedEmail = email.trim();
@@ -115,7 +115,7 @@ export function useOrganizationInvitations(): UseOrganizationInvitationsResult {
   }
 
   async function cancelInvitation(
-    organizationId: number,
+    organizationId: OrganizationRef,
     invitationId: number
   ): Promise<OrganizationInvitationsActionResult> {
     setIsInvitationSubmitting(true);

@@ -6,7 +6,7 @@ import {
   removeOrganizationMember,
   transferOrganizationOwnership
 } from "../api";
-import type { OrganizationMember } from "../types";
+import type { OrganizationMember, OrganizationRef } from "../types";
 
 export type OrganizationMembersActionResult = {
   success: boolean;
@@ -18,18 +18,18 @@ export type UseOrganizationMembersResult = {
   isMembersLoading: boolean;
   isMemberSubmitting: boolean;
   loadMembers: (
-    organizationId: number
+    organizationId: OrganizationRef
   ) => Promise<OrganizationMembersActionResult>;
   removeMember: (
-    organizationId: number,
+    organizationId: OrganizationRef,
     memberId: number
   ) => Promise<OrganizationMembersActionResult>;
   transferOwnership: (
-    organizationId: number,
+    organizationId: OrganizationRef,
     memberId: number
   ) => Promise<OrganizationMembersActionResult>;
   leaveWorkspace: (
-    organizationId: number
+    organizationId: OrganizationRef
   ) => Promise<OrganizationMembersActionResult>;
   clearMembers: () => void;
 };
@@ -62,7 +62,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
   const [isMemberSubmitting, setIsMemberSubmitting] = useState(false);
 
   async function loadMembers(
-    organizationId: number
+    organizationId: OrganizationRef
   ): Promise<OrganizationMembersActionResult> {
     setIsMembersLoading(true);
 
@@ -88,7 +88,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
   
 
   async function removeMember(
-    organizationId: number,
+    organizationId: OrganizationRef,
     memberId: number
   ): Promise<OrganizationMembersActionResult> {
     setIsMemberSubmitting(true);
@@ -112,7 +112,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
   }
 
   async function transferOwnership(
-    organizationId: number,
+    organizationId: OrganizationRef,
     memberId: number
   ): Promise<OrganizationMembersActionResult> {
     setIsMemberSubmitting(true);
@@ -136,7 +136,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
   }
 
   async function leaveWorkspace(
-    organizationId: number
+    organizationId: OrganizationRef
   ): Promise<OrganizationMembersActionResult> {
     setIsMemberSubmitting(true);
 

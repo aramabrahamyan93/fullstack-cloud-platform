@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getErrorMessage } from "../../../shared/api/errors";
 import { getOrganizationInviteCandidates } from "../api";
-import type { OrganizationInviteCandidate } from "../types";
+import type { OrganizationInviteCandidate, OrganizationRef } from "../types";
 
 export type InviteCandidatesActionResult = {
   success: boolean;
@@ -12,7 +12,7 @@ export type UseOrganizationInviteCandidatesResult = {
   inviteCandidates: OrganizationInviteCandidate[];
   isInviteCandidatesLoading: boolean;
   loadInviteCandidates: (
-    organizationId: number,
+    organizationId: OrganizationRef,
     query: string
   ) => Promise<InviteCandidatesActionResult>;
   clearInviteCandidates: () => void;
@@ -26,7 +26,7 @@ export function useOrganizationInviteCandidates(): UseOrganizationInviteCandidat
     useState(false);
 
   async function loadInviteCandidates(
-    organizationId: number,
+    organizationId: OrganizationRef,
     query: string
   ): Promise<InviteCandidatesActionResult> {
     const normalizedQuery = query.trim();

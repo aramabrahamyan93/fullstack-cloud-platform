@@ -158,7 +158,7 @@ export function useWorkspaceController({
   }
 
   async function loadWorkspaceMembers(organizationId: number): Promise<void> {
-    const result = await loadMembers(organizationId);
+    const result = await loadMembers(getOrganizationPublicApiRef(organizationId));
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -204,7 +204,7 @@ export function useWorkspaceController({
       return;
     }
 
-    const result = await removeMember(selectedOrganization.id, memberId);
+    const result = await removeMember(selectedOrganization.public_id, memberId);
 
     showMessage(result.message, result.success ? "success" : "error");
   }
@@ -226,7 +226,7 @@ export function useWorkspaceController({
       return;
     }
 
-    const result = await transferOwnership(selectedOrganization.id, memberId);
+    const result = await transferOwnership(selectedOrganization.public_id, memberId);
 
     showMessage(result.message, result.success ? "success" : "error");
 
@@ -244,7 +244,7 @@ export function useWorkspaceController({
       return;
     }
 
-    const result = await leaveWorkspace(organizationId);
+    const result = await leaveWorkspace(getOrganizationPublicApiRef(organizationId));
 
     showMessage(result.message, result.success ? "success" : "error");
 
@@ -272,7 +272,7 @@ export function useWorkspaceController({
   }
 
   async function loadWorkspaceInvitations(organizationId: number): Promise<void> {
-    const result = await loadInvitations(organizationId);
+    const result = await loadInvitations(getOrganizationPublicApiRef(organizationId));
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -286,12 +286,12 @@ export function useWorkspaceController({
       return false;
     }
 
-    const result = await createInvitation(selectedOrganization.id, email);
+    const result = await createInvitation(selectedOrganization.public_id, email);
 
     showMessage(result.message, result.success ? "success" : "error");
 
     if (result.success) {
-      await loadInviteCandidates(selectedOrganization.id, email);
+      await loadInviteCandidates(selectedOrganization.public_id, email);
     }
 
     return result.success;
@@ -305,7 +305,7 @@ export function useWorkspaceController({
       return;
     }
 
-    const result = await loadInviteCandidates(selectedOrganization.id, query);
+    const result = await loadInviteCandidates(selectedOrganization.public_id, query);
 
     if (!result.success) {
       showMessage(result.message, "error");
@@ -321,7 +321,7 @@ export function useWorkspaceController({
       return;
     }
 
-    const result = await cancelInvitation(selectedOrganization.id, invitationId);
+    const result = await cancelInvitation(selectedOrganization.public_id, invitationId);
 
     showMessage(result.message, result.success ? "success" : "error");
   }
