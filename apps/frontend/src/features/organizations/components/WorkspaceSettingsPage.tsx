@@ -9,6 +9,7 @@ type WorkspaceSettingsPageProps = {
   isSubmitting: boolean;
   onRenameWorkspace: (name: string) => Promise<boolean>;
   onLeaveWorkspace: () => Promise<void>;
+  onArchiveWorkspace: () => Promise<boolean>;
 };
 
 export function WorkspaceSettingsPage({
@@ -16,22 +17,26 @@ export function WorkspaceSettingsPage({
   currentMember,
   isSubmitting,
   onRenameWorkspace,
-  onLeaveWorkspace
+  onLeaveWorkspace,
+  onArchiveWorkspace
 }: WorkspaceSettingsPageProps) {
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
 
   const role = currentMember?.role ?? workspace.role ?? "unknown";
   const isOwner = role === "owner";
   const isMember = role === "member";
+  const isArchived = workspace.status === "archived";
   const normalizedWorkspaceName = workspaceName.trim();
   const isWorkspaceNameEmpty = normalizedWorkspaceName.length === 0;
   const hasWorkspaceNameChanged =
     !isWorkspaceNameEmpty && normalizedWorkspaceName !== workspace.name;
-  const renameHelperText = isWorkspaceNameEmpty
-    ? "Workspace name is required."
-    : hasWorkspaceNameChanged
-      ? "Save this change to rename the workspace."
-      : "No workspace name changes to save.";
+  const renameHelperText = isArchived
+    ? "Archived workspaces are read-only and cannot be renamed."
+    : isWorkspaceNameEmpty
+      ? "Workspace name is required."
+      : hasWorkspaceNameChanged
+        ? "Save this change to rename the workspace."
+        : "No workspace name changes to save.";
 
   useEffect(() => {
     setWorkspaceName(workspace.name);
@@ -42,7 +47,7 @@ export function WorkspaceSettingsPage({
   ): Promise<void> {
     event.preventDefault();
 
-    if (!isOwner || !hasWorkspaceNameChanged) {
+    if (!isOwner || isArchived || !hasWorkspaceNameChanged) {
       return;
     }
 
@@ -51,6 +56,14 @@ export function WorkspaceSettingsPage({
     if (wasRenamed) {
       setWorkspaceName(normalizedWorkspaceName);
     }
+  }
+
+  async function handleArchiveClick(): Promise<void> {
+    if (!isOwner || isArchived) {
+      return;
+    }
+
+    await onArchiveWorkspace();
   }
 
   return (
@@ -66,9 +79,14 @@ export function WorkspaceSettingsPage({
             </p>
           </div>
 
-          <span className={`workspace-settings-role-badge ${role}`}>
-            {role}
-          </span>
+          <div className="workspace-settings-badge-group">
+            <span className={`workspace-settings-status-badge ${workspace.status}`}>
+              {workspace.status}
+            </span>
+            <span className={`workspace-settings-role-badge ${role}`}>
+              {role}
+            </span>
+          </div>
         </div>
 
         {isOwner ? (
@@ -83,7 +101,7 @@ export function WorkspaceSettingsPage({
                 value={workspaceName}
                 minLength={1}
                 maxLength={200}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isArchived}
                 aria-describedby="workspace-rename-help"
                 onChange={(event) => setWorkspaceName(event.target.value)}
               />
@@ -103,15 +121,16 @@ export function WorkspaceSettingsPage({
             <button
               type="submit"
               className="primary-button"
-              disabled={isSubmitting || !hasWorkspaceNameChanged}
+              disabled={isSubmitting || isArchived || !hasWorkspaceNameChanged}
             >
               {isSubmitting ? "Saving..." : "Save name"}
             </button>
           </form>
         ) : (
           <div className="workspace-settings-readonly-note">
-            Only workspace owners can rename this workspace. You can still use
-            tasks and view workspace details based on your role.
+            {isArchived
+              ? "This workspace is archived and read-only."
+              : "Only workspace owners can rename this workspace. You can still use tasks and view workspace details based on your role."}
           </div>
         )}
 
@@ -129,6 +148,11 @@ export function WorkspaceSettingsPage({
           <article className="workspace-settings-item">
             <span>Your role</span>
             <strong>{role}</strong>
+          </article>
+
+          <article className="workspace-settings-item">
+            <span>Workspace status</span>
+            <strong>{workspace.status}</strong>
           </article>
         </div>
       </section>
@@ -185,17 +209,23 @@ export function WorkspaceSettingsPage({
         </div>
 
         <div className="workspace-settings-policy-list">
-          <article className="workspace-settings-policy-item enabled">
+          <article className={`workspace-settings-policy-item ${isArchived ? "muted" : "enabled"}`}>
             <strong>Workspace tasks</strong>
-            <span>Owners and members can manage workspace tasks.</span>
+            <span>
+              {isArchived
+                ? "Archived workspaces are read-only. Existing tasks can be viewed, but not changed."
+                : "Owners and members can manage workspace tasks."}
+            </span>
           </article>
 
-          <article className={`workspace-settings-policy-item ${isOwner ? "enabled" : "muted"}`}>
+          <article className={`workspace-settings-policy-item ${isOwner && !isArchived ? "enabled" : "muted"}`}>
             <strong>Invitations</strong>
             <span>
-              {isOwner
-                ? "You can invite users and cancel pending invitations."
-                : "Only workspace owners can invite users."}
+              {isArchived
+                ? "Invitations are disabled for archived workspaces."
+                : isOwner
+                  ? "You can invite users and cancel pending invitations."
+                  : "Only workspace owners can invite users."}
             </span>
           </article>
 
@@ -208,6 +238,32 @@ export function WorkspaceSettingsPage({
             </span>
           </article>
         </div>
+      </section>
+
+      <section className="card workspace-settings-card workspace-settings-danger-card">
+        <div>
+          <span className="workspace-settings-eyebrow danger">Archive</span>
+          <h2>Archive workspace</h2>
+          <p className="card-subtitle">
+            Archive turns this workspace into read-only mode. Existing data remains visible,
+            but rename, invitations, and task writes are disabled.
+          </p>
+        </div>
+
+        {isOwner ? (
+          <button
+            type="button"
+            className="danger-button"
+            disabled={isSubmitting || isArchived}
+            onClick={() => void handleArchiveClick()}
+          >
+            {isArchived ? "Workspace archived" : "Archive workspace"}
+          </button>
+        ) : (
+          <div className="workspace-settings-owner-note">
+            Only workspace owners can archive this workspace.
+          </div>
+        )}
       </section>
 
       <section className="card workspace-settings-card workspace-settings-danger-card">
@@ -249,8 +305,8 @@ export function WorkspaceSettingsPage({
           <div>
             <h2>Coming next</h2>
             <p className="card-subtitle">
-              Future settings can include workspace rename, archive/delete
-              policy, audit history, and invitation email configuration.
+              Future settings can include restore policy, delete policy, audit
+              history filters, and invitation email configuration.
             </p>
           </div>
         </div>

@@ -29,7 +29,8 @@ export function useWorkspaceController({
     clearOrganizations,
     selectOrganization,
     createUserOrganization,
-    renameUserOrganization
+    renameUserOrganization,
+    archiveUserOrganization
   } = useOrganizations();
 
   const {
@@ -114,6 +115,52 @@ export function useWorkspaceController({
     }
 
     return handleRenameWorkspaceById(selectedOrganization.id, name);
+  }
+
+  async function handleArchiveWorkspaceById(
+    organizationId: number
+  ): Promise<boolean> {
+    const organization = organizations.find(
+      (candidate) => candidate.id === organizationId
+    );
+
+    if (!organization) {
+      showMessage("Please select a workspace first.", "error");
+      return false;
+    }
+
+    if (organization.status === "archived") {
+      showMessage("This workspace is already archived.", "muted");
+      return true;
+    }
+
+    const confirmed = window.confirm(
+      "Archive this workspace? Members will still be able to view it, but workspace writes will be disabled."
+    );
+
+    if (!confirmed) {
+      return false;
+    }
+
+    const result = await archiveUserOrganization(organization.public_id);
+
+    showMessage(result.message, result.success ? "success" : "error");
+
+    if (result.success) {
+      await loadOrganizations();
+      await loadWorkspaceAuditLogs(organization.id);
+    }
+
+    return result.success;
+  }
+
+  async function handleArchiveWorkspace(): Promise<boolean> {
+    if (!selectedOrganization) {
+      showMessage("Please select a workspace first.", "error");
+      return false;
+    }
+
+    return handleArchiveWorkspaceById(selectedOrganization.id);
   }
 
   async function handleCreateOrganization(name: string): Promise<void> {
@@ -422,6 +469,8 @@ export function useWorkspaceController({
     handleCreateOrganization,
     handleRenameWorkspace,
     handleRenameWorkspaceById,
+    handleArchiveWorkspace,
+    handleArchiveWorkspaceById,
     handleSelectOrganization,
     selectWorkspaceFromRoute
   };

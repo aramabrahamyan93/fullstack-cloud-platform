@@ -26,6 +26,8 @@ const API_ERROR_MESSAGE_BY_CODE: Record<string, string> = {
     "Only workspace owners can perform this action.",
   workspace_owner_cannot_leave_before_transfer:
     "Transfer ownership before leaving this workspace.",
+  workspace_archived:
+    "This workspace is archived and read-only.",
   workspace_invitation_invalid_role:
     "Only member invitations are supported for now.",
   workspace_invitation_user_already_member:

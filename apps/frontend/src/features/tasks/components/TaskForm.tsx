@@ -4,12 +4,19 @@ import type { TaskStatus } from "../types";
 
 type TaskFormProps = {
   isSubmitting: boolean;
+  isReadOnly?: boolean;
+  readOnlyReason?: string;
   onCreateTask: (title: string, status: TaskStatus) => Promise<void>;
 };
 
 const DEFAULT_TITLE = "Created from React frontend";
 
-export function TaskForm({ isSubmitting, onCreateTask }: TaskFormProps) {
+export function TaskForm({
+  isSubmitting,
+  isReadOnly = false,
+  readOnlyReason,
+  onCreateTask
+}: TaskFormProps) {
   const [title, setTitle] = useState(DEFAULT_TITLE);
   const [status, setStatus] = useState<TaskStatus>("open");
 
@@ -17,6 +24,10 @@ export function TaskForm({ isSubmitting, onCreateTask }: TaskFormProps) {
     event.preventDefault();
 
     const trimmedTitle = title.trim();
+
+    if (isReadOnly) {
+      return;
+    }
 
     if (!trimmedTitle) {
       return;
@@ -46,6 +57,7 @@ export function TaskForm({ isSubmitting, onCreateTask }: TaskFormProps) {
             maxLength={200}
             placeholder="Task title"
             value={title}
+            disabled={isReadOnly || isSubmitting}
             onChange={(event) => setTitle(event.target.value)}
           />
         </label>
@@ -54,6 +66,7 @@ export function TaskForm({ isSubmitting, onCreateTask }: TaskFormProps) {
           Status
           <select
             value={status}
+            disabled={isReadOnly || isSubmitting}
             onChange={(event) => setStatus(event.target.value as TaskStatus)}
           >
             <option value="open">open</option>
@@ -62,8 +75,8 @@ export function TaskForm({ isSubmitting, onCreateTask }: TaskFormProps) {
           </select>
         </label>
 
-        <button type="submit" disabled={isSubmitting || !title.trim()}>
-          {isSubmitting ? "Creating..." : "Create task"}
+        <button type="submit" disabled={isReadOnly || isSubmitting || !title.trim()}>
+          {isReadOnly ? "Read-only" : isSubmitting ? "Creating..." : "Create task"}
         </button>
       </form>
     </section>

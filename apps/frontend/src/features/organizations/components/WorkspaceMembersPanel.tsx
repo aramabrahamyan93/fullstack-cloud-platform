@@ -14,6 +14,7 @@ type WorkspaceMembersPanelProps = {
   isInvitationsLoading?: boolean;
   isInviteCandidatesLoading?: boolean;
   isInvitationSubmitting?: boolean;
+  isWorkspaceArchived?: boolean;
   canManageInvitations?: boolean;
   canLeaveWorkspace?: boolean;
   onCreateInvitation?: (email: string) => Promise<boolean>;
@@ -36,6 +37,7 @@ export function WorkspaceMembersPanel({
   isInvitationsLoading = false,
   isInviteCandidatesLoading = false,
   isInvitationSubmitting = false,
+  isWorkspaceArchived = false,
   canManageInvitations = false,
   canLeaveWorkspace = false,
   onCreateInvitation,
@@ -138,6 +140,13 @@ export function WorkspaceMembersPanel({
           </button>
         ) : null}
       </div>
+
+      {isWorkspaceArchived ? (
+        <div className="workspace-members-readonly-note">
+          Archived workspace. Members remain visible, but invitations and member
+          management actions are disabled.
+        </div>
+      ) : null}
 
       {isLoading ? <div className="empty-state">Loading members...</div> : null}
 
