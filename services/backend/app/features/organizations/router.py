@@ -31,6 +31,7 @@ from app.features.organizations.service import (
     list_organizations_for_user,
     update_user_organization,
     remove_member_from_user_organization,
+    restore_user_organization,
     transfer_user_organization_ownership,
 )
 from app.features.users.models import User
@@ -405,6 +406,25 @@ def archive_organization(
     )
 
     return archive_user_organization(
+        db,
+        organization_id=resolved_organization_id,
+        current_user=current_user,
+    )
+
+
+@router.post("/{organization_id}/restore", response_model=OrganizationRead)
+def restore_organization(
+    organization_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> OrganizationRead:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
+    return restore_user_organization(
         db,
         organization_id=resolved_organization_id,
         current_user=current_user,
