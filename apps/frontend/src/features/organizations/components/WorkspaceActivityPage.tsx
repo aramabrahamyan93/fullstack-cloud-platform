@@ -10,6 +10,7 @@ type WorkspaceActivityPageProps = {
 const EVENT_LABELS: Record<OrganizationAuditLog["event_type"], string> = {
   workspace_created: "Workspace created",
   workspace_renamed: "Workspace renamed",
+  workspace_archived: "Workspace archived",
   member_invited: "Member invited",
   invitation_accepted: "Invitation accepted",
   invitation_declined: "Invitation declined",
@@ -22,6 +23,7 @@ const EVENT_LABELS: Record<OrganizationAuditLog["event_type"], string> = {
 const EVENT_DESCRIPTIONS: Record<OrganizationAuditLog["event_type"], string> = {
   workspace_created: "A new workspace was created.",
   workspace_renamed: "The workspace name was updated.",
+  workspace_archived: "The workspace was archived.",
   member_invited: "A user was invited to join this workspace.",
   invitation_accepted: "A workspace invitation was accepted.",
   invitation_declined: "A workspace invitation was declined.",
@@ -49,6 +51,7 @@ const METADATA_LABELS: Record<string, string> = {
 const EVENT_GROUP_CLASS_NAMES: Record<OrganizationAuditLog["event_type"], string> = {
   workspace_created: "workspace-activity-event-code--workspace",
   workspace_renamed: "workspace-activity-event-code--workspace",
+  workspace_archived: "workspace-activity-event-code--workspace",
   member_invited: "workspace-activity-event-code--invitation",
   invitation_accepted: "workspace-activity-event-code--invitation",
   invitation_declined: "workspace-activity-event-code--invitation",

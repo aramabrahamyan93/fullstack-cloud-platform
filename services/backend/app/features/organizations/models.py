@@ -22,6 +22,12 @@ class Organization(Base):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="active",
+        index=True,
+    )
 
 
 class OrganizationMember(Base):

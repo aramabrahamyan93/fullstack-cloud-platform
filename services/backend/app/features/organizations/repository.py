@@ -10,6 +10,7 @@ def create_organization(db: Session, *, name: str) -> Organization:
     organization = Organization(
         name=name,
         public_id=create_unique_organization_public_id(db),
+        status="active",
     )
     db.add(organization)
     db.flush()
@@ -61,6 +62,7 @@ def list_user_organizations(db: Session, *, user_id: int) -> list[dict[str, int 
             Organization.id,
             Organization.public_id,
             Organization.name,
+            Organization.status,
             OrganizationMember.role,
         )
         .join(

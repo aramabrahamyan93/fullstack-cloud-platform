@@ -36,6 +36,10 @@ ORGANIZATION_AUDIT_EVENT_INVITATION_CANCELLED = "invitation_cancelled"
 ORGANIZATION_AUDIT_EVENT_MEMBER_REMOVED = "member_removed"
 ORGANIZATION_AUDIT_EVENT_OWNERSHIP_TRANSFERRED = "ownership_transferred"
 ORGANIZATION_AUDIT_EVENT_WORKSPACE_LEFT = "workspace_left"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_ARCHIVED = "workspace_archived"
+
+ORGANIZATION_STATUS_ACTIVE = "active"
+ORGANIZATION_STATUS_ARCHIVED = "archived"
 
 
 def record_organization_audit_log(
@@ -138,6 +142,31 @@ def resolve_organization_for_user(
     return organization
 
 
+def ensure_organization_is_active(
+    organization: Organization,
+) -> Organization:
+    if organization.status == ORGANIZATION_STATUS_ARCHIVED:
+        raise ForbiddenError(
+            "Workspace is archived.",
+            error_code="workspace_archived",
+        )
+
+    return organization
+
+
+def ensure_organization_is_active_by_id(
+    db: Session,
+    *,
+    organization_id: int,
+) -> Organization:
+    organization = db.get(Organization, organization_id)
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    return ensure_organization_is_active(organization)
+
+
 def update_user_organization(
     db: Session,
     *,
@@ -151,10 +180,10 @@ def update_user_organization(
         current_user=current_user,
     )
 
-    organization = db.get(Organization, organization_id)
-
-    if organization is None:
-        raise NotFoundError("Organization not found.")
+    organization = ensure_organization_is_active_by_id(
+        db,
+        organization_id=organization_id,
+    )
 
     previous_name = organization.name
     organization.name = organization_update.name
@@ -177,6 +206,7 @@ def update_user_organization(
         "id": organization.id,
         "public_id": organization.public_id,
         "name": organization.name,
+        "status": organization.status,
         "role": membership.role,
     }
 
@@ -291,6 +321,25 @@ def ensure_user_can_manage_organization_tasks(
 
     if not can_manage_tasks(membership.role):
         raise ForbiddenError("Organization member role is required.")
+
+    return membership
+
+
+def ensure_user_can_manage_active_organization_tasks(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+    ensure_organization_is_active_by_id(
+        db,
+        organization_id=organization_id,
+    )
 
     return membership
 
@@ -466,6 +515,10 @@ def create_user_organization_invitation(
         db,
         organization_id=organization_id,
         current_user=current_user,
+    )
+    ensure_organization_is_active_by_id(
+        db,
+        organization_id=organization_id,
     )
 
     if not can_invite_role(invitation_create.role):
@@ -1008,3 +1061,55 @@ def leave_user_organization(
     )
 
     db.commit()
+
+def archive_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> dict[str, int | str]:
+    membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    organization = db.get(Organization, organization_id)
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    if organization.status == ORGANIZATION_STATUS_ARCHIVED:
+        return {
+            "id": organization.id,
+            "public_id": organization.public_id,
+            "name": organization.name,
+            "status": organization.status,
+            "role": membership.role,
+        }
+
+    previous_status = organization.status
+    organization.status = ORGANIZATION_STATUS_ARCHIVED
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_ARCHIVED,
+        metadata_json={
+            "previous_status": previous_status,
+            "new_status": organization.status,
+        },
+    )
+
+    db.commit()
+    db.refresh(organization)
+
+    return {
+        "id": organization.id,
+        "public_id": organization.public_id,
+        "name": organization.name,
+        "status": organization.status,
+        "role": membership.role,
+    }
+

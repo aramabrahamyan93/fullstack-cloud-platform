@@ -110,6 +110,7 @@ def test_owner_can_rename_workspace(client: TestClient) -> None:
         "id": workspace["id"],
         "public_id": workspace["public_id"],
         "name": "Renamed Workspace",
+        "status": "active",
         "role": "owner",
     }
 

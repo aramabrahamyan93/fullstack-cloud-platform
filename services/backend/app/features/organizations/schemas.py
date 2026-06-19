@@ -20,6 +20,7 @@ class OrganizationRead(BaseModel):
     id: int
     public_id: str
     name: str
+    status: str
     role: str | None = None
 
 
