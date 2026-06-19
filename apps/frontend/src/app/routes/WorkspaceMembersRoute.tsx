@@ -21,7 +21,9 @@ export function WorkspaceMembersRoute({
   const currentMember = controller.members.find(
     (member) => member.user_id === controller.currentUser?.id
   );
-  const canManageInvitations = currentMember?.role === "owner";
+  const isWorkspaceArchived = routeWorkspace?.status === "archived";
+  const canManageInvitations =
+    currentMember?.role === "owner" && !isWorkspaceArchived;
   const canLeaveWorkspace = currentMember?.role === "member";
   const loadedInvitationsWorkspaceIdRef = useRef<number | null>(null);
 
@@ -119,6 +121,7 @@ export function WorkspaceMembersRoute({
         isInvitationsLoading={controller.isInvitationsLoading}
         isInviteCandidatesLoading={controller.isInviteCandidatesLoading}
         isInvitationSubmitting={controller.isInvitationSubmitting}
+        isWorkspaceArchived={Boolean(isWorkspaceArchived)}
         canManageInvitations={canManageInvitations}
         canLeaveWorkspace={canLeaveWorkspace}
         onCreateInvitation={controller.handleCreateWorkspaceInvitation}

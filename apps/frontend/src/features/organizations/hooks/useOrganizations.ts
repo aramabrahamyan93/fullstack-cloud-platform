@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  archiveOrganization,
   createOrganization,
   getOrganizations,
   updateOrganization
@@ -27,6 +28,9 @@ export type UseOrganizationsResult = {
   renameUserOrganization: (
     organizationRef: OrganizationRef,
     name: string
+  ) => Promise<OrganizationActionResult>;
+  archiveUserOrganization: (
+    organizationRef: OrganizationRef
   ) => Promise<OrganizationActionResult>;
 };
 
@@ -180,6 +184,43 @@ export function useOrganizations(): UseOrganizationsResult {
     }
   }
 
+  async function archiveUserOrganization(
+    organizationRef: OrganizationRef
+  ): Promise<OrganizationActionResult> {
+    setIsOrganizationSubmitting(true);
+
+    try {
+      const organization = await archiveOrganization(organizationRef);
+
+      setOrganizations((currentOrganizations) =>
+        currentOrganizations.map((currentOrganization) =>
+          currentOrganization.id === organization.id
+            ? organization
+            : currentOrganization
+        )
+      );
+
+      setSelectedOrganization((currentSelectedOrganization) =>
+        currentSelectedOrganization?.id === organization.id
+          ? organization
+          : currentSelectedOrganization
+      );
+
+      return {
+        success: true,
+        message: "Workspace archived successfully.",
+        organization
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: getErrorMessage(error)
+      };
+    } finally {
+      setIsOrganizationSubmitting(false);
+    }
+  }
+
   return {
     organizations,
     selectedOrganization,
@@ -189,6 +230,7 @@ export function useOrganizations(): UseOrganizationsResult {
     clearOrganizations,
     selectOrganization,
     createUserOrganization,
-    renameUserOrganization
+    renameUserOrganization,
+    archiveUserOrganization
   };
 }

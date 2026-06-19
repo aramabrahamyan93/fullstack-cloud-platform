@@ -31,7 +31,16 @@
   color: #b91c1c;
 }
 
-.workspace-settings-role-badge {
+.workspace-settings-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.workspace-settings-role-badge,
+.workspace-settings-status-badge {
   flex-shrink: 0;
   padding: 8px 12px;
   border-radius: 999px;
@@ -40,6 +49,16 @@
   font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.workspace-settings-status-badge.active {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.workspace-settings-status-badge.archived {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .workspace-settings-role-badge.owner {
@@ -54,7 +73,7 @@
 
 .workspace-settings-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -82,7 +101,7 @@
 
 .workspace-settings-actions-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 

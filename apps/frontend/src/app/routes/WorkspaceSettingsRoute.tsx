@@ -105,6 +105,9 @@ export function WorkspaceSettingsRoute({
         onLeaveWorkspace={() =>
           controller.handleLeaveWorkspaceById(routeWorkspace.id)
         }
+        onArchiveWorkspace={() =>
+          controller.handleArchiveWorkspaceById(routeWorkspace.id)
+        }
       />
     </>
   );

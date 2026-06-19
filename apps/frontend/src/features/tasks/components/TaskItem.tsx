@@ -5,6 +5,8 @@ import type { Task, TaskStatus } from "../types";
 type TaskItemProps = {
   task: Task;
   isMutating: boolean;
+  isReadOnly?: boolean;
+  readOnlyReason?: string;
   onUpdateTask: (
     taskId: number,
     title: string,
@@ -16,6 +18,8 @@ type TaskItemProps = {
 export function TaskItem({
   task,
   isMutating,
+  isReadOnly = false,
+  readOnlyReason,
   onUpdateTask,
   onDeleteTask
 }: TaskItemProps) {
@@ -23,31 +27,40 @@ export function TaskItem({
   const [status, setStatus] = useState<TaskStatus>(task.status);
 
   const hasChanges = title.trim() !== task.title || status !== task.status;
-  const canSave = title.trim().length > 0 && hasChanges && !isMutating;
+  const canSave =
+    title.trim().length > 0 && hasChanges && !isMutating && !isReadOnly;
 
   async function handleSave() {
+    if (isReadOnly) {
+      return;
+    }
+
     await onUpdateTask(task.id, title.trim(), status);
   }
 
   async function handleDelete() {
+    if (isReadOnly) {
+      return;
+    }
+
     await onDeleteTask(task.id);
   }
 
   return (
-    <li className="task-item">
+    <li className="task-item" title={isReadOnly ? readOnlyReason : undefined}>
       <span className="task-id">#{task.id}</span>
 
       <input
         type="text"
         maxLength={200}
         value={title}
-        disabled={isMutating}
+        disabled={isMutating || isReadOnly}
         onChange={(event) => setTitle(event.target.value)}
       />
 
       <select
         value={status}
-        disabled={isMutating}
+        disabled={isMutating || isReadOnly}
         onChange={(event) => setStatus(event.target.value as TaskStatus)}
       >
         <option value="open">open</option>
@@ -63,10 +76,10 @@ export function TaskItem({
         <button
           type="button"
           className="danger"
-          disabled={isMutating}
+          disabled={isMutating || isReadOnly}
           onClick={handleDelete}
         >
-          Delete
+          {isReadOnly ? "Read-only" : "Delete"}
         </button>
       </div>
     </li>

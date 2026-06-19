@@ -21,6 +21,8 @@ type TaskListProps = {
   hasNextPage: boolean;
   isLoading: boolean;
   isMutating: boolean;
+  isReadOnly?: boolean;
+  readOnlyReason?: string;
   onPreviousPage: () => Promise<void>;
   onNextPage: () => Promise<void>;
   onPageSizeChange: (pageSize: TaskPageSize) => Promise<void>;
@@ -54,6 +56,8 @@ export function TaskList({
   hasNextPage,
   isLoading,
   isMutating,
+  isReadOnly = false,
+  readOnlyReason,
   onPreviousPage,
   onNextPage,
   onPageSizeChange,
@@ -115,7 +119,9 @@ export function TaskList({
         <div>
           <h2>Tasks</h2>
           <p className="card-subtitle">
-            Showing {FILTER_LABELS[activeFilter]} tasks for the current workspace.
+            {isReadOnly
+              ? readOnlyReason ?? "This workspace is read-only."
+              : `Showing ${FILTER_LABELS[activeFilter]} tasks for the current workspace.`}
           </p>
         </div>
 
@@ -187,6 +193,8 @@ export function TaskList({
               key={task.id}
               task={task}
               isMutating={isMutating}
+              isReadOnly={isReadOnly}
+              readOnlyReason={readOnlyReason}
               onUpdateTask={onUpdateTask}
               onDeleteTask={onDeleteTask}
             />

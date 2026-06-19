@@ -125,8 +125,13 @@ export function OrganizationsPage({
                     className="organization-list-main"
                     onClick={() => onSelectOrganization(organization.id)}
                   >
-                    <span>#{organization.id}</span>
+                    <span>{organization.public_id}</span>
                     <strong>{organization.name}</strong>
+                    {organization.status === "archived" ? (
+                      <span className="organization-status-badge archived">
+                        archived
+                      </span>
+                    ) : null}
                   </button>
 
                   <div className="organization-list-actions">

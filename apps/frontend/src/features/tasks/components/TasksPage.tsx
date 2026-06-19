@@ -27,6 +27,8 @@ type TasksPageProps = {
   isTasksLoading: boolean;
   isSubmitting: boolean;
   isMutating: boolean;
+  isReadOnly?: boolean;
+  readOnlyReason?: string;
   onCreateTask: (title: string, status: TaskStatus) => Promise<void>;
   onFilterChange: (statusFilter: TaskStatusFilter) => Promise<void>;
   onPreviousPage: () => Promise<void>;
@@ -59,6 +61,8 @@ export function TasksPage({
   isTasksLoading,
   isSubmitting,
   isMutating,
+  isReadOnly = false,
+  readOnlyReason,
   onCreateTask,
   onFilterChange,
   onPreviousPage,
@@ -103,8 +107,18 @@ export function TasksPage({
         </div>
       </section>
 
+      {isReadOnly ? (
+        <section className="card">
+          <div className="empty-state">
+            {readOnlyReason ?? "This workspace is read-only."}
+          </div>
+        </section>
+      ) : null}
+
       <TaskForm
         isSubmitting={isSubmitting}
+        isReadOnly={isReadOnly}
+        readOnlyReason={readOnlyReason}
         onCreateTask={onCreateTask}
       />
 
@@ -117,6 +131,8 @@ export function TasksPage({
       <Message message={message} />
 
       <TaskList
+        isReadOnly={isReadOnly}
+        readOnlyReason={readOnlyReason}
         tasks={tasks}
         activeFilter={taskStatusFilter}
         search={taskSearch}

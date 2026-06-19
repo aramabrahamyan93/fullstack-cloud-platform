@@ -22,6 +22,10 @@ export function useTaskController({
 }: UseTaskControllerOptions) {
   const navigate = useNavigate();
 
+  function isSelectedWorkspaceArchived(): boolean {
+    return selectedOrganization?.status === "archived";
+  }
+
   const {
     tasks,
     taskStatusFilter,
@@ -127,6 +131,11 @@ export function useTaskController({
       return;
     }
 
+    if (isSelectedWorkspaceArchived()) {
+      showMessage("This workspace is archived and read-only.", "error");
+      return;
+    }
+
     showMessage("Creating task...", "muted");
 
     const result = await createUserTask(
@@ -148,6 +157,11 @@ export function useTaskController({
       return;
     }
 
+    if (isSelectedWorkspaceArchived()) {
+      showMessage("This workspace is archived and read-only.", "error");
+      return;
+    }
+
     showMessage(`Updating task #${taskId}...`, "muted");
 
     const result = await updateUserTask(
@@ -163,6 +177,11 @@ export function useTaskController({
   async function handleDeleteTask(taskId: number): Promise<void> {
     if (!currentUser) {
       showMessage("Please login before deleting tasks.", "error");
+      return;
+    }
+
+    if (isSelectedWorkspaceArchived()) {
+      showMessage("This workspace is archived and read-only.", "error");
       return;
     }
 

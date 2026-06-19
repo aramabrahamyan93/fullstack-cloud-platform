@@ -50,6 +50,17 @@ export function updateOrganization(
   );
 }
 
+export function archiveOrganization(
+  organizationRef: OrganizationRef
+): Promise<Organization> {
+  return fetchJson<Organization>(
+    `/organizations/${toOrganizationPathRef(organizationRef)}/archive`,
+    {
+      method: "POST"
+    }
+  );
+}
+
 export function getOrganizationMembers(
   organizationRef: OrganizationRef
 ): Promise<OrganizationMember[]> {

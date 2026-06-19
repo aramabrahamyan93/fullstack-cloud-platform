@@ -122,3 +122,16 @@
   font-weight: 700;
   white-space: nowrap;
 }
+
+.organization-status-badge {
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.organization-status-badge.archived {
+  background: #fef3c7;
+  color: #92400e !important;
+}
