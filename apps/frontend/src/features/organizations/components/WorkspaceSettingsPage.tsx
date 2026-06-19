@@ -10,6 +10,7 @@ type WorkspaceSettingsPageProps = {
   onRenameWorkspace: (name: string) => Promise<boolean>;
   onLeaveWorkspace: () => Promise<void>;
   onArchiveWorkspace: () => Promise<boolean>;
+  onRestoreWorkspace: () => Promise<boolean>;
 };
 
 export function WorkspaceSettingsPage({
@@ -18,7 +19,8 @@ export function WorkspaceSettingsPage({
   isSubmitting,
   onRenameWorkspace,
   onLeaveWorkspace,
-  onArchiveWorkspace
+  onArchiveWorkspace,
+  onRestoreWorkspace
 }: WorkspaceSettingsPageProps) {
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
 
@@ -64,6 +66,14 @@ export function WorkspaceSettingsPage({
     }
 
     await onArchiveWorkspace();
+  }
+
+  async function handleRestoreClick(): Promise<void> {
+    if (!isOwner || !isArchived) {
+      return;
+    }
+
+    await onRestoreWorkspace();
   }
 
   return (
@@ -137,7 +147,7 @@ export function WorkspaceSettingsPage({
         <div className="workspace-settings-grid">
           <article className="workspace-settings-item">
             <span>Workspace ID</span>
-            <strong>#{workspace.id}</strong>
+            <strong>{workspace.public_id}</strong>
           </article>
 
           <article className="workspace-settings-item">
@@ -214,7 +224,7 @@ export function WorkspaceSettingsPage({
             <span>
               {isArchived
                 ? "Archived workspaces are read-only. Existing tasks can be viewed, but not changed."
-                : "Owners and members can manage workspace tasks."}
+                : "Owners and members can manage workspace tasks. Restored workspaces are fully active again."}
             </span>
           </article>
 
@@ -266,6 +276,32 @@ export function WorkspaceSettingsPage({
         )}
       </section>
 
+      <section className="card workspace-settings-card workspace-settings-restore-card">
+        <div>
+          <span className="workspace-settings-eyebrow restore">Restore</span>
+          <h2>Restore workspace</h2>
+          <p className="card-subtitle">
+            Restore returns an archived workspace to active mode. Rename,
+            invitations, and workspace task writes become available again.
+          </p>
+        </div>
+
+        {isOwner ? (
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={isSubmitting || !isArchived}
+            onClick={() => void handleRestoreClick()}
+          >
+            {isArchived ? "Restore workspace" : "Workspace active"}
+          </button>
+        ) : (
+          <div className="workspace-settings-owner-note">
+            Only workspace owners can restore this workspace.
+          </div>
+        )}
+      </section>
+
       <section className="card workspace-settings-card workspace-settings-danger-card">
         <div>
           <span className="workspace-settings-eyebrow danger">Membership</span>
@@ -305,8 +341,8 @@ export function WorkspaceSettingsPage({
           <div>
             <h2>Coming next</h2>
             <p className="card-subtitle">
-              Future settings can include restore policy, delete policy, audit
-              history filters, and invitation email configuration.
+              Future settings can include delete policy, audit history filters,
+              invitation email configuration, and advanced retention controls.
             </p>
           </div>
         </div>

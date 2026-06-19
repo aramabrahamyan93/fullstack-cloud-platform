@@ -11,6 +11,7 @@ const EVENT_LABELS: Record<OrganizationAuditLog["event_type"], string> = {
   workspace_created: "Workspace created",
   workspace_renamed: "Workspace renamed",
   workspace_archived: "Workspace archived",
+  workspace_restored: "Workspace restored",
   member_invited: "Member invited",
   invitation_accepted: "Invitation accepted",
   invitation_declined: "Invitation declined",
@@ -24,6 +25,7 @@ const EVENT_DESCRIPTIONS: Record<OrganizationAuditLog["event_type"], string> = {
   workspace_created: "A new workspace was created.",
   workspace_renamed: "The workspace name was updated.",
   workspace_archived: "The workspace was archived.",
+  workspace_restored: "The workspace was restored to active mode.",
   member_invited: "A user was invited to join this workspace.",
   invitation_accepted: "A workspace invitation was accepted.",
   invitation_declined: "A workspace invitation was declined.",
@@ -41,7 +43,9 @@ const METADATA_LABELS: Record<string, string> = {
   new_name: "New name",
   new_owner_member_id: "New owner member ID",
   new_owner_user_id: "New owner user ID",
+  new_status: "New status",
   previous_name: "Previous name",
+  previous_status: "Previous status",
   previous_owner_member_id: "Previous owner member ID",
   previous_owner_user_id: "Previous owner user ID",
   role: "Role",
@@ -52,6 +56,7 @@ const EVENT_GROUP_CLASS_NAMES: Record<OrganizationAuditLog["event_type"], string
   workspace_created: "workspace-activity-event-code--workspace",
   workspace_renamed: "workspace-activity-event-code--workspace",
   workspace_archived: "workspace-activity-event-code--workspace",
+  workspace_restored: "workspace-activity-event-code--workspace",
   member_invited: "workspace-activity-event-code--invitation",
   invitation_accepted: "workspace-activity-event-code--invitation",
   invitation_declined: "workspace-activity-event-code--invitation",
@@ -128,7 +133,7 @@ export function WorkspaceActivityPage({
         <div className="workspace-activity-summary-grid">
           <article className="workspace-activity-summary-item">
             <span>Workspace ID</span>
-            <strong>#{workspace.id}</strong>
+            <strong>{workspace.public_id}</strong>
           </article>
 
           <article className="workspace-activity-summary-item">

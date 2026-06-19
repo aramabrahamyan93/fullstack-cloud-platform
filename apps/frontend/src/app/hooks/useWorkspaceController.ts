@@ -30,7 +30,8 @@ export function useWorkspaceController({
     selectOrganization,
     createUserOrganization,
     renameUserOrganization,
-    archiveUserOrganization
+    archiveUserOrganization,
+    restoreUserOrganization
   } = useOrganizations();
 
   const {
@@ -161,6 +162,53 @@ export function useWorkspaceController({
     }
 
     return handleArchiveWorkspaceById(selectedOrganization.id);
+  }
+
+  async function handleRestoreWorkspaceById(
+    organizationId: number
+  ): Promise<boolean> {
+    const organization = organizations.find(
+      (candidate) => candidate.id === organizationId
+    );
+
+    if (!organization) {
+      showMessage("Please select a workspace first.", "error");
+      return false;
+    }
+
+    if (organization.status === "active") {
+      showMessage("This workspace is already active.", "muted");
+      return true;
+    }
+
+    const confirmed = window.confirm(
+      "Restore this workspace? Workspace writes such as rename, invitations, and task changes will be enabled again."
+    );
+
+    if (!confirmed) {
+      return false;
+    }
+
+    const result = await restoreUserOrganization(organization.public_id);
+
+    showMessage(result.message, result.success ? "success" : "error");
+
+    if (result.success) {
+      await loadOrganizations();
+      await loadWorkspaceAuditLogs(organization.id);
+      await loadWorkspaceDashboardSummary(organization.id);
+    }
+
+    return result.success;
+  }
+
+  async function handleRestoreWorkspace(): Promise<boolean> {
+    if (!selectedOrganization) {
+      showMessage("Please select a workspace first.", "error");
+      return false;
+    }
+
+    return handleRestoreWorkspaceById(selectedOrganization.id);
   }
 
   async function handleCreateOrganization(name: string): Promise<void> {
@@ -471,6 +519,8 @@ export function useWorkspaceController({
     handleRenameWorkspaceById,
     handleArchiveWorkspace,
     handleArchiveWorkspaceById,
+    handleRestoreWorkspace,
+    handleRestoreWorkspaceById,
     handleSelectOrganization,
     selectWorkspaceFromRoute
   };

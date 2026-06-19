@@ -108,6 +108,9 @@ export function WorkspaceSettingsRoute({
         onArchiveWorkspace={() =>
           controller.handleArchiveWorkspaceById(routeWorkspace.id)
         }
+        onRestoreWorkspace={() =>
+          controller.handleRestoreWorkspaceById(routeWorkspace.id)
+        }
       />
     </>
   );

@@ -31,6 +31,10 @@
   color: #b91c1c;
 }
 
+.workspace-settings-eyebrow.restore {
+  color: #047857;
+}
+
 .workspace-settings-badge-group {
   display: flex;
   align-items: center;
@@ -179,6 +183,19 @@
   margin: 4px 0 0;
 }
 
+.workspace-settings-restore-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-color: #bbf7d0;
+  background: #f7fef9;
+}
+
+.workspace-settings-restore-card h2 {
+  margin: 4px 0 0;
+}
+
 .workspace-settings-owner-note {
   padding: 10px 12px;
   border: 1px solid #e5e7eb;
@@ -196,7 +213,8 @@
   }
 
   .workspace-settings-hero,
-  .workspace-settings-danger-card {
+  .workspace-settings-danger-card,
+  .workspace-settings-restore-card {
     align-items: flex-start;
     flex-direction: column;
   }
