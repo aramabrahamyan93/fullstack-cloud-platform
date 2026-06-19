@@ -37,6 +37,7 @@ ORGANIZATION_AUDIT_EVENT_MEMBER_REMOVED = "member_removed"
 ORGANIZATION_AUDIT_EVENT_OWNERSHIP_TRANSFERRED = "ownership_transferred"
 ORGANIZATION_AUDIT_EVENT_WORKSPACE_LEFT = "workspace_left"
 ORGANIZATION_AUDIT_EVENT_WORKSPACE_ARCHIVED = "workspace_archived"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_RESTORED = "workspace_restored"
 
 ORGANIZATION_STATUS_ACTIVE = "active"
 ORGANIZATION_STATUS_ARCHIVED = "archived"
@@ -1099,6 +1100,58 @@ def archive_user_organization(
         metadata_json={
             "previous_status": previous_status,
             "new_status": organization.status,
+        },
+    )
+
+    db.commit()
+    db.refresh(organization)
+
+    return {
+        "id": organization.id,
+        "public_id": organization.public_id,
+        "name": organization.name,
+        "status": organization.status,
+        "role": membership.role,
+    }
+
+
+def restore_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> dict[str, int | str]:
+    membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    organization = db.get(Organization, organization_id)
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    if organization.status == ORGANIZATION_STATUS_ACTIVE:
+        return {
+            "id": organization.id,
+            "public_id": organization.public_id,
+            "name": organization.name,
+            "status": organization.status,
+            "role": membership.role,
+        }
+
+    previous_status = organization.status
+    organization.status = ORGANIZATION_STATUS_ACTIVE
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_RESTORED,
+        metadata_json={
+            "previous_status": previous_status,
+            "new_status": ORGANIZATION_STATUS_ACTIVE,
         },
     )
 
