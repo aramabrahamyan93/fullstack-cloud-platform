@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.dependencies import get_current_user
 from app.db.dependencies import get_db
+from app.features.organizations.service import ensure_user_can_manage_active_organization_tasks
 from app.features.organizations.service import ensure_user_can_manage_organization_tasks
 from app.features.organizations.service import resolve_organization_for_user
 from app.features.tasks.constants import DEFAULT_TASK_LIMIT
@@ -70,6 +71,27 @@ def resolve_manageable_organization_id(
     )
 
     ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    return organization_id
+
+
+def resolve_active_manageable_organization_id(
+    db: Session,
+    *,
+    organization_ref: str,
+    current_user: User,
+) -> int:
+    organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_ref,
+        current_user=current_user,
+    )
+
+    ensure_user_can_manage_active_organization_tasks(
         db,
         organization_id=organization_id,
         current_user=current_user,
@@ -199,7 +221,7 @@ def create_organization_task(
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    resolved_organization_id = resolve_manageable_organization_id(
+    resolved_organization_id = resolve_active_manageable_organization_id(
         db,
         organization_ref=organization_id,
         current_user=current_user,
@@ -247,7 +269,7 @@ def update_existing_organization_task(
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    resolved_organization_id = resolve_manageable_organization_id(
+    resolved_organization_id = resolve_active_manageable_organization_id(
         db,
         organization_ref=organization_id,
         current_user=current_user,
@@ -271,7 +293,7 @@ def delete_existing_organization_task(
     service: Annotated[TaskService, Depends(get_task_service)],
     db: Session = Depends(get_db),
 ):
-    resolved_organization_id = resolve_manageable_organization_id(
+    resolved_organization_id = resolve_active_manageable_organization_id(
         db,
         organization_ref=organization_id,
         current_user=current_user,

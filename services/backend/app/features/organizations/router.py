@@ -14,6 +14,7 @@ from app.features.organizations.schemas import OrganizationRead
 from app.features.organizations.schemas import OrganizationUpdate
 from app.features.organizations.service import (
     accept_current_user_invitation,
+    archive_user_organization,
     cancel_user_organization_invitation,
     create_user_organization_invitation,
     decline_current_user_invitation,
@@ -389,5 +390,23 @@ def update_organization(
         organization_id=resolved_organization_id,
         current_user=current_user,
         organization_update=organization_update,
+    )
+
+@router.post("/{organization_id}/archive", response_model=OrganizationRead)
+def archive_organization(
+    organization_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> OrganizationRead:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
+    return archive_user_organization(
+        db,
+        organization_id=resolved_organization_id,
+        current_user=current_user,
     )
 
