@@ -14,7 +14,7 @@ Workspace-related backend code lives in:
 services/backend/app/features/organizations/
 ```
 
-This feature owns organization models, schemas, repository logic, service rules, permission helpers, routers, and workspace-scoped task routes.
+This feature owns organization models, schemas, repository logic, service rules, permission helpers, routers, audit logging, lifecycle policy, and workspace-scoped task routes.
 
 The current organization feature includes:
 
@@ -31,6 +31,33 @@ tasks_router.py
 The important architecture rule is that workspace security and permissions are backend-enforced.
 
 Frontend role checks can improve UX, but they are not the source of truth.
+
+## Workspace public ID architecture
+
+The backend keeps numeric organization IDs as internal database identifiers.
+
+The API and browser routes support public workspace IDs so the frontend does not need to expose numeric IDs in URLs.
+
+Current pattern:
+
+```text
+public route/API input -> organization.public_id, for example ws_8fK2xQm91aP
+backend resolution     -> numeric organization.id
+database joins         -> numeric organization.id
+API response           -> includes both id and public_id
+```
+
+Frontend routes should use public IDs:
+
+```text
+/workspaces/ws_8fK2xQm91aP/dashboard
+/workspaces/ws_8fK2xQm91aP/tasks
+/workspaces/ws_8fK2xQm91aP/members
+/workspaces/ws_8fK2xQm91aP/settings
+/workspaces/ws_8fK2xQm91aP/activity
+```
+
+Backend service logic should resolve public IDs at the API boundary and continue using numeric IDs internally where appropriate.
 
 ## Workspace permission policy
 
@@ -51,7 +78,9 @@ Current direction:
 
 ```text
 owners can manage workspace access and settings
-owners and members can manage workspace tasks
+owners can archive and restore workspaces
+owners and members can manage workspace tasks while the workspace is active
+owners and members can read archived workspaces
 members can leave workspaces
 owners must transfer ownership before leaving
 ```
@@ -87,15 +116,65 @@ Workspace settings are available in the frontend at:
 /workspaces/:workspaceId/settings
 ```
 
-Current settings include role-aware UI, workspace identity, access policy information, member leave action, owner leave restriction note, and owner-only workspace rename.
+Current settings include role-aware UI, workspace identity, workspace status, access policy information, member leave action, owner leave restriction note, owner-only workspace rename, owner-only archive, and owner-only restore.
 
 Workspace rename is exposed through:
 
 ```text
-PATCH /organizations/{organization_id}
+PATCH /organizations/{organization_id_or_public_id}
 ```
 
 The backend enforces that only owners can rename a workspace.
+
+## Workspace lifecycle architecture
+
+Workspace lifecycle is currently status-based.
+
+Current statuses:
+
+```text
+active
+archived
+```
+
+Current lifecycle:
+
+```text
+active -> archived -> active
+```
+
+Archive endpoint:
+
+```text
+POST /organizations/{organization_id_or_public_id}/archive
+```
+
+Restore endpoint:
+
+```text
+POST /organizations/{organization_id_or_public_id}/restore
+```
+
+Architecture rules:
+
+- lifecycle transitions are backend-enforced
+- only owners can archive or restore
+- non-members receive `404` so they cannot infer workspace existence
+- archived workspaces remain readable
+- archived workspace writes are blocked with the stable error code `workspace_archived`
+- restore is idempotent if the workspace is already active
+- archive/restore events are recorded through the audit log foundation
+- frontend read-only state is UX only; backend remains the source of truth
+
+Blocked archived workspace operations currently include:
+
+```text
+workspace rename
+workspace invitations
+workspace task create
+workspace task update
+workspace task delete
+```
 
 ## Route-based workspace consistency
 
@@ -142,7 +221,7 @@ OrganizationAuditLog
 Current endpoint:
 
 ```text
-GET /organizations/{organization_id}/audit-logs
+GET /organizations/{organization_id_or_public_id}/audit-logs
 ```
 
 Visibility rule:
@@ -151,6 +230,25 @@ Visibility rule:
 workspace owner/member -> 200
 non-member              -> 404
 unauthenticated         -> 401
+```
+
+Current lifecycle-related audit events include:
+
+```text
+workspace_archived
+workspace_restored
+```
+
+Current metadata examples:
+
+```text
+workspace_archived:
+  previous_status
+  new_status
+
+workspace_restored:
+  previous_status
+  new_status
 ```
 
 The audit log is not currently paginated beyond a repository-level limit. Future improvements can add cursor pagination, filters by event type, actor, or date range.

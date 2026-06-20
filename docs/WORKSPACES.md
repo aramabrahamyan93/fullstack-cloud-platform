@@ -17,10 +17,21 @@ User
     ├── Members
     ├── Invitations
     ├── Workspace tasks
+    ├── Dashboard
+    ├── Activity / Audit logs
     └── Settings
 ```
 
 A user can create one or more workspaces.
+
+A workspace has both:
+
+```text
+id        -> internal numeric database identifier
+public_id -> non-guessable public route/API identifier, for example ws_8fK2xQm91aP
+```
+
+Browser routes and frontend API calls should use `public_id`. Backend services and database joins can still use the internal numeric `id`.
 
 A workspace has members. Each member has a role.
 
@@ -55,10 +66,10 @@ tasks_router.py
 
 Responsibilities:
 
-- `models.py` defines organization, membership, and invitation database models.
+- `models.py` defines organization, membership, invitation, and audit log database models.
 - `permissions.py` centralizes role and permission rules.
 - `repository.py` contains organization-related database access.
-- `router.py` exposes organization, member, invitation, ownership, leave, and settings APIs.
+- `router.py` exposes organization, member, invitation, ownership, leave, settings, archive, restore, dashboard, and audit log APIs.
 - `schemas.py` defines request and response contracts.
 - `service.py` contains workspace business rules.
 - `tasks_router.py` exposes workspace-scoped task routes.
@@ -80,6 +91,9 @@ Current responsibilities:
 - invitation acceptance/decline UI
 - workspace settings page
 - workspace rename form
+- workspace archive and restore actions
+- workspace activity page
+- workspace dashboard summary
 - organization API client calls
 - organization hooks and state management
 
@@ -97,6 +111,7 @@ Current workspace routes:
 /workspaces/:workspaceId/tasks
 /workspaces/:workspaceId/members
 /workspaces/:workspaceId/settings
+/workspaces/:workspaceId/activity
 ```
 
 ## Invite-first membership policy
@@ -137,6 +152,8 @@ owner:
   - transfer ownership
   - manage workspace tasks
   - rename workspace
+  - archive workspace
+  - restore workspace
 
 member:
   - view members
@@ -150,12 +167,24 @@ Owners cannot leave a workspace until ownership is transferred.
 
 Members can leave a workspace.
 
+Archived workspace policy:
+
+```text
+owner/member -> can read workspace data
+owner        -> can restore workspace
+all members  -> cannot write workspace tasks while archived
+owner        -> cannot rename/invite while archived
+```
+
+Archived write attempts return the stable backend error code `workspace_archived`.
+
 ## Workspace settings
 
 The workspace settings page is available at:
 
 ```text
 /workspaces/:workspaceId/settings
+/workspaces/:workspaceId/activity
 ```
 
 Current settings capabilities:
@@ -165,9 +194,84 @@ Current settings capabilities:
 - provide quick links to tasks, members, and all workspaces
 - explain access policy
 - allow owners to rename a workspace
+- allow owners to archive an active workspace
+- allow owners to restore an archived workspace
+- show workspace status
 - show readonly rename note for members
 - allow members to leave a workspace
 - explain that owners must transfer ownership before leaving
+
+## Workspace lifecycle: active, archived, restored
+
+Workspaces currently support a simple lifecycle:
+
+```text
+active -> archived -> active
+```
+
+The `status` field is returned by workspace API responses:
+
+```text
+active
+archived
+```
+
+### Archive flow
+
+Archive is an owner-only action.
+
+Backend endpoint:
+
+```text
+POST /organizations/{organization_id_or_public_id}/archive
+```
+
+Archive behavior:
+
+- unauthenticated users receive `401`
+- owners can archive the workspace
+- members receive `403` with `workspace_owner_required`
+- non-members receive `404`
+- archiving an already archived workspace is idempotent
+- archive writes an audit event `workspace_archived`
+- existing data remains readable
+- workspace task writes are blocked
+- workspace rename is blocked
+- workspace invitations are blocked
+
+Blocked archived workspace writes return:
+
+```text
+workspace_archived
+```
+
+### Restore flow
+
+Restore is an owner-only action.
+
+Backend endpoint:
+
+```text
+POST /organizations/{organization_id_or_public_id}/restore
+```
+
+Restore behavior:
+
+- unauthenticated users receive `401`
+- owners can restore the workspace
+- members receive `403` with `workspace_owner_required`
+- non-members receive `404`
+- restoring an already active workspace is idempotent
+- restore writes an audit event `workspace_restored` only when status changes from archived to active
+- rename, invitations, and workspace task writes become available again
+
+Frontend behavior:
+
+- Settings shows workspace status
+- Settings shows Archive action for active workspaces
+- Settings shows Restore action for archived workspaces
+- archived workspace task UI becomes read-only
+- restored workspaces become editable again through the existing task/member/settings flows
 
 ## Workspace rename flow
 
@@ -176,7 +280,7 @@ Workspace rename is implemented as an owner-only setting.
 Backend endpoint:
 
 ```text
-PATCH /organizations/{organization_id}
+PATCH /organizations/{organization_id_or_public_id}
 ```
 
 Rules:
@@ -203,6 +307,7 @@ For example, settings actions use:
 
 ```text
 /workspaces/:workspaceId/settings
+/workspaces/:workspaceId/activity
 ```
 
 and call rename/leave actions with `routeWorkspace.id`.
@@ -216,15 +321,20 @@ Workspace task routes are protected by membership permissions.
 Current direction:
 
 ```text
-owners and members can manage workspace tasks
-non-members cannot access workspace tasks
+active workspace:
+  owners and members can manage workspace tasks
+  non-members cannot access workspace tasks
+
+archived workspace:
+  owners and members can read workspace tasks
+  task create/update/delete is blocked
 ```
 
 The permission rule is centralized through the organization permission helper instead of being duplicated in route handlers.
 
 ## Smoke coverage
 
-The local smoke script validates workspace rename through both backend direct URL and frontend API proxy.
+The local smoke script validates workspace public ID routes through both backend direct URL and frontend API proxy.
 
 Script:
 
@@ -239,9 +349,12 @@ register user
 login user
 create task
 create workspace
-rename workspace
-get renamed workspace
+extract workspace public_id
+rename workspace through public_id route
+get renamed workspace through public_id route
 list workspaces after rename
+verify workspace audit logs
+verify workspace dashboard summary
 repeat through frontend /api proxy
 ```
 
@@ -256,8 +369,7 @@ Current limitations:
 - only `owner` and `member` roles exist
 - only `member` invitations are supported
 - no custom role matrix yet
-- no audit log yet
-- no workspace archive/delete policy yet
+- no workspace hard-delete policy yet
 - no billing/subscription policy yet
 - no invitation email delivery yet
 
@@ -268,9 +380,8 @@ These are future productization steps.
 The next larger productization phase can add:
 
 ```text
-audit logs
-workspace activity history
-workspace archive/delete policy
+workspace delete or soft-delete policy
+audit log filters and pagination
 richer roles and permissions
 billing/subscription placeholder
 admin commands
@@ -304,6 +415,8 @@ Current audit event types:
 ```text
 workspace_created
 workspace_renamed
+workspace_archived
+workspace_restored
 member_invited
 invitation_accepted
 invitation_declined
@@ -337,6 +450,14 @@ workspace_created:
 workspace_renamed:
   previous_name
   new_name
+
+workspace_archived:
+  previous_status
+  new_status
+
+workspace_restored:
+  previous_status
+  new_status
 
 member_invited:
   invitation_id
@@ -396,13 +517,13 @@ The Activity page is reachable from the Workspace navigation sidebar and display
 
 ### Smoke Coverage
 
-`scripts/local-smoke-test.sh` verifies that workspace create/rename actions produce audit log records.
+`scripts/local-smoke-test.sh` verifies that workspace create/rename actions produce audit log records and that public ID routes work through both backend direct URLs and the frontend API proxy.
 
 The smoke test checks both:
 
 ```text
-http://localhost:8000/organizations/{id}/audit-logs
-http://localhost:3000/api/organizations/{id}/audit-logs
+http://localhost:8000/organizations/{workspace_public_id}/audit-logs
+http://localhost:3000/api/organizations/{workspace_public_id}/audit-logs
 ```
 
 Expected smoke events:
@@ -412,4 +533,13 @@ workspace_created
 workspace_renamed
 ```
 
-The smoke coverage is intentionally minimal. Full lifecycle coverage for invitations, member removal, ownership transfer, and workspace leave actions is handled by backend tests.
+The smoke coverage is intentionally focused on production-like routing. Full lifecycle coverage for invitations, member removal, ownership transfer, workspace leave, archive, and restore actions is handled by backend tests.
+
+Additional manual/final validation has also checked frontend proxy archive/restore behavior:
+
+```text
+create workspace -> active
+archive workspace -> archived
+restore workspace -> active
+audit logs include workspace_archived and workspace_restored
+```

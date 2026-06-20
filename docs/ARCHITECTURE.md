@@ -536,6 +536,39 @@ Membership(role)
 
 Roles and permissions should become organization-aware.
 
+## Workspace public IDs and lifecycle
+
+Workspace public IDs are used to avoid exposing numeric database IDs in browser URLs and frontend API calls.
+
+Current pattern:
+
+```text
+public_id:
+  used by frontend routes and API paths
+  example: ws_8fK2xQm91aP
+
+id:
+  internal numeric database identifier
+  used by backend joins and service logic
+```
+
+Workspace lifecycle is status-based:
+
+```text
+active -> archived -> active
+```
+
+Current lifecycle rules:
+
+- only owners can archive or restore a workspace
+- archived workspaces remain readable by members
+- archived workspace writes are blocked with `workspace_archived`
+- restore returns the workspace to active mode
+- archive and restore write audit events
+- frontend read-only controls are UX helpers; backend policy is the source of truth
+
+This keeps lifecycle management simple while preserving clear boundaries for future delete/soft-delete policy.
+
 ## Multi-tenancy strategy
 
 The recommended initial multi-tenancy strategy is:
@@ -613,6 +646,8 @@ organization:update
 
 Role and permission work should come after the organization/membership foundation, because permissions in a SaaS platform depend on organization context.
 
+The current workspace permission foundation already enforces owner/member behavior for invitations, member management, ownership transfer, workspace leave, workspace tasks, rename, archive, and restore. Future work can expand this into a richer role matrix without moving permission checks into the frontend.
+
 ## Task ownership direction
 
 The current task model is user-owned.
@@ -625,7 +660,7 @@ task.owner_id
 
 This is acceptable for the current MVP.
 
-For SaaS, task ownership will likely evolve to:
+For SaaS, task ownership evolves toward:
 
 ```text
 task.organization_id
@@ -633,7 +668,7 @@ task.created_by_user_id
 task.assigned_to_user_id
 ```
 
-This should be introduced in a separate controlled feature branch when the organization/membership foundation is implemented.
+Workspace-scoped task APIs now enforce membership and lifecycle policy. Owners and members can manage tasks while a workspace is active. Archived workspaces allow task reads but block task create/update/delete.
 
 Do not change the task ownership model during architecture-only refactors.
 
@@ -868,11 +903,11 @@ Recommended architecture/product sequence:
 2. Finish frontend feature-based cleanup
 3. Keep constants/config centralized
 4. Document architecture decisions
-5. Add organizations and memberships foundation
-6. Add organization-aware task ownership
-7. Add roles and permissions based on memberships
-8. Add admin/user management
-9. Add audit logging
+5. Keep organizations, memberships, and workspace-scoped tasks as the SaaS foundation
+6. Keep public workspace IDs as the browser/API route contract
+7. Keep archive/restore lifecycle backend-enforced
+8. Design workspace delete/soft-delete policy separately
+9. Add richer roles and permissions only after the current owner/member model is stable
 10. Add integrations and notifications
 11. Add background processing/event patterns when needed
 12. Extract microservices only when there is a real need
