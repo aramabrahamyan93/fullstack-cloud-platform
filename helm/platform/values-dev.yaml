@@ -40,7 +40,7 @@ frontend:
     maxUnavailable: 1
     maxSurge: 0
   image:
-    tag: "aec7fae"
+    tag: "284a3a0"
     pullPolicy: IfNotPresent
 ingress:
   enabled: true
