@@ -168,6 +168,8 @@ Safety result:
 
 ## Phase 4 — Optional local ArgoCD preview
 
+Phase 4 status: implemented in branch `feature/local-argocd-preview`.
+
 Recommended branch:
 
 ```text
@@ -176,25 +178,45 @@ feature/local-argocd-preview
 
 Goal:
 
-Evaluate whether ArgoCD is useful locally for GitOps-style learning and validation.
+Evaluate ArgoCD locally as an optional GitOps learning and preview workflow.
 
-Potential capabilities:
+Implemented capabilities:
 
-- install ArgoCD into local kind
-- render an application pointing at the local Helm chart or current Git branch
-- document login/port-forward steps
-- keep the flow optional
-- avoid making local ArgoCD part of normal quick validation unless it proves useful
+- `scripts/local-argocd.sh` for local-only ArgoCD lifecycle
+- `make local-argocd-up`
+- `make local-argocd-status`
+- `make local-argocd-down`
+- `make local-argocd-app-render`
+- `make local-argocd-app-apply`
+- `make local-argocd-app-status`
+- `make local-argocd-app-delete`
+- local Application template at `addons/argocd/applications/local-app.yaml.tpl`
 
-Risks:
+Validated result:
 
-- local ArgoCD can add complexity without improving the development loop
-- it can duplicate Helm validation that already works locally
-- it may require Git/branch setup that slows down iteration
+```text
+ArgoCD UI:   https://localhost:18443
+Version:     v3.4.4
+Application: fullstack-local
+Source:      develop / helm/platform
+Revision:    a234c967...
+Sync:        OutOfSync
+Health:      Progressing
+```
+
+The local Application resource tree includes backend, frontend, postgres, ingress, and backend `ServiceMonitor` resources.
+
+Important behavior:
+
+- auto-sync is intentionally disabled
+- `OutOfSync / Progressing` is expected before manual sync
+- local ArgoCD is not part of the default fast validation path
+- the flow does not require AWS credentials, External Secrets, or cloud account metadata
+- cleanup is available with `make local-argocd-app-delete` and `make local-argocd-down`
 
 Recommendation:
 
-Do not make local ArgoCD mandatory. Treat it as an optional preview and learning workflow.
+Keep local ArgoCD as an optional preview and learning workflow. Do not make it mandatory for normal development.
 
 ## Phase 5 — Workspace-first domain decision
 

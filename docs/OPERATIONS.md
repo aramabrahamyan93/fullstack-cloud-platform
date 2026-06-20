@@ -100,6 +100,74 @@ Cleanup:
 make local-monitoring-down
 ```
 
+## Local ArgoCD operations
+
+Local ArgoCD is optional and runs only in the local kind cluster.
+
+Install ArgoCD:
+
+```bash
+make local-argocd-up
+```
+
+Check ArgoCD resources:
+
+```bash
+make local-argocd-status
+```
+
+Open the ArgoCD UI:
+
+```bash
+kubectl port-forward -n argocd svc/argocd-server 18443:443
+```
+
+Browser URL:
+
+```text
+https://localhost:18443
+```
+
+Login user:
+
+```text
+admin
+```
+
+Password command:
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+```
+
+Do not commit or document the generated password.
+
+Apply the local Application preview:
+
+```bash
+make local-argocd-app-render
+make local-argocd-app-apply
+make local-argocd-app-status
+```
+
+Expected preview state before manual sync:
+
+```text
+Application: fullstack-local
+Sync:        OutOfSync
+Health:      Progressing
+```
+
+This is expected because auto-sync is intentionally disabled.
+
+Cleanup:
+
+```bash
+make local-argocd-app-delete
+make local-argocd-down
+```
+
+
 ## Helm operations
 
 ```bash

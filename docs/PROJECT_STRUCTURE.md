@@ -385,6 +385,34 @@ Responsibilities:
 - uninstall the local monitoring release
 - avoid AWS/cloud account requirements for local observability checks
 
+Local ArgoCD helper:
+
+```text
+scripts/local-argocd.sh
+```
+
+Responsibilities:
+
+- install local ArgoCD into the `argocd` namespace
+- show local ArgoCD status
+- uninstall the local ArgoCD release
+- render/apply/delete the optional local `fullstack-local` Application preview
+- avoid AWS/cloud account requirements for local GitOps checks
+
+Local ArgoCD Application template:
+
+```text
+addons/argocd/applications/local-app.yaml.tpl
+```
+
+Responsibilities:
+
+- point ArgoCD at `develop` and `helm/platform`
+- use `values-local.yaml` and `values-local-monitoring.yaml`
+- target the `fullstack-local` namespace
+- keep auto-sync disabled for safe preview behavior
+
+
 
 ```text
 scripts/cloud-deploy.sh

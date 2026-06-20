@@ -124,6 +124,8 @@ Expected capabilities:
 
 ### 4. Optional local ArgoCD preview
 
+Status: implemented in `feature/local-argocd-preview`.
+
 Recommended branch:
 
 ```text
@@ -134,12 +136,33 @@ Goal:
 
 Evaluate ArgoCD locally as an optional GitOps learning/preview workflow.
 
+Implemented:
+
+- local ArgoCD installation through `make local-argocd-up`
+- local ArgoCD status and cleanup targets
+- browser access through `https://localhost:18443`
+- local Application preview for `fullstack-local`
+- local Application render/apply/status/delete targets
+- resource tree visibility for backend, frontend, postgres, ingress, and `ServiceMonitor`
+
+Validated behavior:
+
+```text
+Application: fullstack-local
+Sync:        OutOfSync
+Health:      Progressing
+Source:      develop / helm/platform
+```
+
+`OutOfSync / Progressing` is expected because auto-sync is disabled. This keeps the local preview safe and observation-first.
+
 Rules:
 
 - do not make local ArgoCD mandatory for normal development
 - do not slow down `make local-validate`
 - do not rely on cloud-only secrets
-- document login, port-forward, sync, and cleanup steps
+- do not commit generated admin passwords
+- keep cleanup available
 
 ### 5. Workspace-first product model
 

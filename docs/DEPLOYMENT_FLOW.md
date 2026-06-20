@@ -122,6 +122,63 @@ make local-monitoring-down
 
 This flow does not create AWS resources. It only affects the local kind cluster.
 
+### Local ArgoCD preview deployment
+
+Local ArgoCD is an optional kind-only flow. It is separate from the cloud addon deployment flow because the cloud addon flow validates `ACCOUNT` and AWS account ID values.
+
+Commands:
+
+```bash
+make local-argocd-up
+make local-argocd-status
+make local-argocd-app-render
+make local-argocd-app-apply
+make local-argocd-app-status
+```
+
+Deployment sequence:
+
+1. Install ArgoCD into the `argocd` namespace.
+2. Wait for the application controller, server, repo server, and Redis rollouts.
+3. Confirm ArgoCD CRDs exist.
+4. Render `addons/argocd/applications/local-app.yaml.tpl`.
+5. Apply the `fullstack-local` Application into the `argocd` namespace.
+6. Validate the app appears in the ArgoCD UI.
+
+Validated access:
+
+```text
+https://localhost:18443
+```
+
+Validated API version response:
+
+```text
+{"Version":"v3.4.4"}
+```
+
+Validated local Application state:
+
+```text
+Application: fullstack-local
+Sync:        OutOfSync
+Health:      Progressing
+Revision:    a234c967...
+Source:      develop / helm/platform
+```
+
+`OutOfSync` is expected because auto-sync is disabled in the local preview. Manual sync can be tested later if needed, but the default local preview should be observation-first.
+
+Cleanup:
+
+```bash
+make local-argocd-app-delete
+make local-argocd-down
+```
+
+This flow does not create AWS resources. It only affects the local kind cluster.
+
+
 ## Health and probe deployment flow
 
 Backend health endpoints are mapped to Kubernetes probes:

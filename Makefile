@@ -75,6 +75,13 @@ help:
 	@echo "  make local-monitoring-status Show local monitoring resources"
 	@echo "  make local-monitoring-down Uninstall local monitoring stack"
 	@echo "  make local-k8s-deploy-monitoring Deploy app with local ServiceMonitor enabled"
+	@echo "  make local-argocd-up     Install local ArgoCD stack"
+	@echo "  make local-argocd-status Show local ArgoCD resources"
+	@echo "  make local-argocd-down   Uninstall local ArgoCD stack"
+	@echo "  make local-argocd-app-render Render local ArgoCD Application preview"
+	@echo "  make local-argocd-app-apply  Apply local ArgoCD Application preview"
+	@echo "  make local-argocd-app-status Show local ArgoCD Application preview"
+	@echo "  make local-argocd-app-delete Delete local ArgoCD Application preview"
 	@echo ""
 	@echo "  make validate-services    Validate services.json registry"
 	@echo "  make local-preview         Build and start production-like local preview"
@@ -270,6 +277,34 @@ local-monitoring-down:
 .PHONY: local-k8s-deploy-monitoring
 local-k8s-deploy-monitoring:
 	$(MAKE) helm-deploy ENV=local PROJECT_NAME=$(PROJECT_NAME) PROJECT_DOMAIN=$(PROJECT_DOMAIN) AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID) AWS_REGION=$(AWS_REGION) HELM_EXTRA_VALUES="helm/platform/values-local-monitoring.yaml"
+
+.PHONY: local-argocd-up
+local-argocd-up:
+	bash scripts/local-argocd.sh up
+
+.PHONY: local-argocd-status
+local-argocd-status:
+	bash scripts/local-argocd.sh status
+
+.PHONY: local-argocd-down
+local-argocd-down:
+	bash scripts/local-argocd.sh down
+
+.PHONY: local-argocd-app-render
+local-argocd-app-render:
+	@bash scripts/local-argocd.sh app-render
+
+.PHONY: local-argocd-app-apply
+local-argocd-app-apply:
+	bash scripts/local-argocd.sh app-apply
+
+.PHONY: local-argocd-app-status
+local-argocd-app-status:
+	bash scripts/local-argocd.sh app-status
+
+.PHONY: local-argocd-app-delete
+local-argocd-app-delete:
+	bash scripts/local-argocd.sh app-delete
 
 .PHONY: local-k8s-wait
 local-k8s-wait:

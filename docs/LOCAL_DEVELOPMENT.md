@@ -157,6 +157,86 @@ Expected behavior:
 
 Do not make local monitoring part of the default local validation flow. Normal local development should continue to work without monitoring installed.
 
+## Optional local ArgoCD preview
+
+Local ArgoCD is optional. Use it when you want to inspect the local Helm deployment through a GitOps UI and learn how ArgoCD sees Kubernetes resources.
+
+Install ArgoCD locally:
+
+```bash
+make local-argocd-up
+make local-argocd-status
+```
+
+The local installer uses:
+
+```text
+scripts/local-argocd.sh
+addons/argocd/values.yaml
+```
+
+It does not require `ACCOUNT`, `AWS_PROFILE`, External Secrets, or AWS account metadata.
+
+Open ArgoCD in the browser:
+
+```bash
+kubectl port-forward -n argocd svc/argocd-server 18443:443
+```
+
+Browser URL:
+
+```text
+https://localhost:18443
+```
+
+Login:
+
+```text
+username: admin
+```
+
+Password command:
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+```
+
+Do not commit or document the generated password.
+
+Apply the local Application preview:
+
+```bash
+make local-argocd-app-render
+make local-argocd-app-apply
+make local-argocd-app-status
+```
+
+The local Application template is:
+
+```text
+addons/argocd/applications/local-app.yaml.tpl
+```
+
+Validated behavior:
+
+- the ArgoCD UI shows `fullstack-local`
+- the resource tree includes backend, frontend, postgres, ingress, and backend `ServiceMonitor`
+- the application points to `develop` and `helm/platform`
+- `OutOfSync / Progressing` is expected before manual sync
+- auto-sync is not enabled
+
+This keeps local ArgoCD safe as a preview. It lets ArgoCD observe and compare the desired state without automatically changing local resources.
+
+Cleanup:
+
+```bash
+make local-argocd-app-delete
+make local-argocd-down
+```
+
+Keep local ArgoCD out of the default fast local validation path unless there is a clear reason to include it.
+
+
 ## Full local validation
 
 Before pushing larger workflow or infrastructure changes, run:

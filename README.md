@@ -696,6 +696,71 @@ make local-monitoring-down
 
 The default `make local-k8s-deploy` and `make local-k8s-validate` workflows still do not install monitoring or render `ServiceMonitor`.
 
+### Optional local ArgoCD preview
+
+Local ArgoCD is an optional kind-only GitOps preview. It is intentionally separate from the cloud addon flow because the cloud addon scripts require account and AWS account metadata.
+
+Install and inspect ArgoCD locally:
+
+```bash
+make local-argocd-up
+make local-argocd-status
+```
+
+Open the UI with a port-forward:
+
+```bash
+kubectl port-forward -n argocd svc/argocd-server 18443:443
+```
+
+Then open:
+
+```text
+https://localhost:18443
+```
+
+Login user:
+
+```text
+admin
+```
+
+Get the generated local admin password with:
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+```
+
+Do not commit or document the generated password.
+
+Apply the optional local Application preview:
+
+```bash
+make local-argocd-app-render
+make local-argocd-app-apply
+make local-argocd-app-status
+```
+
+Validated local preview result:
+
+```text
+Application: fullstack-local
+Source:      develop / helm/platform
+Revision:    a234c967...
+Status:      OutOfSync / Progressing before manual sync
+Resources:   backend, frontend, postgres, ingress, ServiceMonitor
+```
+
+`OutOfSync` is expected because auto-sync is intentionally disabled for the local preview. ArgoCD shows the resource tree, but it does not automatically prune or change resources.
+
+Cleanup is local-only:
+
+```bash
+make local-argocd-app-delete
+make local-argocd-down
+```
+
+
 ## Development workflow
 
 Recommended workflow after each meaningful step:
