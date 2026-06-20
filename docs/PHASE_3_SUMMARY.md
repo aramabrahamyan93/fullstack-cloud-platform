@@ -141,7 +141,7 @@ Possible Phase 4 packages:
 
 - audit logs
 - workspace activity history
-- workspace archive/delete policy
+- workspace archive/restore/soft-delete lifecycle policy
 - richer roles and permissions
 - billing/subscription placeholder
 - admin commands
@@ -170,6 +170,7 @@ workspace_created
 workspace_renamed
 workspace_archived
 workspace_restored
+workspace_deleted
 member_invited
 invitation_accepted
 invitation_declined
@@ -221,9 +222,9 @@ Smoke validation:
 - expected workspace create/rename audit events
 
 
-## Phase 4: Workspace Dashboard, Public IDs, Archive, and Restore
+## Phase 4: Workspace Dashboard, Public IDs, Archive, Restore, and Soft Delete
 
-After the audit log foundation, the workspace admin layer was expanded with dashboard stats, public workspace IDs, and lifecycle management.
+After the audit log foundation, the workspace admin layer was expanded with dashboard stats, public workspace IDs, and lifecycle management including archive, restore, and soft delete.
 
 ### Workspace dashboard stats
 
@@ -295,7 +296,25 @@ Current lifecycle:
 
 ```text
 active -> archived -> active
+active -> archived -> deleted
 ```
+
+
+### Workspace soft delete lifecycle
+
+Completed:
+
+- `DELETE /organizations/{organization_id_or_public_id}`
+- owner-only soft delete
+- active workspaces must be archived before delete
+- `workspace_delete_requires_archive` stable backend error code
+- `workspace_deleted` audit event
+- deleted workspaces are hidden from normal workspace list/get/public_id routes
+- frontend Settings page delete action
+- frontend delete flow navigates back to the workspace list after success
+- local smoke validated create -> archive -> delete -> hidden behavior through the frontend API proxy
+
+Soft delete is not hard delete. Related database records remain available for future retention, reporting, admin recovery, or hard-delete policy work.
 
 ### Validation
 

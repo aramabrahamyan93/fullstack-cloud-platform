@@ -78,7 +78,7 @@ Current direction:
 
 ```text
 owners can manage workspace access and settings
-owners can archive and restore workspaces
+owners can archive, restore, and soft-delete workspaces
 owners and members can manage workspace tasks while the workspace is active
 owners and members can read archived workspaces
 members can leave workspaces
@@ -116,7 +116,7 @@ Workspace settings are available in the frontend at:
 /workspaces/:workspaceId/settings
 ```
 
-Current settings include role-aware UI, workspace identity, workspace status, access policy information, member leave action, owner leave restriction note, owner-only workspace rename, owner-only archive, and owner-only restore.
+Current settings include role-aware UI, workspace identity, workspace status, access policy information, member leave action, owner leave restriction note, owner-only workspace rename, owner-only archive, owner-only restore, and owner-only soft delete.
 
 Workspace rename is exposed through:
 
@@ -141,6 +141,7 @@ Current lifecycle:
 
 ```text
 active -> archived -> active
+active -> archived -> deleted
 ```
 
 Archive endpoint:
@@ -158,12 +159,12 @@ POST /organizations/{organization_id_or_public_id}/restore
 Architecture rules:
 
 - lifecycle transitions are backend-enforced
-- only owners can archive or restore
+- only owners can archive, restore, or soft-delete
 - non-members receive `404` so they cannot infer workspace existence
 - archived workspaces remain readable
 - archived workspace writes are blocked with the stable error code `workspace_archived`
 - restore is idempotent if the workspace is already active
-- archive/restore events are recorded through the audit log foundation
+- archive/restore/delete events are recorded through the audit log foundation
 - frontend read-only state is UX only; backend remains the source of truth
 
 Blocked archived workspace operations currently include:
@@ -174,6 +175,46 @@ workspace invitations
 workspace task create
 workspace task update
 workspace task delete
+```
+
+
+### Soft delete architecture
+
+Soft delete extends the workspace lifecycle without hard database deletion.
+
+Status values:
+
+```text
+active
+archived
+deleted
+```
+
+Normal user-facing workspace queries exclude deleted workspaces:
+
+```text
+Organization.status != "deleted"
+```
+
+The delete endpoint is:
+
+```text
+DELETE /organizations/{organization_id_or_public_id}
+```
+
+Delete rules:
+
+- only workspace owners can soft-delete
+- only archived workspaces can be soft-deleted
+- active workspace delete attempts return `workspace_delete_requires_archive`
+- deleted workspaces are hidden from normal workspace list/get/public_id routes
+- deleted workspaces cannot be restored through the current user-facing restore endpoint
+- hard delete, retention, and admin recovery are intentionally separate future policies
+
+Soft delete records:
+
+```text
+workspace_deleted
 ```
 
 ## Route-based workspace consistency
@@ -237,6 +278,7 @@ Current lifecycle-related audit events include:
 ```text
 workspace_archived
 workspace_restored
+workspace_deleted
 ```
 
 Current metadata examples:
@@ -247,6 +289,10 @@ workspace_archived:
   new_status
 
 workspace_restored:
+  previous_status
+  new_status
+
+workspace_deleted:
   previous_status
   new_status
 ```

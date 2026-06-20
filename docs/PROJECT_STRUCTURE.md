@@ -130,7 +130,7 @@ Current backend features:
 - `auth` — registration, login, current-user endpoint, authentication service, auth schemas
 - `users` — user model and user repository
 - `tasks` — task model, task API, task service, task repository, task schemas, task constants
-- `organizations` — workspace model, public IDs, memberships, invitations, dashboard, audit logs, archive/restore lifecycle, and workspace-scoped task routes
+- `organizations` — workspace model, public IDs, memberships, invitations, dashboard, audit logs, archive/restore/soft-delete lifecycle, and workspace-scoped task routes
 
 
 Feature-specific backend code should live under:
@@ -212,7 +212,7 @@ Current frontend features:
 
 - `auth` — auth API calls, token storage, auth hook, auth UI, auth types
 - `tasks` — task API calls, task hook, task UI components, task types
-- `organizations` — workspace API calls, workspace routes, settings, members, invitations, dashboard, activity, archive/restore UI, and workspace types
+- `organizations` — workspace API calls, workspace routes, settings, members, invitations, dashboard, activity, archive/restore/delete UI, and workspace types
 - `system` — system/health/version API calls
 
 `src/shared/`
@@ -395,6 +395,17 @@ Current workspace lifecycle support:
 
 ```text
 active -> archived -> active
+active -> archived -> deleted
 ```
 
 The frontend uses workspace public IDs for routes and API calls. The backend resolves public IDs to internal numeric IDs before executing domain logic.
+
+
+Workspace lifecycle now includes soft delete:
+
+```text
+active -> archived -> active
+active -> archived -> deleted
+```
+
+Soft-deleted workspaces are hidden from normal member-facing workspace routes. Hard-delete, retention, and admin recovery policy remain separate future work.

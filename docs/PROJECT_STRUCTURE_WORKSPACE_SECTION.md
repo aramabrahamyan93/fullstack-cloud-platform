@@ -29,7 +29,7 @@ Responsibilities:
 - `models.py` — organization, membership, invitation, and audit log database models
 - `permissions.py` — centralized owner/member permission helpers
 - `repository.py` — database queries and persistence helpers
-- `router.py` — organization, member, invitation, ownership, leave, rename, archive, restore, dashboard, and audit log APIs
+- `router.py` — organization, member, invitation, ownership, leave, rename, archive, restore, soft delete, dashboard, and audit log APIs
 - `schemas.py` — API request/response schemas
 - `service.py` — business rules and permission-sensitive workflows
 - `tasks_router.py` — workspace-scoped task routes
@@ -57,7 +57,7 @@ Current responsibilities:
 - workspace API calls
 - workspace list/create UI
 - workspace settings UI
-- workspace archive/restore UI
+- workspace archive/restore/delete UI
 - workspace activity UI
 - workspace dashboard UI
 - workspace members UI
@@ -105,7 +105,7 @@ Examples:
 
 ## Workspace Public ID and Lifecycle Files
 
-Backend files involved in workspace public IDs, archive, and restore:
+Backend files involved in workspace public IDs, archive, restore, and soft delete:
 
 ```text
 services/backend/app/core/public_ids.py
@@ -118,6 +118,7 @@ services/backend/app/features/organizations/tasks_router.py
 services/backend/tests/test_organization_public_ids.py
 services/backend/tests/test_organization_archive.py
 services/backend/tests/test_organization_restore.py
+services/backend/tests/test_organization_delete.py
 services/backend/tests/test_organization_task_public_api_routes.py
 ```
 
@@ -150,6 +151,7 @@ services/backend/app/db/init_db.py
 services/backend/tests/test_organization_audit_logs.py
 services/backend/tests/test_organization_archive.py
 services/backend/tests/test_organization_restore.py
+services/backend/tests/test_organization_delete.py
 ```
 
 Frontend files involved in workspace activity page:
@@ -171,4 +173,14 @@ Smoke coverage:
 
 ```text
 scripts/local-smoke-test.sh
+```
+
+
+Soft delete files added to the workspace lifecycle implementation:
+
+```text
+services/backend/tests/test_organization_delete.py
+apps/frontend/src/features/organizations/api.ts        # deleteOrganization
+apps/frontend/src/app/hooks/useWorkspaceController.ts  # handleDeleteWorkspace
+apps/frontend/src/features/organizations/components/WorkspaceSettingsPage.tsx
 ```

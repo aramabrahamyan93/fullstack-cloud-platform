@@ -556,18 +556,41 @@ Workspace lifecycle is status-based:
 
 ```text
 active -> archived -> active
+active -> archived -> deleted
 ```
+
+### Workspace soft delete policy
+
+Workspace delete is implemented as soft delete, not hard delete.
+
+Policy:
+
+```text
+active -> archived -> deleted
+```
+
+Rules:
+
+- only archived workspaces can be soft-deleted
+- only owners can soft-delete
+- deleted workspaces are excluded from normal member-facing list/get routes
+- deleted workspaces cannot be restored through the current normal user-facing restore flow
+- hard delete, retention windows, and admin recovery remain future policy work
+
 
 Current lifecycle rules:
 
 - only owners can archive or restore a workspace
 - archived workspaces remain readable by members
 - archived workspace writes are blocked with `workspace_archived`
+- deleted workspaces are hidden from normal member-facing workspace routes
+- soft delete records `workspace_deleted`
+- active workspace delete attempts return `workspace_delete_requires_archive`
 - restore returns the workspace to active mode
 - archive and restore write audit events
 - frontend read-only controls are UX helpers; backend policy is the source of truth
 
-This keeps lifecycle management simple while preserving clear boundaries for future delete/soft-delete policy.
+This keeps lifecycle management simple while preserving clear boundaries for future hard-delete, retention, and admin recovery policies.
 
 ## Multi-tenancy strategy
 
@@ -905,8 +928,8 @@ Recommended architecture/product sequence:
 4. Document architecture decisions
 5. Keep organizations, memberships, and workspace-scoped tasks as the SaaS foundation
 6. Keep public workspace IDs as the browser/API route contract
-7. Keep archive/restore lifecycle backend-enforced
-8. Design workspace delete/soft-delete policy separately
+7. Keep archive/restore/soft-delete lifecycle backend-enforced
+8. Design hard-delete, retention, and admin recovery policy separately
 9. Add richer roles and permissions only after the current owner/member model is stable
 10. Add integrations and notifications
 11. Add background processing/event patterns when needed

@@ -196,17 +196,19 @@ Current settings capabilities:
 - allow owners to rename a workspace
 - allow owners to archive an active workspace
 - allow owners to restore an archived workspace
+- allow owners to soft-delete an archived workspace
 - show workspace status
 - show readonly rename note for members
 - allow members to leave a workspace
 - explain that owners must transfer ownership before leaving
 
-## Workspace lifecycle: active, archived, restored
+## Workspace lifecycle: active, archived, restored, deleted
 
 Workspaces currently support a simple lifecycle:
 
 ```text
 active -> archived -> active
+active -> archived -> deleted
 ```
 
 The `status` field is returned by workspace API responses:
@@ -214,6 +216,7 @@ The `status` field is returned by workspace API responses:
 ```text
 active
 archived
+deleted
 ```
 
 ### Archive flow
@@ -272,6 +275,49 @@ Frontend behavior:
 - Settings shows Restore action for archived workspaces
 - archived workspace task UI becomes read-only
 - restored workspaces become editable again through the existing task/member/settings flows
+
+### Soft delete flow
+
+Soft delete is an owner-only action for archived workspaces. It is not hard delete.
+
+Backend endpoint:
+
+```text
+DELETE /organizations/{organization_id_or_public_id}
+```
+
+Delete behavior:
+
+- unauthenticated users receive `401`
+- owners can soft-delete an archived workspace
+- members receive `403` with `workspace_owner_required`
+- non-members receive `404`
+- active workspaces cannot be deleted directly
+- active workspace delete attempts return `workspace_delete_requires_archive`
+- deleted workspaces are hidden from normal workspace list/get/public_id routes
+- deleted workspaces cannot be restored through normal user-facing restore routes in the current MVP
+- hard delete is intentionally not implemented yet
+
+Soft delete writes the audit event:
+
+```text
+workspace_deleted
+```
+
+Current soft-delete metadata:
+
+```text
+previous_status
+new_status
+```
+
+Frontend behavior:
+
+- Settings shows Delete action for archived workspaces
+- active workspaces show an Archive-before-delete state
+- successful delete removes the workspace from normal workspace state
+- successful delete navigates back to `/workspaces`
+
 
 ## Workspace rename flow
 
@@ -369,7 +415,7 @@ Current limitations:
 - only `owner` and `member` roles exist
 - only `member` invitations are supported
 - no custom role matrix yet
-- no workspace hard-delete policy yet
+- hard delete and retention policy are intentionally not implemented yet
 - no billing/subscription policy yet
 - no invitation email delivery yet
 
@@ -380,7 +426,7 @@ These are future productization steps.
 The next larger productization phase can add:
 
 ```text
-workspace delete or soft-delete policy
+hard delete, retention, or admin recovery policy
 audit log filters and pagination
 richer roles and permissions
 billing/subscription placeholder
@@ -417,6 +463,7 @@ workspace_created
 workspace_renamed
 workspace_archived
 workspace_restored
+workspace_deleted
 member_invited
 invitation_accepted
 invitation_declined
@@ -456,6 +503,10 @@ workspace_archived:
   new_status
 
 workspace_restored:
+  previous_status
+  new_status
+
+workspace_deleted:
   previous_status
   new_status
 
@@ -542,4 +593,15 @@ create workspace -> active
 archive workspace -> archived
 restore workspace -> active
 audit logs include workspace_archived and workspace_restored
+```
+
+
+Additional local smoke validation for soft delete confirms:
+
+```text
+action: create workspace -> archive workspace -> delete workspace
+active delete: 403 workspace_delete_requires_archive
+archived delete: 204
+get deleted workspace: 404
+deleted workspace list visibility: hidden
 ```
