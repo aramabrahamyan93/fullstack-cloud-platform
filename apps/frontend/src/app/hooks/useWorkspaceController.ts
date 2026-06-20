@@ -31,7 +31,8 @@ export function useWorkspaceController({
     createUserOrganization,
     renameUserOrganization,
     archiveUserOrganization,
-    restoreUserOrganization
+    restoreUserOrganization,
+    deleteUserOrganization
   } = useOrganizations();
 
   const {
@@ -209,6 +210,57 @@ export function useWorkspaceController({
     }
 
     return handleRestoreWorkspaceById(selectedOrganization.id);
+  }
+
+  async function handleDeleteWorkspaceById(
+    organizationId: number
+  ): Promise<boolean> {
+    const organization = organizations.find(
+      (candidate) => candidate.id === organizationId
+    );
+
+    if (!organization) {
+      showMessage("Please select a workspace first.", "error");
+      return false;
+    }
+
+    if (organization.status !== "archived") {
+      showMessage("Archive this workspace before deleting it.", "error");
+      return false;
+    }
+
+    const confirmed = window.confirm(
+      "Delete this archived workspace? It will be hidden from normal workspace access and cannot be restored from the current UI."
+    );
+
+    if (!confirmed) {
+      return false;
+    }
+
+    const result = await deleteUserOrganization(organization.public_id);
+
+    showMessage(result.message, result.success ? "success" : "error");
+
+    if (result.success) {
+      clearMembers();
+      clearInvitations();
+      clearInviteCandidates();
+      clearAuditLogs();
+      clearDashboardSummary();
+      await loadOrganizations();
+      navigate("/workspaces");
+    }
+
+    return result.success;
+  }
+
+  async function handleDeleteWorkspace(): Promise<boolean> {
+    if (!selectedOrganization) {
+      showMessage("Please select a workspace first.", "error");
+      return false;
+    }
+
+    return handleDeleteWorkspaceById(selectedOrganization.id);
   }
 
   async function handleCreateOrganization(name: string): Promise<void> {
@@ -521,6 +573,8 @@ export function useWorkspaceController({
     handleArchiveWorkspaceById,
     handleRestoreWorkspace,
     handleRestoreWorkspaceById,
+    handleDeleteWorkspace,
+    handleDeleteWorkspaceById,
     handleSelectOrganization,
     selectWorkspaceFromRoute
   };

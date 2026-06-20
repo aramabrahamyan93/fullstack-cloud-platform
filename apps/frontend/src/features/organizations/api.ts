@@ -72,6 +72,17 @@ export function restoreOrganization(
   );
 }
 
+export function deleteOrganization(
+  organizationRef: OrganizationRef
+): Promise<void> {
+  return fetchJson<void>(
+    `/organizations/${toOrganizationPathRef(organizationRef)}`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
 export function getOrganizationMembers(
   organizationRef: OrganizationRef
 ): Promise<OrganizationMember[]> {

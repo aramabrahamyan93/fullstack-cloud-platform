@@ -28,6 +28,10 @@ const API_ERROR_MESSAGE_BY_CODE: Record<string, string> = {
     "Transfer ownership before leaving this workspace.",
   workspace_archived:
     "This workspace is archived and read-only.",
+  workspace_delete_requires_archive:
+    "Archive this workspace before deleting it.",
+  workspace_deleted:
+    "This workspace has been deleted.",
   workspace_invitation_invalid_role:
     "Only member invitations are supported for now.",
   workspace_invitation_user_already_member:

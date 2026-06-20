@@ -111,6 +111,9 @@ export function WorkspaceSettingsRoute({
         onRestoreWorkspace={() =>
           controller.handleRestoreWorkspaceById(routeWorkspace.id)
         }
+        onDeleteWorkspace={() =>
+          controller.handleDeleteWorkspaceById(routeWorkspace.id)
+        }
       />
     </>
   );

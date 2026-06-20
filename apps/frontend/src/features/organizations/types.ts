@@ -1,6 +1,6 @@
 export type OrganizationRef = number | string;
 
-export type OrganizationStatus = "active" | "archived";
+export type OrganizationStatus = "active" | "archived" | "deleted";
 
 export type Organization = {
   id: number;
@@ -70,6 +70,7 @@ export type OrganizationAuditLogEventType =
   | "workspace_renamed"
   | "workspace_archived"
   | "workspace_restored"
+  | "workspace_deleted"
   | "member_invited"
   | "invitation_accepted"
   | "invitation_declined"

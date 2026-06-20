@@ -11,6 +11,7 @@ type WorkspaceSettingsPageProps = {
   onLeaveWorkspace: () => Promise<void>;
   onArchiveWorkspace: () => Promise<boolean>;
   onRestoreWorkspace: () => Promise<boolean>;
+  onDeleteWorkspace: () => Promise<boolean>;
 };
 
 export function WorkspaceSettingsPage({
@@ -20,7 +21,8 @@ export function WorkspaceSettingsPage({
   onRenameWorkspace,
   onLeaveWorkspace,
   onArchiveWorkspace,
-  onRestoreWorkspace
+  onRestoreWorkspace,
+  onDeleteWorkspace
 }: WorkspaceSettingsPageProps) {
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
 
@@ -74,6 +76,14 @@ export function WorkspaceSettingsPage({
     }
 
     await onRestoreWorkspace();
+  }
+
+  async function handleDeleteClick(): Promise<void> {
+    if (!isOwner || !isArchived) {
+      return;
+    }
+
+    await onDeleteWorkspace();
   }
 
   return (
@@ -302,6 +312,37 @@ export function WorkspaceSettingsPage({
         )}
       </section>
 
+      <section className="card workspace-settings-card workspace-settings-delete-card">
+        <div>
+          <span className="workspace-settings-eyebrow danger">Delete</span>
+          <h2>Delete workspace</h2>
+          <p className="card-subtitle">
+            Delete hides an archived workspace from normal workspace access.
+            Active workspaces must be archived before deletion.
+          </p>
+        </div>
+
+        {isOwner ? (
+          <button
+            type="button"
+            className="danger-button"
+            disabled={isSubmitting || !isArchived}
+            onClick={() => void handleDeleteClick()}
+          >
+            {isArchived ? "Delete workspace" : "Archive before delete"}
+          </button>
+        ) : (
+          <div className="workspace-settings-owner-note">
+            Only workspace owners can delete this workspace.
+          </div>
+        )}
+
+        <div className="workspace-settings-owner-note">
+          Deleted workspaces are hidden from normal workspace routes and cannot
+          be restored from the current UI.
+        </div>
+      </section>
+
       <section className="card workspace-settings-card workspace-settings-danger-card">
         <div>
           <span className="workspace-settings-eyebrow danger">Membership</span>
@@ -341,8 +382,8 @@ export function WorkspaceSettingsPage({
           <div>
             <h2>Coming next</h2>
             <p className="card-subtitle">
-              Future settings can include delete policy, audit history filters,
-              invitation email configuration, and advanced retention controls.
+              Future settings can include audit history filters, invitation email
+              configuration, and advanced retention controls.
             </p>
           </div>
         </div>

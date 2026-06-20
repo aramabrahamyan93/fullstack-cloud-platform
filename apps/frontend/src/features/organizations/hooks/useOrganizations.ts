@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   archiveOrganization,
   createOrganization,
+  deleteOrganization,
   getOrganizations,
   restoreOrganization,
   updateOrganization
@@ -34,6 +35,9 @@ export type UseOrganizationsResult = {
     organizationRef: OrganizationRef
   ) => Promise<OrganizationActionResult>;
   restoreUserOrganization: (
+    organizationRef: OrganizationRef
+  ) => Promise<OrganizationActionResult>;
+  deleteUserOrganization: (
     organizationRef: OrganizationRef
   ) => Promise<OrganizationActionResult>;
 };
@@ -262,6 +266,47 @@ export function useOrganizations(): UseOrganizationsResult {
     }
   }
 
+  async function deleteUserOrganization(
+    organizationRef: OrganizationRef
+  ): Promise<OrganizationActionResult> {
+    setIsOrganizationSubmitting(true);
+
+    try {
+      await deleteOrganization(organizationRef);
+
+      setOrganizations((currentOrganizations) =>
+        currentOrganizations.filter(
+          (currentOrganization) =>
+            currentOrganization.public_id !== String(organizationRef) &&
+            currentOrganization.id !== Number(organizationRef)
+        )
+      );
+
+      setSelectedOrganization((currentSelectedOrganization) => {
+        if (
+          currentSelectedOrganization?.public_id === String(organizationRef) ||
+          currentSelectedOrganization?.id === Number(organizationRef)
+        ) {
+          return null;
+        }
+
+        return currentSelectedOrganization;
+      });
+
+      return {
+        success: true,
+        message: "Workspace deleted successfully."
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: getErrorMessage(error)
+      };
+    } finally {
+      setIsOrganizationSubmitting(false);
+    }
+  }
+
   return {
     organizations,
     selectedOrganization,
@@ -273,6 +318,7 @@ export function useOrganizations(): UseOrganizationsResult {
     createUserOrganization,
     renameUserOrganization,
     archiveUserOrganization,
-    restoreUserOrganization
+    restoreUserOrganization,
+    deleteUserOrganization
   };
 }
