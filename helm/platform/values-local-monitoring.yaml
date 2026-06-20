@@ -1,0 +1,4 @@
+backend:
+  metrics:
+    enabled: true
+    path: /metrics

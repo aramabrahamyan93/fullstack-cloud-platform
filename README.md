@@ -665,6 +665,24 @@ Detailed documentation is available in the `docs/` directory:
 
 ## Current roadmap
 
+### Optional local monitoring override
+
+Local Kubernetes deployment keeps monitoring disabled by default so the normal kind workflow stays fast and does not require Prometheus Operator CRDs.
+
+The Helm chart now supports optional extra values files through `HELM_EXTRA_VALUES`. The local monitoring override file is:
+
+```text
+helm/platform/values-local-monitoring.yaml
+```
+
+It enables backend metrics ServiceMonitor rendering only when explicitly requested:
+
+```bash
+make helm-render ENV=local HELM_EXTRA_VALUES="helm/platform/values-local-monitoring.yaml"
+```
+
+Do not use the monitoring override with `helm-deploy` until the monitoring stack is installed in the local cluster, because `ServiceMonitor` requires the `servicemonitors.monitoring.coreos.com` CRD from Prometheus Operator. The default local render/deploy flow intentionally does not render `ServiceMonitor`.
+
 Near-term roadmap:
 
 1. Keep backend/frontend architecture clean and extensible.

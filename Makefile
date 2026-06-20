@@ -22,6 +22,8 @@ K8S_NAMESPACE ?= $(RELEASE_PREFIX)-$(ENV)
 HELM_RELEASE ?= $(RELEASE_PREFIX)-$(ENV)
 HELM_CHART ?= helm/platform
 HELM_VALUES ?= $(HELM_CHART)/values-$(ENV).yaml
+HELM_EXTRA_VALUES ?=
+HELM_VALUES_ARGS = -f "$(HELM_VALUES)" $(foreach values_file,$(HELM_EXTRA_VALUES),-f "$(values_file)")
 
 BACKEND_URL ?= http://localhost:8000
 FRONTEND_URL ?= http://localhost:3000
@@ -294,7 +296,7 @@ helm-lint:
 .PHONY: helm-render
 helm-render:
 	helm template $(HELM_RELEASE) $(HELM_CHART) \
-		-f $(HELM_VALUES) \
+		$(HELM_VALUES_ARGS) \
 		$(HELM_SET_ARGS)
 
 .PHONY: helm-deploy
@@ -304,10 +306,11 @@ helm-deploy:
 	@echo "AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID)"
 	@echo "AWS_REGION=$(AWS_REGION)"
 	@echo "IMAGE_TAG=$(IMAGE_TAG)"
+	@echo "HELM_EXTRA_VALUES=$(HELM_EXTRA_VALUES)"
 	helm upgrade --install "$(HELM_RELEASE)" "$(HELM_CHART)" \
 		--namespace "$(K8S_NAMESPACE)" \
 		--create-namespace \
-		-f "$(HELM_VALUES)" \
+		$(HELM_VALUES_ARGS) \
 		$(HELM_SET_ARGS) \
 		$(if $(IMAGE_TAG),--set backend.image.tag="$(IMAGE_TAG)" --set frontend.image.tag="$(IMAGE_TAG)",)
 

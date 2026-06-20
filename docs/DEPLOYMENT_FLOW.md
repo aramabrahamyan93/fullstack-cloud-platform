@@ -31,6 +31,22 @@ make local-k8s-validate
 
 ## Helm deployment flow
 
+### Optional Helm extra values
+
+Helm commands support an optional `HELM_EXTRA_VALUES` variable for additive overrides. The default values file still comes from:
+
+```text
+helm/platform/values-$(ENV).yaml
+```
+
+Extra values are appended after the environment values, so they can safely override focused options without changing the normal environment file. Example:
+
+```bash
+make helm-render ENV=local HELM_EXTRA_VALUES="helm/platform/values-local-monitoring.yaml"
+```
+
+This is used for local monitoring because the default local deployment should not create `ServiceMonitor` resources unless the Prometheus Operator CRDs already exist in the cluster.
+
 ```text
 make helm-deploy
   -> helm upgrade --install

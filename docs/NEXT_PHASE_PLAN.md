@@ -82,6 +82,15 @@ git diff --stat
 
 ## Phase 2 — Local ArgoCD and monitoring audit
 
+Audit implementation notes:
+
+- `HELM_EXTRA_VALUES` provides opt-in Helm overrides.
+- `helm/platform/values-local-monitoring.yaml` enables backend metrics ServiceMonitor rendering for local monitoring preview.
+- Default local Helm render/deploy remains unchanged and does not render ServiceMonitor.
+- The monitoring override should be used for deployment only after the local monitoring stack has installed the required ServiceMonitor CRD.
+
+This keeps normal local development safe while still allowing a controlled monitoring preview.
+
 Recommended branch:
 
 ```text

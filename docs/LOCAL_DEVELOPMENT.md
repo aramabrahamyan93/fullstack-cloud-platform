@@ -92,6 +92,32 @@ Use this workflow for:
 
 ## Local Kubernetes workflow
 
+## Optional local monitoring preview
+
+The backend exposes `/metrics`, and the Helm chart contains a `ServiceMonitor` template. Local Kubernetes keeps that `ServiceMonitor` disabled by default because a fresh kind cluster does not include Prometheus Operator CRDs.
+
+The optional local monitoring override is:
+
+```text
+helm/platform/values-local-monitoring.yaml
+```
+
+Use it for render validation only until the monitoring stack is installed:
+
+```bash
+make helm-render ENV=local HELM_EXTRA_VALUES="helm/platform/values-local-monitoring.yaml"
+```
+
+Expected behavior:
+
+- normal `make helm-render ENV=local` does not render `ServiceMonitor`
+- override render includes backend `ServiceMonitor`
+- the metrics path remains `/metrics`
+- the backend service selector remains `app: backend`
+- the backend service port remains named `http`
+
+Do not make local monitoring part of the default local validation flow until it is proven reliable and useful. Normal local development should continue to work without monitoring installed.
+
 Run full kind/Kubernetes validation:
 
 ```bash

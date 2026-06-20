@@ -261,6 +261,14 @@ apps/frontend/src/app/
 
 ## Helm
 
+The chart also includes an optional local monitoring override:
+
+```text
+helm/platform/values-local-monitoring.yaml
+```
+
+This file enables backend `ServiceMonitor` rendering for local monitoring preview flows. It is intentionally separate from `values-local.yaml` so the default local kind deployment does not require Prometheus Operator CRDs.
+
 ```text
 helm/platform/
 ├── Chart.yaml

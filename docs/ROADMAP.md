@@ -55,6 +55,17 @@ Expected output:
 
 ### 2. Local ArgoCD and monitoring audit
 
+Current audit result:
+
+- backend `/metrics` support already exists
+- backend Service has the expected `app: backend` label
+- backend Service port is named `http`
+- default local Helm render does not create `ServiceMonitor`
+- `HELM_EXTRA_VALUES` now supports optional values overlays
+- `helm/platform/values-local-monitoring.yaml` enables local `ServiceMonitor` rendering only when explicitly requested
+
+Next implementation should install or validate the local monitoring stack before using the monitoring override with `helm-deploy`, because `ServiceMonitor` requires Prometheus Operator CRDs.
+
 Recommended branch:
 
 ```text
