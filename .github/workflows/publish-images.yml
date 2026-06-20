@@ -1,17 +1,22 @@
 name: Publish Images to ECR
 
 on:
-  push:
-    branches:
-      - develop
-      - staging
-      - main
-    paths:
-      - services/backend/**
-      - apps/frontend/**
-      - services.json
-      - helm/platform/values-dev.yaml
-      - .github/workflows/publish-images.yml
+  # Automatic ECR publishing is disabled while dev ECR repositories are disabled.
+  # Re-enable this push trigger after enable_ecr_repositories=true is applied
+  # and backend/frontend ECR repositories exist again.
+  workflow_dispatch:
+
+#  push:
+#    branches:
+#      - develop
+#      - staging
+#      - main
+#    paths:
+#      - services/backend/**
+#      - apps/frontend/**
+#      - services.json
+#      - helm/platform/values-dev.yaml
+#      - .github/workflows/publish-images.yml
 
 permissions:
   id-token: write
