@@ -24,14 +24,33 @@ eu-central-1
 
 ## Account configuration
 
-Account-specific files:
+Account configuration is split by AWS account and Terraform stack:
 
 ```text
-infra/accounts/dev-859981975099.tfvars
-infra/accounts/staging-859981975099.tfvars
+infra/accounts/<account>/common.tfvars
+infra/accounts/<account>/bootstrap.tfvars
+infra/accounts/<account>/ecr.tfvars
+infra/accounts/<account>/platform.tfvars
 ```
 
-These files are used to select account/environment-specific values.
+Current account folders:
+
+```text
+infra/accounts/dev-859981975099/
+infra/accounts/staging-859981975099/
+```
+
+`common.tfvars` contains values shared by all stacks, such as `environment` and `account_id`.
+
+Stack-specific files contain only values used by that stack. This avoids passing platform-only variables into the ECR or bootstrap stacks and keeps Terraform plans free from undeclared-variable warnings.
+
+The Terraform helper script still supports the old legacy file shape as a fallback:
+
+```text
+infra/accounts/<account>.tfvars
+```
+
+New account configuration should use the folder-based structure.
 
 ## Global configuration
 
@@ -42,6 +61,7 @@ infra/config/global.tfvars
 infra/config/github.tfvars
 infra/config/platform.tfvars
 infra/config/services.tfvars
+infra/config/ecr.tfvars
 infra/config/addons.tfvars
 ```
 
@@ -113,6 +133,33 @@ infra/stacks/ecr
 
 Used for creating ECR repositories.
 
+ECR repository creation is controlled by:
+
+```text
+infra/config/ecr.tfvars
+infra/accounts/<account>/ecr.tfvars
+```
+
+The shared default is `enable_ecr_repositories = true`. Account-specific stack config can override it.
+
+For the current dev account, ECR repositories are intentionally disabled:
+
+```text
+infra/accounts/dev-859981975099/ecr.tfvars
+```
+
+That file sets:
+
+```hcl
+enable_ecr_repositories = false
+```
+
+Before enabling or disabling ECR repositories, always run and review:
+
+```bash
+make tf-plan STACK=ecr ACCOUNT=<account> AWS_PROFILE=<profile> AWS_REGION=<region>
+```
+
 ### Platform
 
 ```text
@@ -145,6 +192,8 @@ AWS resources can generate cost. Be careful with:
 - CloudWatch logs
 
 Before enabling cloud resources, verify that the environment is correct. After tests, destroy or disable unused resources.
+
+The dev account currently keeps cost-generating runtime infrastructure disabled. ECR repositories are also disabled in dev until image publishing is needed again.
 
 ## Terraform state note
 

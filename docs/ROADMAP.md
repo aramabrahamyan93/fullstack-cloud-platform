@@ -23,6 +23,10 @@ Completed:
 - One-command local validation
 - ArgoCD GitOps templates made configurable
 - Initial project documentation
+- Dev ECR repositories made configurable and disabled for cost safety
+- Terraform account variables split by stack-specific account folders
+- Automatic ECR image publishing disabled while dev ECR repositories are disabled
+- Cloud deploy Makefile environment chain fixed for `IMAGE_TAG`
 
 ## Next recommended steps
 
@@ -40,7 +44,18 @@ Improve the tasks API:
 - pagination
 - filtering
 
-### 3. Logging and observability
+### 3. Local ArgoCD and monitoring review
+
+Review whether ArgoCD and monitoring should be enabled locally on kind, and define the minimum useful setup.
+
+Planned review areas:
+
+- local ArgoCD feasibility and value
+- local Prometheus/Grafana or ServiceMonitor flow
+- what remains cloud-only
+- whether local addons should be optional and disabled by default
+
+### 4. Logging and observability
 
 Improve backend logging and document monitoring flow.
 
@@ -51,23 +66,30 @@ Planned improvements:
 - better metrics labels
 - dashboard documentation
 
-### 4. CI/CD hardening
+### 5. CI/CD hardening
 
 Review GitHub Actions workflows and ensure all local checks are represented in CI.
 
-### 5. Authentication and users
+### 6. Authentication and users
 
 Add auth foundation for future SaaS and platform users.
 
-### 6. Organizations and multi-tenancy
+### 7. Workspace-first product model
 
-Add organization model and tenant-aware application structure.
+Review the current organization/workspace split and decide the next domain direction.
 
-### 7. Cloud validation
+Current direction to evaluate:
+
+- one deployed platform per customer/company
+- workspace as the main in-product grouping concept
+- preserve organization-level code/knowledge for possible future enterprise or multi-tenant extension
+- avoid large database renames until the migration plan is clear
+
+### 8. Cloud validation
 
 When needed, validate cloud deploy/teardown carefully with cost controls.
 
-### 8. AI/GenAI capabilities
+### 9. AI/GenAI capabilities
 
 Future capabilities:
 
@@ -135,3 +157,4 @@ Potential capabilities:
 - Alembic migrations are postponed for now.
 - Cloud live validation should only be done when required.
 - AWS resources should remain disabled/destroyed when not actively testing.
+- Dev ECR repositories are disabled until image publishing is needed again.

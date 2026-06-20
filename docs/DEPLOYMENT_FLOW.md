@@ -95,13 +95,17 @@ scripts/docker-build-push.sh
 Expected high-level cloud flow:
 
 ```text
-make cloud-deploy ACCOUNT=... AWS_PROFILE=...
+make cloud-deploy ACCOUNT=... AWS_PROFILE=... IMAGE_TAG=...
   -> select account/environment
   -> run Terraform stack deployment
   -> configure kube context
   -> deploy addons
   -> deploy application through Helm/ArgoCD flow
 ```
+
+`cloud-deploy` passes cloud parameters through the Makefile environment chain, including `ACCOUNT`, `AWS_PROFILE`, `AWS_REGION`, `PROJECT_NAME`, `RELEASE_PREFIX`, and `IMAGE_TAG`.
+
+Cloud deploy and teardown must be used intentionally because they can create or destroy AWS resources.
 
 ## Addon deployment flow
 
@@ -162,3 +166,21 @@ AWS_REGION
 ```
 
 This avoids hardcoded release names and namespaces.
+
+
+## ECR publishing flow
+
+Application image repositories are managed by the Terraform ECR stack.
+
+ECR creation is controlled by:
+
+```text
+infra/config/ecr.tfvars
+infra/accounts/<account>/ecr.tfvars
+```
+
+The shared default enables ECR repositories, while the current dev account disables them intentionally.
+
+Because dev ECR repositories are currently disabled, automatic image publishing to ECR is disabled in `.github/workflows/publish-images.yml`. The workflow keeps `workflow_dispatch` so manual review-based execution remains possible after ECR repositories are re-enabled.
+
+Before re-enabling automatic image publishing, first apply `enable_ecr_repositories = true` for the target account and verify that the backend/frontend repositories exist.

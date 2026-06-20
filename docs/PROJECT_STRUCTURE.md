@@ -278,13 +278,29 @@ This file defines the local kind cluster configuration.
 ```text
 infra/
 ├── accounts/
+│   ├── dev-859981975099/
+│   │   ├── common.tfvars
+│   │   ├── bootstrap.tfvars
+│   │   ├── ecr.tfvars
+│   │   └── platform.tfvars
+│   └── staging-859981975099/
+│       ├── common.tfvars
+│       ├── bootstrap.tfvars
+│       ├── ecr.tfvars
+│       └── platform.tfvars
 ├── config/
+│   ├── global.tfvars
+│   ├── github.tfvars
+│   ├── services.tfvars
+│   ├── ecr.tfvars
+│   ├── platform.tfvars
+│   └── addons.tfvars
 ├── environments/
 ├── modules/
 └── stacks/
 ```
 
-Infrastructure is organized around Terraform modules and stack wrappers.
+Infrastructure is organized around Terraform modules and stack wrappers. Account variables are split by account and stack so each stack receives only the values it owns.
 
 ## Terraform modules
 
@@ -349,7 +365,7 @@ Scripts automate local validation, cloud deployment, teardown, addon installatio
 .github/workflows/terraform-ci.yml
 ```
 
-These workflows support CI, Docker image publishing, Terraform validation, and deployment automation.
+These workflows support CI, Docker image publishing, Terraform validation, and deployment automation. Automatic ECR image publishing is currently disabled while dev ECR repositories are disabled; the publishing workflow remains available manually through `workflow_dispatch`.
 
 ## Architecture direction
 

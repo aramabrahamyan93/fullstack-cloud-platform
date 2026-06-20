@@ -719,3 +719,18 @@ Local Docker Compose and local kind workflows do not create AWS resources.
 AWS resources such as EKS, RDS, NAT Gateway, Load Balancers, ECR, and related services may generate cost. Enable them only when needed for testing, and destroy or disable them after validation if they are not required.
 
 Keep cost-generating cloud resources disabled by default unless explicitly needed.
+
+
+### Current dev cloud safety state
+
+The current dev account keeps cost-sensitive infrastructure disabled unless explicitly enabled for testing.
+
+Recent infrastructure safety changes:
+
+- Terraform account variables are split by account and stack under `infra/accounts/<account>/`.
+- ECR defaults live in `infra/config/ecr.tfvars`.
+- The dev account overrides ECR repositories to disabled in `infra/accounts/dev-859981975099/ecr.tfvars`.
+- Automatic ECR image publishing is disabled while dev ECR repositories are disabled.
+- `make cloud-deploy` passes `IMAGE_TAG` through the same environment chain as the other cloud deploy values.
+
+Before re-enabling cloud resources or ECR publishing, run and review the relevant Terraform plan.

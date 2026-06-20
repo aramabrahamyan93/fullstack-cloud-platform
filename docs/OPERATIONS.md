@@ -54,10 +54,29 @@ make tf-destroy STACK=platform
 make tf-validate STACK=platform
 ```
 
+Account variables are split by stack:
+
+```text
+infra/accounts/<account>/common.tfvars
+infra/accounts/<account>/bootstrap.tfvars
+infra/accounts/<account>/ecr.tfvars
+infra/accounts/<account>/platform.tfvars
+```
+
+Always review `tf-plan` before `tf-apply` or `tf-destroy`.
+
+For ECR specifically:
+
+```bash
+make tf-plan STACK=ecr ACCOUNT=dev-859981975099 AWS_PROFILE=aram-dev AWS_REGION=eu-central-1
+```
+
+The dev account currently has ECR repositories disabled in `infra/accounts/dev-859981975099/ecr.tfvars`.
+
 ## Cloud operations
 
 ```bash
-make cloud-deploy ACCOUNT=dev-859981975099 AWS_PROFILE=aram-dev
+make cloud-deploy ACCOUNT=dev-859981975099 AWS_PROFILE=aram-dev IMAGE_TAG=<image-tag>
 make cloud-teardown ACCOUNT=dev-859981975099 AWS_PROFILE=aram-dev
 ```
 
@@ -128,3 +147,5 @@ Before running cloud workflows, confirm:
 - teardown plan
 
 After testing, run teardown if resources are not needed.
+
+If ECR repositories are disabled for an account, do not run image publishing workflows until the repositories are re-enabled and created through Terraform.

@@ -57,3 +57,31 @@ make local-k8s-validate
 ## Branching note
 
 The project currently uses a feature branch workflow. Cloud deployment should be checked carefully so feature branches do not unintentionally trigger expensive AWS resources.
+
+
+## ECR image publishing status
+
+`.github/workflows/publish-images.yml` is the ECR publishing workflow.
+
+Automatic push-triggered ECR publishing is currently disabled while the dev account has ECR repositories disabled. The workflow keeps manual `workflow_dispatch` support.
+
+Do not re-enable push-triggered publishing until the target account has ECR repositories created again through the Terraform ECR stack.
+
+Related workflow and scripts:
+
+```text
+.github/workflows/publish-images.yml
+.github/workflows/docker-build-push.yml
+scripts/docker-build-push.sh
+```
+
+## Terraform CI and account variables
+
+Terraform account variables are split by account and stack:
+
+```text
+infra/accounts/<account>/common.tfvars
+infra/accounts/<account>/<stack>.tfvars
+```
+
+`scripts/terraform.sh` composes the correct var files for each stack. This keeps Terraform CI and local plans cleaner by avoiding unrelated variables in stack plans.

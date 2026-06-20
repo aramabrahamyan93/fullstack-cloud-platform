@@ -917,6 +917,22 @@ Cost-generating resources should stay disabled by default unless explicitly need
 
 Temporary cloud resources should be destroyed or disabled after validation.
 
+
+### Terraform account variable structure
+
+Terraform account configuration is stack-aware. Instead of one large account file, each account has a folder with shared and stack-specific values:
+
+```text
+infra/accounts/<account>/common.tfvars
+infra/accounts/<account>/bootstrap.tfvars
+infra/accounts/<account>/ecr.tfvars
+infra/accounts/<account>/platform.tfvars
+```
+
+This keeps stack inputs explicit and avoids Terraform undeclared-variable warnings caused by passing unrelated values to a stack. It also makes cloud cost flags easier to review per stack.
+
+The dev account currently disables ECR repositories through its ECR stack config. Automatic ECR image publishing remains disabled until ECR repositories are intentionally re-enabled and recreated.
+
 ## Current recommended roadmap
 
 Recommended architecture/product sequence:
@@ -926,7 +942,7 @@ Recommended architecture/product sequence:
 2. Finish frontend feature-based cleanup
 3. Keep constants/config centralized
 4. Document architecture decisions
-5. Keep organizations, memberships, and workspace-scoped tasks as the SaaS foundation
+5. Revisit the organization/workspace domain model and decide whether the product model should become workspace-first while preserving organization-level extension options
 6. Keep public workspace IDs as the browser/API route contract
 7. Keep archive/restore/soft-delete lifecycle backend-enforced
 8. Design hard-delete, retention, and admin recovery policy separately
