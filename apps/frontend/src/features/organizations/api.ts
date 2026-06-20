@@ -61,6 +61,17 @@ export function archiveOrganization(
   );
 }
 
+export function restoreOrganization(
+  organizationRef: OrganizationRef
+): Promise<Organization> {
+  return fetchJson<Organization>(
+    `/organizations/${toOrganizationPathRef(organizationRef)}/restore`,
+    {
+      method: "POST"
+    }
+  );
+}
+
 export function getOrganizationMembers(
   organizationRef: OrganizationRef
 ): Promise<OrganizationMember[]> {

@@ -69,6 +69,7 @@ export type OrganizationAuditLogEventType =
   | "workspace_created"
   | "workspace_renamed"
   | "workspace_archived"
+  | "workspace_restored"
   | "member_invited"
   | "invitation_accepted"
   | "invitation_declined"

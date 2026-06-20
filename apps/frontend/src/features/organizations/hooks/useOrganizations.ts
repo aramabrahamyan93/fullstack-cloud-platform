@@ -3,6 +3,7 @@ import {
   archiveOrganization,
   createOrganization,
   getOrganizations,
+  restoreOrganization,
   updateOrganization
 } from "../api";
 import { getErrorMessage } from "../../../shared/api/errors";
@@ -30,6 +31,9 @@ export type UseOrganizationsResult = {
     name: string
   ) => Promise<OrganizationActionResult>;
   archiveUserOrganization: (
+    organizationRef: OrganizationRef
+  ) => Promise<OrganizationActionResult>;
+  restoreUserOrganization: (
     organizationRef: OrganizationRef
   ) => Promise<OrganizationActionResult>;
 };
@@ -221,6 +225,43 @@ export function useOrganizations(): UseOrganizationsResult {
     }
   }
 
+  async function restoreUserOrganization(
+    organizationRef: OrganizationRef
+  ): Promise<OrganizationActionResult> {
+    setIsOrganizationSubmitting(true);
+
+    try {
+      const organization = await restoreOrganization(organizationRef);
+
+      setOrganizations((currentOrganizations) =>
+        currentOrganizations.map((currentOrganization) =>
+          currentOrganization.id === organization.id
+            ? organization
+            : currentOrganization
+        )
+      );
+
+      setSelectedOrganization((currentSelectedOrganization) =>
+        currentSelectedOrganization?.id === organization.id
+          ? organization
+          : currentSelectedOrganization
+      );
+
+      return {
+        success: true,
+        message: "Workspace restored successfully.",
+        organization
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: getErrorMessage(error)
+      };
+    } finally {
+      setIsOrganizationSubmitting(false);
+    }
+  }
+
   return {
     organizations,
     selectedOrganization,
@@ -231,6 +272,7 @@ export function useOrganizations(): UseOrganizationsResult {
     selectOrganization,
     createUserOrganization,
     renameUserOrganization,
-    archiveUserOrganization
+    archiveUserOrganization,
+    restoreUserOrganization
   };
 }
