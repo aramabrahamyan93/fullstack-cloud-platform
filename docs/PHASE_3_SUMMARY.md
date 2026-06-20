@@ -9,7 +9,7 @@ Turn the project from a simple authenticated task app into a workspace-based Saa
 High-level model:
 
 ```text
-User -> Workspaces -> Members -> Tasks -> Settings
+User -> Workspaces -> Members -> Tasks -> Dashboard -> Activity -> Settings
 ```
 
 ## Completed packages
@@ -125,6 +125,8 @@ Recommended:
 ```text
 Step 29.24 — Workspace documentation update
 Step 29.25 — Phase 3 final validation and summary
+
+Note: later work already expanded this foundation with audit logs, dashboard stats, public IDs, archive, and restore lifecycle support.
 ```
 
 ## Next phase
@@ -166,6 +168,8 @@ The audit log currently records these workspace events:
 ```text
 workspace_created
 workspace_renamed
+workspace_archived
+workspace_restored
 member_invited
 invitation_accepted
 invitation_declined
@@ -215,3 +219,99 @@ Smoke validation:
 - backend audit log endpoint
 - frontend API proxy audit log endpoint
 - expected workspace create/rename audit events
+
+
+## Phase 4: Workspace Dashboard, Public IDs, Archive, and Restore
+
+After the audit log foundation, the workspace admin layer was expanded with dashboard stats, public workspace IDs, and lifecycle management.
+
+### Workspace dashboard stats
+
+Completed:
+
+- `GET /organizations/{organization_id_or_public_id}/dashboard`
+- task counts by status
+- members count
+- pending invitations count
+- recent activity count
+- frontend dashboard summary cards
+- backend and frontend validation
+- local smoke coverage through backend direct URL and frontend `/api` proxy
+
+### Workspace public IDs
+
+Completed:
+
+- `Organization.public_id`
+- public ID generation with `ws_` prefix
+- API support for public IDs across workspace, member, invitation, task, dashboard, and audit routes
+- frontend route URLs using workspace public IDs
+- frontend API calls using workspace public IDs
+- smoke coverage validating public ID routes
+
+Public ID rule:
+
+```text
+Browser/API route -> workspace.public_id
+Backend/database  -> organization.id
+```
+
+### Workspace archive lifecycle
+
+Completed:
+
+- `Organization.status`
+- active/archived workspace status model
+- `POST /organizations/{organization_id_or_public_id}/archive`
+- owner-only archive
+- idempotent archive
+- `workspace_archived` audit event
+- archived workspace read-only policy
+- backend blocks rename, invitations, and task writes on archived workspaces
+- frontend archived status badge and read-only UI
+- frontend archive action on Settings page
+
+Archived write attempts use the stable backend error code:
+
+```text
+workspace_archived
+```
+
+### Workspace restore lifecycle
+
+Completed:
+
+- `POST /organizations/{organization_id_or_public_id}/restore`
+- owner-only restore
+- idempotent restore for already active workspaces
+- `workspace_restored` audit event
+- restored workspace returns to `active`
+- task writes, rename, and invitations work again after restore
+- frontend restore action on Settings page
+- Activity page support for `workspace_restored`
+- frontend proxy smoke validation for archive -> restore -> audit events
+
+Current lifecycle:
+
+```text
+active -> archived -> active
+```
+
+### Validation
+
+Validated:
+
+- backend restore tests
+- backend archive regression tests
+- full backend tests
+- frontend TypeScript/build validation
+- local preview smoke
+- frontend proxy restore smoke
+- dev image tag update after merge
+
+Current dev image tags after this lifecycle work:
+
+```text
+backend.image.tag:  7d7de22
+frontend.image.tag: 284a3a0
+```

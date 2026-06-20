@@ -26,10 +26,10 @@ services/backend/app/features/organizations/
 
 Responsibilities:
 
-- `models.py` — organization, membership, and invitation database models
+- `models.py` — organization, membership, invitation, and audit log database models
 - `permissions.py` — centralized owner/member permission helpers
 - `repository.py` — database queries and persistence helpers
-- `router.py` — organization, member, invitation, ownership, leave, and rename APIs
+- `router.py` — organization, member, invitation, ownership, leave, rename, archive, restore, dashboard, and audit log APIs
 - `schemas.py` — API request/response schemas
 - `service.py` — business rules and permission-sensitive workflows
 - `tasks_router.py` — workspace-scoped task routes
@@ -57,6 +57,9 @@ Current responsibilities:
 - workspace API calls
 - workspace list/create UI
 - workspace settings UI
+- workspace archive/restore UI
+- workspace activity UI
+- workspace dashboard UI
 - workspace members UI
 - invitation management UI
 - current user invitation UI
@@ -78,6 +81,7 @@ Current routes:
 /workspaces/:workspaceId/tasks
 /workspaces/:workspaceId/members
 /workspaces/:workspaceId/settings
+/workspaces/:workspaceId/activity
 ```
 
 Workspace navigation is defined in:
@@ -92,11 +96,45 @@ The sidebar keeps the workspace-specific route type when switching workspace whe
 Examples:
 
 ```text
-/workspaces/1/tasks    -> /workspaces/2/tasks
-/workspaces/1/members  -> /workspaces/2/members
-/workspaces/1/settings -> /workspaces/2/settings
+/workspaces/ws_abc/tasks    -> /workspaces/ws_xyz/tasks
+/workspaces/ws_abc/members  -> /workspaces/ws_xyz/members
+/workspaces/ws_abc/settings -> /workspaces/ws_xyz/settings
+/workspaces/ws_abc/activity -> /workspaces/ws_xyz/activity
 ```
 
+
+## Workspace Public ID and Lifecycle Files
+
+Backend files involved in workspace public IDs, archive, and restore:
+
+```text
+services/backend/app/core/public_ids.py
+services/backend/app/features/organizations/models.py
+services/backend/app/features/organizations/schemas.py
+services/backend/app/features/organizations/repository.py
+services/backend/app/features/organizations/service.py
+services/backend/app/features/organizations/router.py
+services/backend/app/features/organizations/tasks_router.py
+services/backend/tests/test_organization_public_ids.py
+services/backend/tests/test_organization_archive.py
+services/backend/tests/test_organization_restore.py
+services/backend/tests/test_organization_task_public_api_routes.py
+```
+
+Frontend files involved in workspace public routes and archive/restore UI:
+
+```text
+apps/frontend/src/features/organizations/api.ts
+apps/frontend/src/features/organizations/hooks/useOrganizations.ts
+apps/frontend/src/features/organizations/types.ts
+apps/frontend/src/features/organizations/components/WorkspaceSettingsPage.tsx
+apps/frontend/src/features/organizations/components/WorkspaceSettingsPage.css
+apps/frontend/src/features/organizations/components/WorkspaceActivityPage.tsx
+apps/frontend/src/app/routes/WorkspaceSettingsRoute.tsx
+apps/frontend/src/app/hooks/useWorkspaceController.ts
+apps/frontend/src/app/routes/useWorkspaceRouteContext.ts
+apps/frontend/src/shared/api/errors.ts
+```
 
 ## Audit Log Files
 
@@ -110,6 +148,8 @@ services/backend/app/features/organizations/service.py
 services/backend/app/features/organizations/router.py
 services/backend/app/db/init_db.py
 services/backend/tests/test_organization_audit_logs.py
+services/backend/tests/test_organization_archive.py
+services/backend/tests/test_organization_restore.py
 ```
 
 Frontend files involved in workspace activity page:
