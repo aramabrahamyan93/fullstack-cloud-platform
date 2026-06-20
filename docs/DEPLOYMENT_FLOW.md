@@ -168,6 +168,34 @@ AWS_REGION
 This avoids hardcoded release names and namespaces.
 
 
+## Local GitOps and monitoring planning
+
+The repository contains ArgoCD and monitoring addon files, but local usage should be introduced carefully.
+
+Current planning rule:
+
+```text
+local monitoring is reviewed first
+local ArgoCD remains optional
+cloud-only assumptions must not leak into local kind workflows
+```
+
+The next local audit should review:
+
+- `addons/monitoring/values.yaml`
+- `scripts/addons/monitoring.sh`
+- `helm/platform/templates/backend-servicemonitor.yaml`
+- `helm/platform/values-local.yaml`
+- backend metrics availability
+- `addons/argocd/values.yaml`
+- `scripts/addons/argocd.sh`
+- `scripts/deploy-addons.sh`
+
+A local monitoring preview should be explicit and opt-in. It should not run automatically as part of the normal fast local validation until it is proven reliable and useful.
+
+A local ArgoCD preview may be useful for learning and GitOps validation, but it should not be required for everyday local development.
+
+
 ## ECR publishing flow
 
 Application image repositories are managed by the Terraform ECR stack.

@@ -667,16 +667,23 @@ Detailed documentation is available in the `docs/` directory:
 
 Near-term roadmap:
 
-1. Keep backend/frontend architecture clean and extensible
-2. Keep documentation aligned with completed features
-3. Introduce role and permission foundation
-4. Centralize workspace permission checks
-5. Improve request logging and observability
-6. Strengthen CI checks around auth/workspace/task workflows
-7. Add Alembic migrations before using environments where data matters
-8. Continue monitoring/logging improvements
-9. Prepare cloud deployment hardening
-10. Add AWS/AI integrations later
+1. Keep backend/frontend architecture clean and extensible.
+2. Keep documentation aligned with completed features.
+3. Audit local ArgoCD and monitoring feasibility on kind.
+4. Add an optional local monitoring stack if the audit confirms the useful minimum setup.
+5. Evaluate local ArgoCD as an optional preview, not a required development dependency.
+6. Decide the workspace-first product/domain model while preserving future organization-level extension options.
+7. Keep public workspace IDs as the browser/API route contract.
+8. Strengthen CI checks around auth/workspace/task workflows.
+9. Continue logging and observability improvements.
+10. Add Alembic migrations before environments where data matters.
+11. Add AWS/AI integrations later.
+
+The detailed next-phase plan is documented in:
+
+```text
+docs/NEXT_PHASE_PLAN.md
+```
 
 ## Development workflow
 

@@ -8,6 +8,20 @@ The platform now has a workspace/organization foundation as part of the SaaS-rea
 
 The backend/domain term is **organization**. The frontend/product term is **workspace**.
 
+
+The next product direction is **workspace-first**. A deployment can represent one customer/company, and that customer can manage one or more workspaces inside the platform.
+
+The current organization-level implementation should be preserved as a future extension option. The near-term goal is not to erase that work, but to avoid making the current MVP more complex than needed.
+
+Current decision:
+
+- keep database tables and backend package names as organization-oriented for now
+- keep `/organizations` API routes for compatibility for now
+- keep `/workspaces` browser routes and user-facing workspace language
+- continue using public workspace IDs externally
+- revisit database/table renames only after Alembic migrations are introduced
+
+
 Workspace-related backend code lives in:
 
 ```text

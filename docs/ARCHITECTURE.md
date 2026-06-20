@@ -933,6 +933,64 @@ This keeps stack inputs explicit and avoids Terraform undeclared-variable warnin
 
 The dev account currently disables ECR repositories through its ECR stack config. Automatic ECR image publishing remains disabled until ECR repositories are intentionally re-enabled and recreated.
 
+## Next phase architecture planning
+
+The next architecture work is split into two independent decision tracks.
+
+### Local GitOps and monitoring
+
+The project already has ArgoCD and monitoring-related files, but the local development value still needs to be reviewed before adding more automation.
+
+Current principle:
+
+```text
+local monitoring first
+local ArgoCD only if it adds clear value
+cloud resources disabled unless intentionally enabled
+```
+
+Local monitoring should help validate:
+
+- backend metrics exposure
+- Helm `ServiceMonitor` rendering
+- Prometheus scrape configuration
+- Grafana/dashboard usefulness
+- cleanup and repeatability in kind
+
+Local ArgoCD should remain optional because it can add complexity to the local loop. It should not become required for normal `make local-validate` or fast development checks.
+
+### Workspace-first product model
+
+The current implementation uses organization naming in backend code and database tables while presenting workspaces in the product UI.
+
+The preferred direction is workspace-first at the product level:
+
+```text
+customer/company deployment
+└── one or more workspaces
+    ├── members
+    ├── invitations
+    ├── tasks
+    ├── dashboard
+    ├── activity
+    └── settings
+```
+
+The organization-level concept should be preserved as a possible future extension, but it should not force the current MVP into a more complex multi-organization model.
+
+Recommended near-term architecture decision:
+
+- keep database tables named `organizations` for now
+- keep `/organizations` API routes for now
+- keep `/workspaces` browser routes
+- keep public workspace IDs as the external route/API identifier
+- clean user-facing language toward workspace
+- postpone DB/table renames until Alembic migrations exist
+- avoid one large rename that touches database, backend, frontend, tests, and docs at the same time
+
+This keeps the current validated behavior stable while allowing the product model to become clearer.
+
+
 ## Current recommended roadmap
 
 Recommended architecture/product sequence:

@@ -30,34 +30,126 @@ Completed:
 
 ## Next recommended steps
 
-### 1. Documentation maintenance
+The next work should be split into focused branches. Do not combine documentation planning, local monitoring, local ArgoCD, and workspace domain refactors in one branch.
 
-Keep README short and maintain detailed docs under `docs/`.
+### 1. Roadmap and planning docs
 
-### 2. API foundation
+Current branch:
 
-Improve the tasks API:
+```text
+docs/roadmap-next-phase-planning
+```
 
-- update task
-- delete task
-- task status transition
-- pagination
-- filtering
+Goal:
 
-### 3. Local ArgoCD and monitoring review
+- make the next phase explicit before implementation
+- document the local ArgoCD/monitoring review scope
+- document the workspace-first domain decision scope
+- keep implementation branches small and reviewable
+
+Expected output:
+
+- updated roadmap
+- next phase planning document
+- clear branch sequence
+
+### 2. Local ArgoCD and monitoring audit
+
+Recommended branch:
+
+```text
+feature/local-gitops-monitoring-audit
+```
 
 Review whether ArgoCD and monitoring should be enabled locally on kind, and define the minimum useful setup.
 
 Planned review areas:
 
-- local ArgoCD feasibility and value
-- local Prometheus/Grafana or ServiceMonitor flow
+- local kind cluster and Helm state
+- backend `/metrics` availability
+- `ServiceMonitor` rendering and selector behavior
+- local Prometheus/Grafana feasibility
+- existing addon scripts and values
 - what remains cloud-only
 - whether local addons should be optional and disabled by default
 
-### 4. Logging and observability
+Recommendation:
 
-Improve backend logging and document monitoring flow.
+Start with monitoring before local ArgoCD. Monitoring provides immediate practical value and can validate backend metrics and ServiceMonitor wiring. Local ArgoCD should remain optional unless it clearly improves the development loop.
+
+### 3. Minimal local monitoring stack
+
+Recommended branch:
+
+```text
+feature/local-monitoring-stack
+```
+
+Goal:
+
+Add an optional local monitoring preview for kind.
+
+Expected capabilities:
+
+- install local monitoring only when explicitly requested
+- validate backend metrics exposure
+- validate ServiceMonitor wiring
+- provide port-forward or access instructions for Prometheus/Grafana
+- document cleanup
+- keep cloud resources untouched
+
+### 4. Optional local ArgoCD preview
+
+Recommended branch:
+
+```text
+feature/local-argocd-preview
+```
+
+Goal:
+
+Evaluate ArgoCD locally as an optional GitOps learning/preview workflow.
+
+Rules:
+
+- do not make local ArgoCD mandatory for normal development
+- do not slow down `make local-validate`
+- do not rely on cloud-only secrets
+- document login, port-forward, sync, and cleanup steps
+
+### 5. Workspace-first product model
+
+Recommended branch:
+
+```text
+docs/workspace-first-domain-plan
+```
+
+Review the current organization/workspace split and decide the next domain direction.
+
+Current direction:
+
+- one deployed platform can represent one customer/company
+- workspace is the main in-product grouping concept
+- organization-level code/knowledge should be preserved for possible future enterprise or multi-tenant extension
+- public workspace IDs remain the browser/API route contract
+- avoid large database renames until the migration plan is clear
+
+Recommended approach:
+
+- keep database tables named `organizations` for now
+- keep `/organizations` API routes for compatibility for now
+- keep `/workspaces` browser routes and workspace-first product language
+- consider `/workspaces` API aliases later as a backward-compatible addition
+- postpone DB/table renames until Alembic migrations are introduced
+
+### 6. CI/CD hardening
+
+Review GitHub Actions workflows and ensure local checks are represented in CI.
+
+### 7. Logging and observability
+
+Improve backend logging and document monitoring flow after the local monitoring audit.
 
 Planned improvements:
 
@@ -66,30 +158,15 @@ Planned improvements:
 - better metrics labels
 - dashboard documentation
 
-### 5. CI/CD hardening
+### 8. Authentication, users, and permissions
 
-Review GitHub Actions workflows and ensure all local checks are represented in CI.
+Continue strengthening auth, user, and permission boundaries after the workspace-first model decision.
 
-### 6. Authentication and users
-
-Add auth foundation for future SaaS and platform users.
-
-### 7. Workspace-first product model
-
-Review the current organization/workspace split and decide the next domain direction.
-
-Current direction to evaluate:
-
-- one deployed platform per customer/company
-- workspace as the main in-product grouping concept
-- preserve organization-level code/knowledge for possible future enterprise or multi-tenant extension
-- avoid large database renames until the migration plan is clear
-
-### 8. Cloud validation
+### 9. Cloud validation
 
 When needed, validate cloud deploy/teardown carefully with cost controls.
 
-### 9. AI/GenAI capabilities
+### 10. AI/GenAI capabilities
 
 Future capabilities:
 

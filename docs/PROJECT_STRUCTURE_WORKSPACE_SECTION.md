@@ -2,6 +2,19 @@
 
 This section can be used to update `docs/PROJECT_STRUCTURE.md`.
 
+## Workspace-first structure note
+
+The current code structure still uses `organizations` as the backend and frontend feature folder name. Product language and browser routes are workspace-first.
+
+Near-term structure decision:
+
+- do not rename database tables yet
+- do not rename all backend files in one large step
+- keep `/organizations` API routes until compatibility strategy is clear
+- keep `/workspaces` browser routes
+- use future focused branches for optional `/workspaces` API aliases or package renames
+
+
 ## Backend organization feature
 
 Backend organization/workspace code lives under:

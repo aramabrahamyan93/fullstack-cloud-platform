@@ -9,6 +9,33 @@ The platform uses the terms **workspace** and **organization** closely together:
 
 The current goal is to support SaaS-style collaboration where users can create workspaces, invite other users, manage workspace access, and work with workspace-scoped tasks.
 
+## Workspace-first product direction
+
+The preferred product direction is workspace-first.
+
+The platform may be deployed per customer/company. Inside that platform, the main user-facing grouping is a workspace. A customer can have one workspace or multiple internal workspaces.
+
+The existing organization-level implementation should not be discarded. It remains useful as a future extension point if the product later needs a richer enterprise or multi-tenant organization model.
+
+Near-term decision:
+
+- keep user-facing language focused on workspace
+- keep public workspace IDs as the route/API identifier
+- keep backend permission enforcement unchanged
+- avoid database table renames until Alembic migrations are introduced
+- avoid one large rename across backend, frontend, tests, and docs
+
+Current compatibility decision:
+
+```text
+product/browser route: /workspaces
+current API route:     /organizations
+database tables:       organizations, organization_members, organization_invitations, organization_audit_logs
+```
+
+This split is acceptable while the product model stabilizes. A future branch can add `/workspaces` API aliases or rename internal packages after the migration plan is clear.
+
+
 ## Current workspace model
 
 ```text

@@ -35,6 +35,23 @@ The project is organized as a fullstack cloud-native application with:
 └── services.json
 ```
 
+
+## Planning documentation
+
+Next-phase planning is documented under:
+
+```text
+docs/NEXT_PHASE_PLAN.md
+```
+
+This document is used to plan implementation branches before code changes. It currently covers:
+
+- local ArgoCD and monitoring audit
+- optional local monitoring stack
+- optional local ArgoCD preview
+- workspace-first product/domain decision
+- risk management and branch sequencing
+
 ## Backend
 
 Backend code lives under:
