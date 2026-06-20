@@ -70,6 +70,7 @@ def list_user_organizations(db: Session, *, user_id: int) -> list[dict[str, int 
             OrganizationMember.organization_id == Organization.id,
         )
         .where(OrganizationMember.user_id == user_id)
+        .where(Organization.status != "deleted")
         .order_by(Organization.id.asc())
     )
 
@@ -92,6 +93,7 @@ def get_user_organization(
         )
         .where(Organization.id == organization_id)
         .where(OrganizationMember.user_id == user_id)
+        .where(Organization.status != "deleted")
     )
 
     return db.scalars(statement).first()
@@ -111,6 +113,7 @@ def get_user_organization_by_public_id(
         )
         .where(Organization.public_id == public_id)
         .where(OrganizationMember.user_id == user_id)
+        .where(Organization.status != "deleted")
     )
 
     return db.scalars(statement).first()

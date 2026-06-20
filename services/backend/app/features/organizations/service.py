@@ -38,9 +38,11 @@ ORGANIZATION_AUDIT_EVENT_OWNERSHIP_TRANSFERRED = "ownership_transferred"
 ORGANIZATION_AUDIT_EVENT_WORKSPACE_LEFT = "workspace_left"
 ORGANIZATION_AUDIT_EVENT_WORKSPACE_ARCHIVED = "workspace_archived"
 ORGANIZATION_AUDIT_EVENT_WORKSPACE_RESTORED = "workspace_restored"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_DELETED = "workspace_deleted"
 
 ORGANIZATION_STATUS_ACTIVE = "active"
 ORGANIZATION_STATUS_ARCHIVED = "archived"
+ORGANIZATION_STATUS_DELETED = "deleted"
 
 
 def record_organization_audit_log(
@@ -146,11 +148,23 @@ def resolve_organization_for_user(
 def ensure_organization_is_active(
     organization: Organization,
 ) -> Organization:
+    if organization.status == ORGANIZATION_STATUS_DELETED:
+        raise NotFoundError("Organization not found.")
+
     if organization.status == ORGANIZATION_STATUS_ARCHIVED:
         raise ForbiddenError(
             "Workspace is archived.",
             error_code="workspace_archived",
         )
+
+    return organization
+
+
+def ensure_organization_is_not_deleted(
+    organization: Organization,
+) -> Organization:
+    if organization.status == ORGANIZATION_STATUS_DELETED:
+        raise NotFoundError("Organization not found.")
 
     return organization
 
@@ -1166,3 +1180,45 @@ def restore_user_organization(
         "role": membership.role,
     }
 
+
+
+def delete_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> None:
+    membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    organization = db.get(Organization, organization_id)
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    ensure_organization_is_not_deleted(organization)
+
+    if organization.status != ORGANIZATION_STATUS_ARCHIVED:
+        raise ForbiddenError(
+            "Archive the workspace before deleting it.",
+            error_code="workspace_delete_requires_archive",
+        )
+
+    previous_status = organization.status
+    organization.status = ORGANIZATION_STATUS_DELETED
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_DELETED,
+        metadata_json={
+            "previous_status": previous_status,
+            "new_status": ORGANIZATION_STATUS_DELETED,
+        },
+    )
+
+    db.commit()

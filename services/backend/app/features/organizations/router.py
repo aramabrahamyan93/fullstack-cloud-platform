@@ -19,6 +19,7 @@ from app.features.organizations.service import (
     create_user_organization_invitation,
     decline_current_user_invitation,
     create_user_organization,
+    delete_user_organization,
     get_organization_for_user,
     resolve_organization_for_user,
     get_user_organization_dashboard,
@@ -430,3 +431,24 @@ def restore_organization(
         current_user=current_user,
     )
 
+
+
+@router.delete("/{organization_id}", status_code=204)
+def delete_organization(
+    organization_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    resolved_organization_id = resolve_organization_id(
+        db,
+        organization_ref=organization_id,
+        current_user=current_user,
+    )
+
+    delete_user_organization(
+        db,
+        organization_id=resolved_organization_id,
+        current_user=current_user,
+    )
+
+    return Response(status_code=204)
