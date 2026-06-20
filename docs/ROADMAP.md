@@ -90,6 +90,19 @@ Start with monitoring before local ArgoCD. Monitoring provides immediate practic
 
 ### 3. Minimal local monitoring stack
 
+Status: implemented in `feature/local-monitoring-stack`.
+
+Validated capabilities:
+
+- local `kube-prometheus-stack` install through `make local-monitoring-up`
+- Prometheus Operator, Grafana, kube-state-metrics, node-exporter, and Prometheus running in the `monitoring` namespace
+- app deploy with `make local-k8s-deploy-monitoring`
+- backend `ServiceMonitor` created in `fullstack-local`
+- backend `/metrics` scraped by Prometheus
+- Prometheus `up` query contains `job=backend`, `namespace=fullstack-local`, `service=backend`, value `1`
+
+Default local validation remains unchanged and monitoring remains optional.
+
 Recommended branch:
 
 ```text

@@ -82,6 +82,46 @@ In local database mode, Helm renders `DATABASE_URL` from PostgreSQL values.
 
 In external database mode, the backend reads `DATABASE_URL` from a Kubernetes Secret.
 
+### Local monitoring deployment
+
+Local monitoring is an optional kind-only flow. It is intentionally separate from the cloud addon deployment flow because the cloud addon script requires account configuration and AWS account metadata.
+
+Commands:
+
+```bash
+make local-monitoring-up
+make local-k8s-deploy-monitoring
+make local-monitoring-status
+```
+
+Deployment sequence:
+
+1. Install `kube-prometheus-stack` into the `monitoring` namespace.
+2. Wait for Prometheus Operator and Grafana rollouts.
+3. Confirm `ServiceMonitor`, `Prometheus`, and `PodMonitor` CRDs exist.
+4. Upgrade the `fullstack-local` Helm release with `HELM_EXTRA_VALUES=helm/platform/values-local-monitoring.yaml`.
+5. Validate `ServiceMonitor/backend` in `fullstack-local`.
+6. Confirm Prometheus target discovery for backend metrics.
+
+Validated backend scrape evidence:
+
+```text
+scrapeUrl: http://10.244.0.7:8000/metrics
+health: up
+job: backend
+namespace: fullstack-local
+service: backend
+up: 1
+```
+
+Cleanup:
+
+```bash
+make local-monitoring-down
+```
+
+This flow does not create AWS resources. It only affects the local kind cluster.
+
 ## Health and probe deployment flow
 
 Backend health endpoints are mapped to Kubernetes probes:

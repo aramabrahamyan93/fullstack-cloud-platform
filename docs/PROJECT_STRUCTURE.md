@@ -261,6 +261,15 @@ apps/frontend/src/app/
 
 ## Helm
 
+Local monitoring-specific values:
+
+```text
+helm/platform/values-local-monitoring.yaml
+```
+
+This file is an opt-in override that enables backend `ServiceMonitor` rendering only after Prometheus Operator CRDs are available in the local kind cluster.
+
+
 The chart also includes an optional local monitoring override:
 
 ```text
@@ -362,6 +371,20 @@ addons/monitoring
 Addon configuration is used by scripts to install Kubernetes platform components.
 
 ## Scripts
+
+Local monitoring helper:
+
+```text
+scripts/local-monitoring.sh
+```
+
+Responsibilities:
+
+- install local `kube-prometheus-stack`
+- show local monitoring status
+- uninstall the local monitoring release
+- avoid AWS/cloud account requirements for local observability checks
+
 
 ```text
 scripts/cloud-deploy.sh

@@ -133,37 +133,38 @@ Start with monitoring before ArgoCD. Monitoring gives faster practical feedback 
 
 ## Phase 3 — Minimal local monitoring stack
 
-Recommended branch:
+Phase 3 status: implemented in branch `feature/local-monitoring-stack`.
+
+Goal achieved:
+
+Create an optional local monitoring flow for kind without changing the default local development path.
+
+Implemented capabilities:
+
+- `scripts/local-monitoring.sh` for local-only monitoring lifecycle
+- `make local-monitoring-up`
+- `make local-monitoring-status`
+- `make local-monitoring-down`
+- `make local-k8s-deploy-monitoring`
+- app deployment with `HELM_EXTRA_VALUES=helm/platform/values-local-monitoring.yaml`
+- backend `ServiceMonitor` creation after CRDs exist
+- Prometheus target validation for backend `/metrics`
+
+Validated result:
 
 ```text
-feature/local-monitoring-stack
+backend /metrics
+→ ServiceMonitor/backend
+→ Prometheus scrape target health=up
+→ up{job="backend", namespace="fullstack-local", service="backend"} = 1
 ```
 
-Goal:
+Safety result:
 
-Create an optional local monitoring flow for kind.
+- no AWS resources are created
+- default local Helm render/deploy remains unchanged
+- monitoring is optional and cleanup is available with `make local-monitoring-down`
 
-Expected capabilities:
-
-- install monitoring stack into local kind
-- expose or port-forward Prometheus/Grafana as needed
-- validate backend metrics endpoint
-- validate ServiceMonitor selection
-- document local commands
-- keep the feature optional and disabled by default
-
-Potential implementation tasks:
-
-1. Confirm or add backend metrics endpoint.
-2. Confirm Helm renders ServiceMonitor only when monitoring is enabled.
-3. Add local addon config if needed, separate from cloud `config/addons/dev.env`.
-4. Add Make targets or scripts for local monitoring preview.
-5. Add smoke/verification command that checks pods, services, and backend metrics scrape readiness.
-6. Document usage and cleanup.
-
-Safety:
-
-Local monitoring must not affect cloud resources and must not enable AWS resources.
 
 ## Phase 4 — Optional local ArgoCD preview
 

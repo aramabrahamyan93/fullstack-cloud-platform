@@ -71,6 +71,10 @@ help:
 	@echo "  make local-k8s-smoke-test  Run in-cluster smoke tests"
 	@echo "  make local-k8s-status      Show local Kubernetes resources"
 	@echo "  make local-k8s-down        Delete local kind cluster"
+	@echo "  make local-monitoring-up   Install local Prometheus/Grafana stack"
+	@echo "  make local-monitoring-status Show local monitoring resources"
+	@echo "  make local-monitoring-down Uninstall local monitoring stack"
+	@echo "  make local-k8s-deploy-monitoring Deploy app with local ServiceMonitor enabled"
 	@echo ""
 	@echo "  make validate-services    Validate services.json registry"
 	@echo "  make local-preview         Build and start production-like local preview"
@@ -250,6 +254,22 @@ local-k8s-deploy:
 .PHONY: local-k8s-status
 local-k8s-status:
 	$(MAKE) k8s-status ENV=local
+
+.PHONY: local-monitoring-up
+local-monitoring-up:
+	bash scripts/local-monitoring.sh up
+
+.PHONY: local-monitoring-status
+local-monitoring-status:
+	bash scripts/local-monitoring.sh status
+
+.PHONY: local-monitoring-down
+local-monitoring-down:
+	bash scripts/local-monitoring.sh down
+
+.PHONY: local-k8s-deploy-monitoring
+local-k8s-deploy-monitoring:
+	$(MAKE) helm-deploy ENV=local PROJECT_NAME=$(PROJECT_NAME) PROJECT_DOMAIN=$(PROJECT_DOMAIN) AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID) AWS_REGION=$(AWS_REGION) HELM_EXTRA_VALUES="helm/platform/values-local-monitoring.yaml"
 
 .PHONY: local-k8s-wait
 local-k8s-wait:

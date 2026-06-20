@@ -34,6 +34,72 @@ make local-k8s-status
 make local-k8s-down
 ```
 
+## Local monitoring operations
+
+Local monitoring is optional and runs only in the local kind cluster.
+
+Install monitoring:
+
+```bash
+make local-monitoring-up
+```
+
+Deploy the app with backend `ServiceMonitor` enabled:
+
+```bash
+make local-k8s-deploy-monitoring
+```
+
+Check monitoring resources:
+
+```bash
+make local-monitoring-status
+kubectl get servicemonitor backend -n fullstack-local
+```
+
+Validate application behavior and backend metrics:
+
+```bash
+make local-k8s-smoke-test
+```
+
+Optional Prometheus UI access:
+
+```bash
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 19091:9090
+```
+
+Then open Prometheus locally on port `19091` and query:
+
+```text
+up{job="backend", namespace="fullstack-local", service="backend"}
+```
+
+Expected value:
+
+```text
+1
+```
+
+Optional Grafana access:
+
+```bash
+kubectl port-forward -n monitoring svc/monitoring-grafana 13000:80
+```
+
+Default local credentials from `addons/monitoring/values.yaml`:
+
+```text
+user: admin
+password: admin
+```
+
+Cleanup:
+
+```bash
+make local-monitoring-down
+```
+
 ## Helm operations
 
 ```bash

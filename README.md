@@ -665,43 +665,36 @@ Detailed documentation is available in the `docs/` directory:
 
 ## Current roadmap
 
-### Optional local monitoring override
+### Optional local monitoring stack
 
-Local Kubernetes deployment keeps monitoring disabled by default so the normal kind workflow stays fast and does not require Prometheus Operator CRDs.
+Local Helm deploy keeps backend `ServiceMonitor` disabled by default because a fresh kind cluster does not include Prometheus Operator CRDs.
 
-The Helm chart now supports optional extra values files through `HELM_EXTRA_VALUES`. The local monitoring override file is:
-
-```text
-helm/platform/values-local-monitoring.yaml
-```
-
-It enables backend metrics ServiceMonitor rendering only when explicitly requested:
+Use the optional local monitoring flow when you want to validate Prometheus/Grafana scraping in kind:
 
 ```bash
-make helm-render ENV=local HELM_EXTRA_VALUES="helm/platform/values-local-monitoring.yaml"
+make local-monitoring-up
+make local-k8s-deploy-monitoring
+make local-monitoring-status
 ```
 
-Do not use the monitoring override with `helm-deploy` until the monitoring stack is installed in the local cluster, because `ServiceMonitor` requires the `servicemonitors.monitoring.coreos.com` CRD from Prometheus Operator. The default local render/deploy flow intentionally does not render `ServiceMonitor`.
+This installs the local `kube-prometheus-stack`, deploys the app with `helm/platform/values-local-monitoring.yaml`, and creates the backend `ServiceMonitor`.
 
-Near-term roadmap:
-
-1. Keep backend/frontend architecture clean and extensible.
-2. Keep documentation aligned with completed features.
-3. Audit local ArgoCD and monitoring feasibility on kind.
-4. Add an optional local monitoring stack if the audit confirms the useful minimum setup.
-5. Evaluate local ArgoCD as an optional preview, not a required development dependency.
-6. Decide the workspace-first product/domain model while preserving future organization-level extension options.
-7. Keep public workspace IDs as the browser/API route contract.
-8. Strengthen CI checks around auth/workspace/task workflows.
-9. Continue logging and observability improvements.
-10. Add Alembic migrations before environments where data matters.
-11. Add AWS/AI integrations later.
-
-The detailed next-phase plan is documented in:
+The validated local metrics path is:
 
 ```text
-docs/NEXT_PHASE_PLAN.md
+backend /metrics
+→ ServiceMonitor backend in fullstack-local
+→ Prometheus target job=backend service=backend
+→ Prometheus up value = 1
 ```
+
+Cleanup is optional and local-only:
+
+```bash
+make local-monitoring-down
+```
+
+The default `make local-k8s-deploy` and `make local-k8s-validate` workflows still do not install monitoring or render `ServiceMonitor`.
 
 ## Development workflow
 

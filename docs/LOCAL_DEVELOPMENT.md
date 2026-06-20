@@ -96,13 +96,52 @@ Use this workflow for:
 
 The backend exposes `/metrics`, and the Helm chart contains a `ServiceMonitor` template. Local Kubernetes keeps that `ServiceMonitor` disabled by default because a fresh kind cluster does not include Prometheus Operator CRDs.
 
+Use the optional local monitoring stack only when you want to validate observability locally:
+
+```bash
+make local-monitoring-up
+make local-k8s-deploy-monitoring
+make local-monitoring-status
+```
+
+The flow is:
+
+1. `make local-monitoring-up` installs `kube-prometheus-stack` into the `monitoring` namespace.
+2. Prometheus Operator installs the required CRDs, including `ServiceMonitor`.
+3. `make local-k8s-deploy-monitoring` upgrades the local app release with `helm/platform/values-local-monitoring.yaml`.
+4. Helm creates `ServiceMonitor/backend` in the `fullstack-local` namespace.
+5. Prometheus discovers and scrapes `http://backend:8000/metrics` through the backend service named port `http`.
+
+Validated result:
+
+```text
+job="backend"
+namespace="fullstack-local"
+service="backend"
+up = 1
+```
+
+Useful checks:
+
+```bash
+make local-monitoring-status
+kubectl get servicemonitor backend -n fullstack-local
+make local-k8s-smoke-test
+```
+
+Cleanup is local-only:
+
+```bash
+make local-monitoring-down
+```
+
 The optional local monitoring override is:
 
 ```text
 helm/platform/values-local-monitoring.yaml
 ```
 
-Use it for render validation only until the monitoring stack is installed:
+Render validation:
 
 ```bash
 make helm-render ENV=local HELM_EXTRA_VALUES="helm/platform/values-local-monitoring.yaml"
@@ -116,34 +155,7 @@ Expected behavior:
 - the backend service selector remains `app: backend`
 - the backend service port remains named `http`
 
-Do not make local monitoring part of the default local validation flow until it is proven reliable and useful. Normal local development should continue to work without monitoring installed.
-
-Run full kind/Kubernetes validation:
-
-```bash
-make local-k8s-validate
-```
-
-This runs:
-
-```text
-local-k8s-down
-local-k8s-up
-local-k8s-deploy
-local-k8s-wait
-local-k8s-smoke-test
-local-k8s-status
-```
-
-Use this workflow for:
-
-- Helm chart changes
-- Kubernetes deployment changes
-- service changes
-- ingress changes
-- probes
-- init containers
-- PVC/database Kubernetes changes
+Do not make local monitoring part of the default local validation flow. Normal local development should continue to work without monitoring installed.
 
 ## Full local validation
 
