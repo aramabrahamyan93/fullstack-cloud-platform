@@ -10,6 +10,9 @@ PROJECT_DOMAIN ?= $(PROJECT_NAME).local
 APP_NAME ?= $(PROJECT_NAME)-api
 RELEASE_PREFIX ?= fullstack
 ENV ?= local
+ADDONS_ENV_FILE ?= config/addons/$(ENV).env
+-include $(ADDONS_ENV_FILE)
+export
 
 COMPOSE ?= bash scripts/compose.sh
 
@@ -23,6 +26,7 @@ HELM_RELEASE ?= $(RELEASE_PREFIX)-$(ENV)
 HELM_CHART ?= helm/platform
 HELM_VALUES ?= $(HELM_CHART)/values-$(ENV).yaml
 HELM_EXTRA_VALUES ?=
+LOCAL_MONITORING_HELM_EXTRA_VALUES ?= $(HELM_CHART)/values-$(ENV)-monitoring.yaml
 HELM_VALUES_ARGS = -f "$(HELM_VALUES)" $(foreach values_file,$(HELM_EXTRA_VALUES),-f "$(values_file)")
 
 BACKEND_URL ?= http://localhost:8000
@@ -70,10 +74,21 @@ help:
 	@echo "  make local-k8s-wait        Wait for backend/frontend rollouts"
 	@echo "  make local-k8s-smoke-test  Run in-cluster smoke tests"
 	@echo "  make local-k8s-status      Show local Kubernetes resources"
+	@echo "  make local-app-status      Show local app access configuration"
+	@echo "  make local-app-port-forward Open local app UI port-forward"
+	@echo "  make local-platform-down Remove local platform demo"
+	@echo "  make local-platform-links Print local platform access links"
+	@echo "  make local-platform-access-check Check browser links when port-forwards are running"
+	@echo "  make local-platform-status Show full local platform status"
+	@echo "  make local-platform-doctor Run full local platform health checks"
+	@echo "  make local-platform-up  Build full local platform demo"
+	@echo "  make local-platform-refresh Rebuild/reload/redeploy app and validate local platform"
 	@echo "  make local-k8s-down        Delete local kind cluster"
 	@echo "  make local-monitoring-up   Install local Prometheus/Grafana stack"
 	@echo "  make local-monitoring-status Show local monitoring resources"
 	@echo "  make local-monitoring-down Uninstall local monitoring stack"
+	@echo "  make local-prometheus-port-forward Open local Prometheus UI port-forward"
+	@echo "  make local-grafana-port-forward Open local Grafana UI port-forward"
 	@echo "  make local-k8s-deploy-monitoring Deploy app with local ServiceMonitor enabled"
 	@echo "  make local-argocd-up     Install local ArgoCD stack"
 	@echo "  make local-argocd-status Show local ArgoCD resources"
@@ -82,6 +97,7 @@ help:
 	@echo "  make local-argocd-app-apply  Apply local ArgoCD Application preview"
 	@echo "  make local-argocd-app-status Show local ArgoCD Application preview"
 	@echo "  make local-argocd-app-delete Delete local ArgoCD Application preview"
+	@echo "  make local-argocd-port-forward Open local ArgoCD UI port-forward"
 	@echo ""
 	@echo "  make validate-services    Validate services.json registry"
 	@echo "  make local-preview         Build and start production-like local preview"
@@ -276,7 +292,15 @@ local-monitoring-down:
 
 .PHONY: local-k8s-deploy-monitoring
 local-k8s-deploy-monitoring:
-	$(MAKE) helm-deploy ENV=local PROJECT_NAME=$(PROJECT_NAME) PROJECT_DOMAIN=$(PROJECT_DOMAIN) AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID) AWS_REGION=$(AWS_REGION) HELM_EXTRA_VALUES="helm/platform/values-local-monitoring.yaml"
+	$(MAKE) helm-deploy ENV=local PROJECT_NAME=$(PROJECT_NAME) PROJECT_DOMAIN=$(PROJECT_DOMAIN) AWS_ACCOUNT_ID=$(AWS_ACCOUNT_ID) AWS_REGION=$(AWS_REGION) HELM_EXTRA_VALUES="$(LOCAL_MONITORING_HELM_EXTRA_VALUES)"
+
+.PHONY: local-prometheus-port-forward
+local-prometheus-port-forward:
+	bash scripts/local-monitoring.sh prometheus-port-forward
+
+.PHONY: local-grafana-port-forward
+local-grafana-port-forward:
+	bash scripts/local-monitoring.sh grafana-port-forward
 
 .PHONY: local-argocd-up
 local-argocd-up:
@@ -305,6 +329,10 @@ local-argocd-app-status:
 .PHONY: local-argocd-app-delete
 local-argocd-app-delete:
 	bash scripts/local-argocd.sh app-delete
+
+.PHONY: local-argocd-port-forward
+local-argocd-port-forward:
+	bash scripts/local-argocd.sh port-forward
 
 .PHONY: local-k8s-wait
 local-k8s-wait:
@@ -476,3 +504,40 @@ deploy-addons:
 	AWS_REGION="$(AWS_REGION)" \
 	PROJECT_NAME="$(PROJECT_NAME)" \
 	bash scripts/deploy-addons.sh
+
+.PHONY: local-app-status
+local-app-status:
+	bash scripts/local-app-access.sh status
+
+.PHONY: local-app-port-forward
+local-app-port-forward:
+	bash scripts/local-app-access.sh port-forward
+
+.PHONY: local-platform-up
+local-platform-up:
+	bash scripts/local-platform.sh up
+
+.PHONY: local-platform-status
+local-platform-status:
+	bash scripts/local-platform.sh status
+
+.PHONY: local-platform-links
+local-platform-links:
+	bash scripts/local-platform.sh links
+
+.PHONY: local-platform-down
+local-platform-down:
+	bash scripts/local-platform.sh down
+
+.PHONY: local-platform-access-check
+local-platform-access-check:
+	bash scripts/local-platform.sh access-check
+
+
+.PHONY: local-platform-refresh
+local-platform-refresh:
+	bash scripts/local-platform.sh refresh
+
+.PHONY: local-platform-doctor
+local-platform-doctor:
+	bash scripts/local-platform.sh doctor

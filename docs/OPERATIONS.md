@@ -1,5 +1,48 @@
 # Operations
 
+## Full local platform operations
+
+Use the full local platform workflow for a reproducible local demo that includes the app stack, local monitoring, ArgoCD preview, Prometheus target validation, and browser access helpers.
+
+Start or rebuild the local platform from the current source tree:
+
+```bash
+make local-platform-up
+```
+
+Refresh app images and redeploy into an existing kind cluster:
+
+```bash
+make local-platform-refresh
+```
+
+Run health checks without rebuilding images:
+
+```bash
+make local-platform-doctor
+```
+
+Show deployed resources and links:
+
+```bash
+make local-platform-status
+make local-platform-links
+```
+
+Check browser links after port-forwards are running:
+
+```bash
+make local-platform-access-check
+```
+
+Remove the local platform demo:
+
+```bash
+make local-platform-down
+```
+
+The local platform scripts do not run SQL and do not mutate database schema. Schema changes belong in the application/migration layer.
+
 ## Main command entry point
 
 ```bash
@@ -36,7 +79,7 @@ make local-k8s-down
 
 ## Local monitoring operations
 
-Local monitoring is optional and runs only in the local kind cluster.
+Local monitoring is optional and runs only in the local kind cluster. Local monitoring chart version is pinned in `config/addons/local.env` so zero-state installs are reproducible.
 
 Install monitoring:
 
@@ -66,7 +109,7 @@ make local-k8s-smoke-test
 Optional Prometheus UI access:
 
 ```bash
-kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 19091:9090
+make local-prometheus-port-forward
 ```
 
 Then open Prometheus locally on port `19091` and query:
@@ -84,7 +127,7 @@ Expected value:
 Optional Grafana access:
 
 ```bash
-kubectl port-forward -n monitoring svc/monitoring-grafana 13000:80
+make local-grafana-port-forward
 ```
 
 Default local credentials from `addons/monitoring/values.yaml`:
@@ -102,7 +145,7 @@ make local-monitoring-down
 
 ## Local ArgoCD operations
 
-Local ArgoCD is optional and runs only in the local kind cluster.
+Local ArgoCD is optional and runs only in the local kind cluster. Local ArgoCD chart version is pinned in `config/addons/local.env` so zero-state installs are reproducible.
 
 Install ArgoCD:
 
@@ -119,7 +162,7 @@ make local-argocd-status
 Open the ArgoCD UI:
 
 ```bash
-kubectl port-forward -n argocd svc/argocd-server 18443:443
+make local-argocd-port-forward
 ```
 
 Browser URL:

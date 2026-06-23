@@ -2,43 +2,42 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: fullstack-local
-  namespace: argocd
+  name: ${ARGOCD_APP_NAME}
+  namespace: ${ARGOCD_NAMESPACE}
 
 spec:
-  project: default
+  project: ${ARGOCD_PROJECT}
 
   source:
     repoURL: ${GIT_REPO_URL}
     targetRevision: ${GIT_TARGET_REVISION}
-    path: helm/platform
+    path: ${ARGOCD_APP_SOURCE_PATH}
 
     helm:
-      releaseName: fullstack-local
+      releaseName: ${ARGOCD_APP_RELEASE_NAME}
 
       valueFiles:
-        - values-local.yaml
-        - values-local-monitoring.yaml
+${ARGOCD_APP_VALUE_FILES_BLOCK}
 
       parameters:
         - name: namespace
-          value: fullstack-local
+          value: ${ARGOCD_APP_DESTINATION_NAMESPACE}
 
         - name: global.projectName
-          value: fullstack-cloud-platform
+          value: ${PROJECT_NAME}
 
         - name: global.domain
-          value: fullstack-cloud-platform.local
+          value: ${PROJECT_DOMAIN}
 
         - name: global.awsAccountId
-          value: ""
+          value: "${AWS_ACCOUNT_ID}"
 
         - name: global.awsRegion
-          value: eu-central-1
+          value: ${AWS_REGION}
 
   destination:
-    server: https://kubernetes.default.svc
-    namespace: fullstack-local
+    server: ${ARGOCD_DESTINATION_SERVER}
+    namespace: ${ARGOCD_APP_DESTINATION_NAMESPACE}
 
   syncPolicy:
     syncOptions:

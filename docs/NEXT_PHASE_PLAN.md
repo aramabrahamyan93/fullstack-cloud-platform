@@ -218,6 +218,45 @@ Recommendation:
 
 Keep local ArgoCD as an optional preview and learning workflow. Do not make it mandatory for normal development.
 
+
+## Phase 4.5 — Local platform configurable access hardening
+
+Phase 4.5 status: implemented in branch `fix/local-gitops-configurable-access`.
+
+Goal achieved:
+
+Provide a reproducible local platform workflow that can start from zero state, install pinned local addons, refresh local app images, validate Prometheus scraping, apply the local ArgoCD preview, and print reliable browser access commands.
+
+Implemented capabilities:
+
+- `config/addons/local.env` follows the same `config/addons/<env>.env` pattern as dev/staging.
+- Local config is minimal and contains only real local choices.
+- `scripts/local-common.sh` derives namespaces, release names, chart paths, value files, and service names.
+- `make local-platform-up` creates/reuses kind and builds the full local platform.
+- `make local-platform-refresh` rebuilds/reloads app images and validates the app path.
+- `make local-platform-doctor` checks Helm releases, rollouts, ServiceMonitor, Prometheus target health, and smoke tests.
+- `make local-platform-links` prints browser access commands and URLs.
+- `make local-platform-access-check` validates browser links when port-forwards are running.
+- `make local-app-port-forward`, `make local-argocd-port-forward`, `make local-prometheus-port-forward`, and `make local-grafana-port-forward` provide consistent access commands.
+- Local monitoring and ArgoCD chart versions are pinned for reproducible installs.
+- Failed or pending local Helm releases are cleaned before retry.
+
+Important architecture decision:
+
+Local platform scripts must not contain custom SQL or database schema fixes. They only build, load, deploy, observe, and validate. Database schema belongs to the application/migration layer. Alembic migrations remain a separate future phase.
+
+Validated result:
+
+```text
+argocd:          argo-cd-9.6.0 deployed
+monitoring:      kube-prometheus-stack-86.3.2 deployed
+fullstack-local: platform-0.1.0 deployed
+ServiceMonitor:  backend present
+Prometheus:      up{job="backend", namespace="fullstack-local", service="backend"} = 1
+Smoke test:      passed
+ArgoCD app:      OutOfSync / Progressing expected, auto-sync disabled
+```
+
 ## Phase 5 — Workspace-first domain decision
 
 Recommended branch:

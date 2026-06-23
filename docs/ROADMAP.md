@@ -27,6 +27,9 @@ Completed:
 - Terraform account variables split by stack-specific account folders
 - Automatic ECR image publishing disabled while dev ECR repositories are disabled
 - Cloud deploy Makefile environment chain fixed for `IMAGE_TAG`
+- Local platform configurable access workflow implemented with `make local-platform-up`, refresh, doctor, status, links, and access-check targets
+- Local monitoring and ArgoCD chart versions pinned for reproducible zero-state local installs
+- Local platform scripts hardened to avoid custom SQL and keep schema ownership in the application/migration layer
 
 ## Next recommended steps
 
@@ -163,6 +166,25 @@ Rules:
 - do not rely on cloud-only secrets
 - do not commit generated admin passwords
 - keep cleanup available
+
+
+### 4.5. Local platform configurable access hardening
+
+Status: implemented in `fix/local-gitops-configurable-access`.
+
+Validated capabilities:
+
+- `make local-platform-up` builds a zero-state local platform from kind through monitoring, app deploy, ArgoCD preview, and access links
+- `make local-platform-refresh` rebuilds/reloads local images and validates the app path
+- `make local-platform-doctor` validates Helm releases, rollouts, `ServiceMonitor/backend`, Prometheus target health, and smoke tests
+- `config/addons/local.env` keeps local choices minimal and pins addon chart versions
+- local scripts clean failed or pending local Helm releases before retry
+- local browser access is standardized through port-forward make targets
+- no custom SQL is kept in local scripts
+
+Design rule:
+
+Local platform scripts must stay infrastructure/workflow-only. Database schema changes belong in application startup or migrations. Alembic remains the planned long-term migration layer.
 
 ### 5. Workspace-first product model
 

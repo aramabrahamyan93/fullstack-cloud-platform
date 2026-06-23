@@ -38,6 +38,29 @@ KIND_CLUSTER=$(PROJECT_NAME)
 HELM_RELEASE=$(RELEASE_PREFIX)-$(ENV)
 ```
 
+Local addon configuration is stored in:
+
+```text
+config/addons/local.env
+```
+
+Keep this file minimal. It contains only local choices, not derived names. Current local choices are:
+
+```env
+ENABLE_ARGOCD=true
+ENABLE_ARGOCD_APPLICATION=true
+ENABLE_MONITORING=true
+MONITORING_CHART_VERSION=86.3.2
+ARGOCD_CHART_VERSION=9.6.0
+ARGOCD_TARGET_REVISION=develop
+APP_ACCESS_LOCAL_PORT=18081
+ARGOCD_LOCAL_PORT=18443
+PROMETHEUS_LOCAL_PORT=19091
+GRAFANA_LOCAL_PORT=13000
+```
+
+Namespaces, release names, chart paths, value files, and service names are derived by `scripts/local-common.sh`. Local chart versions are pinned so a fresh zero-state install is reproducible and does not silently pick up a newer Helm chart.
+
 Backend runtime configuration for Docker Compose is stored in:
 
 ```text
@@ -92,6 +115,52 @@ Use this workflow for:
 
 ## Local Kubernetes workflow
 
+Use the standard kind/Helm validation when you only need the app stack:
+
+```bash
+make local-k8s-validate
+```
+
+Use the full local platform workflow when you want the app, monitoring, ArgoCD preview, browser access helpers, Prometheus target validation, and smoke tests together:
+
+```bash
+make local-platform-up
+```
+
+After app code changes, refresh the running local platform without deleting the cluster:
+
+```bash
+make local-platform-refresh
+```
+
+Run operational health checks without rebuilding images:
+
+```bash
+make local-platform-doctor
+```
+
+Show current resources and access links:
+
+```bash
+make local-platform-status
+make local-platform-links
+```
+
+The full local platform workflow performs these responsibilities only:
+
+1. create or reuse the kind cluster
+2. install pinned local monitoring when enabled
+3. build and load backend/frontend images into kind
+4. deploy the app with the local monitoring Helm override
+5. restart backend/frontend deployments so `latest` images are used
+6. wait for the backend Prometheus target to be `up`
+7. run the local Kubernetes smoke test
+8. install pinned local ArgoCD when enabled
+9. apply the local ArgoCD Application preview
+10. print browser access commands
+
+Local platform scripts must not contain custom SQL. Database schema changes belong to the application/migration layer. If a local database was created with an older schema while Alembic is still postponed, reset the local database or cluster instead of adding SQL to platform scripts.
+
 ## Optional local monitoring preview
 
 The backend exposes `/metrics`, and the Helm chart contains a `ServiceMonitor` template. Local Kubernetes keeps that `ServiceMonitor` disabled by default because a fresh kind cluster does not include Prometheus Operator CRDs.
@@ -119,6 +188,22 @@ job="backend"
 namespace="fullstack-local"
 service="backend"
 up = 1
+```
+
+The local monitoring install uses a pinned `kube-prometheus-stack` chart version from `config/addons/local.env`. If a previous local Helm install is `failed` or `pending-*`, the local installer cleans it before retrying.
+
+Open Prometheus and Grafana with:
+
+```bash
+make local-prometheus-port-forward
+make local-grafana-port-forward
+```
+
+Browser URLs:
+
+```text
+Prometheus: http://localhost:19091
+Grafana:    http://localhost:13000
 ```
 
 Useful checks:
@@ -177,10 +262,12 @@ addons/argocd/values.yaml
 
 It does not require `ACCOUNT`, `AWS_PROFILE`, External Secrets, or AWS account metadata.
 
+The local ArgoCD install uses a pinned `argo-cd` chart version from `config/addons/local.env`. If a previous local Helm install is `failed` or `pending-*`, the local installer cleans it before retrying.
+
 Open ArgoCD in the browser:
 
 ```bash
-kubectl port-forward -n argocd svc/argocd-server 18443:443
+make local-argocd-port-forward
 ```
 
 Browser URL:
@@ -236,6 +323,34 @@ make local-argocd-down
 
 Keep local ArgoCD out of the default fast local validation path unless there is a clear reason to include it.
 
+
+## Local browser access
+
+The local app, ArgoCD, Prometheus, and Grafana services are ClusterIP services. Keep these commands open in separate terminals when you want browser access:
+
+```bash
+make local-app-port-forward
+make local-argocd-port-forward
+make local-prometheus-port-forward
+make local-grafana-port-forward
+```
+
+Then open:
+
+```text
+App:        http://localhost:18081
+ArgoCD:     https://localhost:18443
+Prometheus: http://localhost:19091
+Grafana:    http://localhost:13000
+```
+
+Check all browser links after the port-forward commands are running:
+
+```bash
+make local-platform-access-check
+```
+
+If a link is missing, the access check prints the exact port-forward command to start.
 
 ## Full local validation
 
@@ -328,3 +443,33 @@ frontend/nginx.conf
 frontend service DNS inside Kubernetes
 backend service availability
 ```
+
+### Local platform browser link does not open
+
+The app, ArgoCD, Prometheus, and Grafana browser links require port-forward commands. Run:
+
+```bash
+make local-platform-links
+make local-platform-access-check
+```
+
+The access check tells you which port-forward command is missing.
+
+### Local monitoring install fails after an interrupted install
+
+The local monitoring script pins the chart version and cleans failed or pending Helm releases before retry. Run:
+
+```bash
+make local-monitoring-up
+```
+
+If the namespace is still stuck from an interrupted local run, remove the local platform and start again:
+
+```bash
+make local-platform-down
+make local-platform-up
+```
+
+### Local database schema is stale
+
+Do not add custom SQL to local platform scripts. The local platform scripts do not own database schema. During the current MVP phase, Alembic migrations are postponed and SQLAlchemy `create_all()` only creates missing tables. If an old local database schema causes failures, reset the local database or recreate the local cluster.

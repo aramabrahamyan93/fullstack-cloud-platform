@@ -2,6 +2,51 @@
 
 ## Local deployment flow
 
+## Full local platform deployment flow
+
+The full local platform flow is the preferred demo/preview flow when validating local GitOps and observability together.
+
+```text
+make local-platform-up
+  -> create or reuse kind cluster
+  -> install pinned local monitoring chart
+  -> build backend/frontend images
+  -> load images into kind
+  -> deploy Helm chart with values-local.yaml and values-local-monitoring.yaml
+  -> restart backend/frontend deployments
+  -> wait for Prometheus backend target up=1
+  -> run local Kubernetes smoke test
+  -> install pinned local ArgoCD chart
+  -> apply local ArgoCD Application preview
+  -> print browser access commands and URLs
+```
+
+Refresh an existing local platform after app code changes:
+
+```text
+make local-platform-refresh
+  -> build backend/frontend images
+  -> load images into kind
+  -> deploy Helm chart with local monitoring override
+  -> restart backend/frontend deployments
+  -> wait for Prometheus backend target up=1
+  -> run local Kubernetes smoke test
+```
+
+Health check without rebuilding:
+
+```text
+make local-platform-doctor
+  -> check Helm releases
+  -> check backend/frontend rollouts
+  -> check ServiceMonitor/backend
+  -> wait for Prometheus backend target up=1
+  -> run local Kubernetes smoke test
+```
+
+Local platform deployment scripts must not contain custom SQL. They do not own database schema. Database schema changes belong in the application/migration layer.
+
+
 ### Docker Compose
 
 ```text
@@ -325,3 +370,14 @@ The shared default enables ECR repositories, while the current dev account disab
 Because dev ECR repositories are currently disabled, automatic image publishing to ECR is disabled in `.github/workflows/publish-images.yml`. The workflow keeps `workflow_dispatch` so manual review-based execution remains possible after ECR repositories are re-enabled.
 
 Before re-enabling automatic image publishing, first apply `enable_ecr_repositories = true` for the target account and verify that the backend/frontend repositories exist.
+
+## Pinned chart versions
+
+Local addon chart versions are pinned in `config/addons/local.env`:
+
+```text
+MONITORING_CHART_VERSION=86.3.2
+ARGOCD_CHART_VERSION=9.6.0
+```
+
+This avoids non-reproducible zero-state installs when upstream Helm repositories publish new chart versions. Local addon scripts also clean failed or pending local Helm releases before retrying an install.

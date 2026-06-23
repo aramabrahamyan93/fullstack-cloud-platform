@@ -69,6 +69,38 @@ Run frontend validation/build:
 make frontend-validate
 ```
 
+Run the full local platform preview with kind, monitoring, ArgoCD, and browser access helpers:
+
+```bash
+make local-platform-up
+```
+
+Use the refresh command after app code changes when the kind cluster already exists:
+
+```bash
+make local-platform-refresh
+```
+
+Run the local platform health checks without rebuilding images:
+
+```bash
+make local-platform-doctor
+```
+
+Print browser access commands and URLs:
+
+```bash
+make local-platform-links
+```
+
+Check the browser links after the required port-forward commands are running:
+
+```bash
+make local-platform-access-check
+```
+
+The local platform workflow is local-only. It builds and loads local images, deploys the Helm chart, enables the local monitoring override, validates Prometheus scraping, applies an ArgoCD preview Application, and runs smoke tests. It does not run custom SQL from scripts. Database schema ownership stays in the application/migration layer.
+
 Stop local services:
 
 ```bash
@@ -435,6 +467,8 @@ curl -X DELETE http://localhost:3000/api/organizations/1/members/2 \
 
 Alembic migrations are intentionally postponed for the current MVP/local phase.
 
+Do not put custom SQL schema changes in local platform scripts. The local platform scripts are responsible for build/load/deploy/observe/validate only. Database schema changes belong in the application startup/migration layer, and the long-term replacement is Alembic migrations.
+
 The backend currently initializes tables with SQLAlchemy `create_all()` during startup. This creates missing tables, but it does not alter existing tables.
 
 If a model changes and the local database still has an old table schema, local reset may be needed.
@@ -597,6 +631,12 @@ Current validated capabilities:
 - Backend tests pass successfully
 - Frontend TypeScript build validation passes successfully
 - Helm chart renders and deploys successfully in local kind Kubernetes
+- Local platform workflow supports `make local-platform-up`, `make local-platform-refresh`, `make local-platform-doctor`, `make local-platform-status`, `make local-platform-links`, and `make local-platform-access-check`
+- Local monitoring and ArgoCD chart versions are pinned for reproducible zero-state installs
+- Local addon scripts clean failed or pending Helm releases before retrying local installs
+- Local platform scripts contain no custom SQL schema mutation or schema-check SQL
+- Prometheus validates backend scraping with `up{job="backend", namespace="fullstack-local", service="backend"} = 1`
+- Local ArgoCD preview remains observe-only with auto-sync disabled; `OutOfSync / Progressing` is expected
 
 ## Testing
 
