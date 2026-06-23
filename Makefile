@@ -147,6 +147,18 @@ test: backend-test
 backend-test:
 	$(COMPOSE) run --rm backend pytest
 
+.PHONY: backend-migrate
+backend-migrate:
+	$(COMPOSE) run --rm backend python -c "from app.db.migrations import run_database_migrations; run_database_migrations()"
+
+.PHONY: backend-migration-current
+backend-migration-current:
+	$(COMPOSE) run --rm backend alembic -c alembic.ini current
+
+.PHONY: backend-migration-history
+backend-migration-history:
+	$(COMPOSE) run --rm backend alembic -c alembic.ini history
+
 .PHONY: frontend-validate
 frontend-validate:
 	$(COMPOSE) build frontend

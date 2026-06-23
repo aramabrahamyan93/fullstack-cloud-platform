@@ -308,19 +308,22 @@ Frontend should rely on these codes and not parse backend message text.
 
 ## Database and migrations
 
-Alembic migrations are intentionally postponed for the current MVP/local phase.
+Database schema ownership belongs to Alembic migrations. The backend includes `alembic.ini`, a `migrations/` directory, and the initial revision `0001_initial_schema`.
 
-The backend currently initializes tables with SQLAlchemy `create_all()` during startup. This creates missing tables, but it does not alter existing tables.
+During application startup, `init_db()` first checks database connectivity and then runs the safe migration runner when `DB_RUN_MIGRATIONS_ON_STARTUP=true` (default). The runner supports both important local cases:
 
-For local development, if a model changes and the local database still has an old table schema, reset local volumes from the root directory:
+- Fresh database: apply Alembic migrations up to `head`.
+- Existing local schema created before Alembic: detect the expected application tables and stamp the database as `0001_initial_schema` instead of recreating tables.
+
+Common migration commands from the repository root:
 
 ```bash
-make local-down
-make local-clean
-make local-preview
+make backend-migrate
+make backend-migration-current
+make backend-migration-history
 ```
 
-For any environment where data matters, use proper migrations with a safe migration/backfill plan instead of deleting tables or volumes.
+Future schema changes should be implemented as new Alembic revisions. Do not add custom SQL to local platform scripts, Docker helpers, or ad-hoc workflow scripts. For environments where data matters, use explicit migration/backfill planning instead of deleting tables or volumes.
 
 ## Test coverage
 
@@ -374,7 +377,7 @@ make test
 - Keep tests repeatable and reset database state between tests.
 - Avoid duplicating permission logic across multiple services.
 - Keep organization scope enforced for tenant-owned data.
-- Do not introduce Alembic migrations yet; migrations are postponed for now.
+- Add schema changes through Alembic revisions; do not use ad-hoc SQL or platform scripts for schema changes.
 
 ## Recommended next backend work
 

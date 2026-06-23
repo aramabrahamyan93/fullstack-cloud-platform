@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     db_init_retries: int = 30
     db_init_retry_delay_seconds: float = 1.0
+    db_run_migrations_on_startup: bool = True
 
     auth_secret_key: str = LOCAL_AUTH_SECRET_KEY
     auth_algorithm: str = "HS256"

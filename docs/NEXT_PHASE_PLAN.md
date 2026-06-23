@@ -243,7 +243,7 @@ Implemented capabilities:
 
 Important architecture decision:
 
-Local platform scripts must not contain custom SQL or database schema fixes. They only build, load, deploy, observe, and validate. Database schema belongs to the application/migration layer. Alembic migrations remain a separate future phase.
+Local platform scripts must not contain custom SQL or database schema fixes. They only build, load, deploy, observe, and validate. Database schema belongs to the backend Alembic migration layer.
 
 Validated result:
 
@@ -296,8 +296,8 @@ Do not rename database tables now.
 
 Reasons:
 
-- Alembic migrations are postponed
-- database/table renames create unnecessary risk
+- Alembic migration foundation exists
+- database/table renames still create unnecessary risk unless planned as explicit migrations
 - current code and tests already cover many organization/workspace flows
 - the public product model can become workspace-first without a destructive database rename
 
@@ -309,14 +309,14 @@ Suggested staged approach:
 4. Consider adding `/workspaces` API aliases later if needed.
 5. Rename frontend feature folder only if it can be done safely with strong validation.
 6. Rename backend package/classes only after the workspace API contract is stable.
-7. Revisit DB table/column renames only when Alembic migration workflow exists.
+7. Revisit DB table/column renames only as explicit Alembic migrations with validation and rollback/backfill notes.
 
 ## Decision matrix
 
 | Topic | Recommended decision | Reason |
 |---|---|---|
 | Product term | Workspace | Matches current UI and desired business model |
-| Backend DB tables | Keep `organizations` for now | Avoid risky migration work before Alembic |
+| Backend DB tables | Keep `organizations` for now | Avoid risky renames unless implemented as explicit Alembic migrations |
 | API route | Keep `/organizations` for now | Existing tests/docs depend on it |
 | Browser route | Keep `/workspaces` | Good product-facing route |
 | Public ID | Keep `ws_...` | Already workspace-first and safer than numeric IDs |

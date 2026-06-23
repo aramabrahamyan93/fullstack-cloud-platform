@@ -159,7 +159,7 @@ The full local platform workflow performs these responsibilities only:
 9. apply the local ArgoCD Application preview
 10. print browser access commands
 
-Local platform scripts must not contain custom SQL. Database schema changes belong to the application/migration layer. If a local database was created with an older schema while Alembic is still postponed, reset the local database or cluster instead of adding SQL to platform scripts.
+Local platform scripts must not contain custom SQL. Database schema changes belong to the backend Alembic migration layer. `make local-platform-up` and `make local-platform-refresh` deploy the app; backend startup then runs the safe migration runner.
 
 ## Optional local monitoring preview
 
@@ -472,4 +472,14 @@ make local-platform-up
 
 ### Local database schema is stale
 
-Do not add custom SQL to local platform scripts. The local platform scripts do not own database schema. During the current MVP phase, Alembic migrations are postponed and SQLAlchemy `create_all()` only creates missing tables. If an old local database schema causes failures, reset the local database or recreate the local cluster.
+Do not add custom SQL to local platform scripts. The local platform scripts do not own database schema. Schema changes should be handled through Alembic migrations.
+
+Useful checks:
+
+```bash
+make backend-migrate
+make backend-migration-current
+make local-platform-doctor
+```
+
+If a local database is disposable and intentionally stale, reset local volumes or recreate the local kind cluster. For data-bearing environments, create a proper migration/backfill plan instead of deleting data.
