@@ -44,7 +44,7 @@ make local-platform-doctor
   -> run local Kubernetes smoke test
 ```
 
-Local platform deployment scripts must not contain custom SQL. They do not own database schema. Database schema changes belong in the application/migration layer.
+Local platform deployment scripts must not contain custom SQL. They do not own database schema. Database schema changes belong in the backend Alembic migration layer and are applied by the backend safe migration runner.
 
 
 ### Docker Compose
@@ -381,3 +381,22 @@ ARGOCD_CHART_VERSION=9.6.0
 ```
 
 This avoids non-reproducible zero-state installs when upstream Helm repositories publish new chart versions. Local addon scripts also clean failed or pending local Helm releases before retrying an install.
+
+## Database migration flow
+
+The backend image includes Alembic configuration and migrations. During startup, `init_db()` verifies database connectivity and runs the safe migration runner when `DB_RUN_MIGRATIONS_ON_STARTUP=true`.
+
+Migration behavior:
+
+- Fresh database: apply migrations to `head`.
+- Existing local schema without `alembic_version`: stamp the schema as `0001_initial_schema` if the expected application tables already exist.
+- Future schema changes: add a new Alembic revision and validate it before deployment.
+
+Manual commands:
+
+```bash
+make backend-migrate
+make backend-migration-current
+make backend-migration-history
+```
+

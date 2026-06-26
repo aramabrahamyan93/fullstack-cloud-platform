@@ -29,7 +29,7 @@ Completed:
 - Cloud deploy Makefile environment chain fixed for `IMAGE_TAG`
 - Local platform configurable access workflow implemented with `make local-platform-up`, refresh, doctor, status, links, and access-check targets
 - Local monitoring and ArgoCD chart versions pinned for reproducible zero-state local installs
-- Local platform scripts hardened to avoid custom SQL and keep schema ownership in the application/migration layer
+- Local platform scripts hardened to avoid custom SQL and keep schema ownership in the backend Alembic migration layer
 
 ## Next recommended steps
 
@@ -184,7 +184,7 @@ Validated capabilities:
 
 Design rule:
 
-Local platform scripts must stay infrastructure/workflow-only. Database schema changes belong in application startup or migrations. Alembic remains the planned long-term migration layer.
+Local platform scripts must stay infrastructure/workflow-only. Database schema changes belong in Alembic migrations. Backend startup runs the safe migration runner by default.
 
 ### 5. Workspace-first product model
 
@@ -260,14 +260,19 @@ Future capabilities:
 
 ### Production database management
 
-Alembic migrations are postponed for now, but should be introduced before the platform becomes more data-heavy.
+Alembic migration foundation is now in place. Current capabilities:
 
-Planned migration work:
+- Alembic initialization under `services/backend`
+- Initial migration for users, organizations, invitations, audit logs, and tasks
+- Safe migration runner for fresh DBs and existing local schemas
+- Make targets for migrate/current/history
+- Backend startup migration flow controlled by `DB_RUN_MIGRATIONS_ON_STARTUP`
 
-- Alembic initialization
-- First migration for tasks/users/organizations
-- Migration commands in Makefile
-- Migration workflow for Kubernetes/cloud
+Planned follow-up work:
+
+- Add migration authoring guidelines
+- Add CI guard for migration drift/autogenerate checks
+- Define production/cloud rollout rules for data-bearing environments
 
 ### Observability and operations
 
@@ -300,7 +305,7 @@ Potential capabilities:
 
 ## Postponed items
 
-- Alembic migrations are postponed for now.
+- Alembic migration foundation is in place; future schema work should use new migration revisions.
 - Cloud live validation should only be done when required.
 - AWS resources should remain disabled/destroyed when not actively testing.
 - Dev ECR repositories are disabled until image publishing is needed again.

@@ -41,7 +41,7 @@ Remove the local platform demo:
 make local-platform-down
 ```
 
-The local platform scripts do not run SQL and do not mutate database schema. Schema changes belong in the application/migration layer.
+The local platform scripts do not run SQL and do not mutate database schema. Schema changes belong in the backend Alembic migration layer. Use `make backend-migrate`, `make backend-migration-current`, and `make backend-migration-history` to operate migrations from the standard workflow.
 
 ## Main command entry point
 
@@ -326,3 +326,20 @@ Before running cloud workflows, confirm:
 After testing, run teardown if resources are not needed.
 
 If ECR repositories are disabled for an account, do not run image publishing workflows until the repositories are re-enabled and created through Terraform.
+
+
+## Database migrations
+
+Runtime schema ownership belongs to Alembic. Backend startup runs the safe migration runner by default with `DB_RUN_MIGRATIONS_ON_STARTUP=true`.
+
+Operational commands:
+
+```bash
+make backend-migrate
+make backend-migration-current
+make backend-migration-history
+```
+
+For a fresh database, migrations apply normally to `head`. For an existing local schema that was created before Alembic, the safe runner stamps the schema as `0001_initial_schema` when all expected application tables already exist and `alembic_version` is missing.
+
+Do not use custom SQL in local platform scripts for schema fixes.

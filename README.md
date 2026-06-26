@@ -463,15 +463,24 @@ curl -X DELETE http://localhost:3000/api/organizations/1/members/2 \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## Local database reset note
+## Local database migration note
 
-Alembic migrations are intentionally postponed for the current MVP/local phase.
+Database schema ownership now belongs to Alembic migrations in the backend. Local platform scripts must remain infrastructure/workflow-only: they build images, load them into kind, deploy Helm, expose access links, and validate the platform. They must not contain custom SQL schema fixes.
 
-Do not put custom SQL schema changes in local platform scripts. The local platform scripts are responsible for build/load/deploy/observe/validate only. Database schema changes belong in the application startup/migration layer, and the long-term replacement is Alembic migrations.
+The backend runs the safe migration runner during startup when `DB_RUN_MIGRATIONS_ON_STARTUP=true` (default). The runner handles two local cases:
 
-The backend currently initializes tables with SQLAlchemy `create_all()` during startup. This creates missing tables, but it does not alter existing tables.
+- Fresh database: apply Alembic migrations up to `head`.
+- Existing local schema created before Alembic: detect the existing application tables and stamp the schema as `0001_initial_schema` instead of trying to recreate tables.
 
-If a model changes and the local database still has an old table schema, local reset may be needed.
+Useful commands:
+
+```bash
+make backend-migrate
+make backend-migration-current
+make backend-migration-history
+```
+
+If a local database becomes intentionally disposable during development, `make local-clean` or recreating the local kind cluster is still acceptable. Do not add one-off SQL to local platform scripts.
 
 Stop services:
 
@@ -594,7 +603,7 @@ Current validated capabilities:
 
 - FastAPI backend starts successfully
 - PostgreSQL starts and becomes healthy
-- Backend initializes database tables on startup
+- Backend runs Alembic migrations on startup
 - Backend exposes `/health`, `/health/live`, `/health/ready`, `/version`, and `/metrics`
 - Backend supports user register/login/current user flow
 - Backend protects protected APIs with JWT authentication
@@ -819,9 +828,9 @@ git push
 
 ### Alembic migrations
 
-Alembic migrations are intentionally postponed for the current MVP/local phase.
+Alembic migration foundation is in place. The backend includes `alembic.ini`, a `migrations/` directory, initial revision `0001_initial_schema`, and a safe migration runner used by application startup and `make backend-migrate`.
 
-Before using environments where data matters, add proper migrations with a safe migration/backfill plan.
+Future schema changes should be implemented as new Alembic revisions. Do not use local platform scripts or ad-hoc SQL to change schema. For environments where data matters, write migrations with explicit rollback/backfill considerations before deployment.
 
 ### Invite-first membership
 
