@@ -1,0 +1,1224 @@
+from datetime import datetime, timezone
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.core.errors import ForbiddenError, NotFoundError
+from app.features.organizations import repository
+from app.features.organizations.models import Organization, OrganizationAuditLog, OrganizationMember, OrganizationInvitation
+from app.features.organizations.schemas import OrganizationCreate
+from app.features.organizations.schemas import OrganizationInvitationCreate
+from app.features.organizations.schemas import OrganizationUpdate
+from app.features.users import repository as users_repository
+from app.features.users.models import User
+from app.features.tasks.repository import TaskRepository
+from app.features.organizations.permissions import (
+    ORGANIZATION_ROLE_MEMBER,
+    ORGANIZATION_ROLE_OWNER,
+    can_cancel_invitations,
+    can_invite_members,
+    can_invite_role,
+    can_leave_workspace,
+    can_manage_tasks,
+    can_remove_members,
+    can_transfer_ownership,
+    can_view_members,
+    is_member_role,
+    is_owner_role,
+)
+
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_CREATED = "workspace_created"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_RENAMED = "workspace_renamed"
+ORGANIZATION_AUDIT_EVENT_MEMBER_INVITED = "member_invited"
+ORGANIZATION_AUDIT_EVENT_INVITATION_ACCEPTED = "invitation_accepted"
+ORGANIZATION_AUDIT_EVENT_INVITATION_DECLINED = "invitation_declined"
+ORGANIZATION_AUDIT_EVENT_INVITATION_CANCELLED = "invitation_cancelled"
+ORGANIZATION_AUDIT_EVENT_MEMBER_REMOVED = "member_removed"
+ORGANIZATION_AUDIT_EVENT_OWNERSHIP_TRANSFERRED = "ownership_transferred"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_LEFT = "workspace_left"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_ARCHIVED = "workspace_archived"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_RESTORED = "workspace_restored"
+ORGANIZATION_AUDIT_EVENT_WORKSPACE_DELETED = "workspace_deleted"
+
+ORGANIZATION_STATUS_ACTIVE = "active"
+ORGANIZATION_STATUS_ARCHIVED = "archived"
+ORGANIZATION_STATUS_DELETED = "deleted"
+
+
+def record_organization_audit_log(
+    db: Session,
+    *,
+    organization_id: int,
+    actor_user_id: int,
+    event_type: str,
+    metadata_json: dict | None = None,
+) -> OrganizationAuditLog:
+    return repository.create_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=actor_user_id,
+        event_type=event_type,
+        metadata_json=metadata_json,
+    )
+
+
+def create_user_organization(
+    db: Session,
+    *,
+    current_user: User,
+    organization_create: OrganizationCreate,
+) -> Organization:
+    organization = repository.create_organization(
+        db,
+        name=organization_create.name,
+    )
+
+    repository.create_organization_member(
+        db,
+        organization_id=organization.id,
+        user_id=current_user.id,
+        role=ORGANIZATION_ROLE_OWNER,
+    )
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_CREATED,
+        metadata_json={"name": organization.name},
+    )
+
+    db.commit()
+    db.refresh(organization)
+
+    return organization
+
+
+def list_organizations_for_user(
+    db: Session,
+    *,
+    current_user: User,
+) -> list[Organization]:
+    return repository.list_user_organizations(db, user_id=current_user.id)
+
+
+def get_organization_for_user(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> Organization:
+    organization = repository.get_user_organization(
+        db,
+        organization_id=organization_id,
+        user_id=current_user.id,
+    )
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    return organization
+
+
+def resolve_organization_for_user(
+    db: Session,
+    *,
+    organization_ref: str,
+    current_user: User,
+) -> Organization:
+    if organization_ref.isdigit():
+        return get_organization_for_user(
+            db,
+            organization_id=int(organization_ref),
+            current_user=current_user,
+        )
+
+    organization = repository.get_user_organization_by_public_id(
+        db,
+        public_id=organization_ref,
+        user_id=current_user.id,
+    )
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    return organization
+
+
+def ensure_organization_is_active(
+    organization: Organization,
+) -> Organization:
+    if organization.status == ORGANIZATION_STATUS_DELETED:
+        raise NotFoundError("Organization not found.")
+
+    if organization.status == ORGANIZATION_STATUS_ARCHIVED:
+        raise ForbiddenError(
+            "Workspace is archived.",
+            error_code="workspace_archived",
+        )
+
+    return organization
+
+
+def ensure_organization_is_not_deleted(
+    organization: Organization,
+) -> Organization:
+    if organization.status == ORGANIZATION_STATUS_DELETED:
+        raise NotFoundError("Organization not found.")
+
+    return organization
+
+
+def ensure_organization_is_active_by_id(
+    db: Session,
+    *,
+    organization_id: int,
+) -> Organization:
+    organization = db.get(Organization, organization_id)
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    return ensure_organization_is_active(organization)
+
+
+def update_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+    organization_update: OrganizationUpdate,
+) -> dict[str, int | str]:
+    membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    organization = ensure_organization_is_active_by_id(
+        db,
+        organization_id=organization_id,
+    )
+
+    previous_name = organization.name
+    organization.name = organization_update.name
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_RENAMED,
+        metadata_json={
+            "previous_name": previous_name,
+            "new_name": organization.name,
+        },
+    )
+
+    db.commit()
+    db.refresh(organization)
+
+    return {
+        "id": organization.id,
+        "public_id": organization.public_id,
+        "name": organization.name,
+        "status": organization.status,
+        "role": membership.role,
+    }
+
+
+def list_user_organization_audit_logs(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> list[OrganizationAuditLog]:
+    ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    return repository.list_organization_audit_logs(
+        db,
+        organization_id=organization_id,
+    )
+
+
+
+def get_user_organization_dashboard(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> dict[str, int | dict[str, int]]:
+    ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    organization = repository.get_user_organization(
+        db,
+        organization_id=organization_id,
+        user_id=current_user.id,
+    )
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    task_repository = TaskRepository(db)
+    task_counts = task_repository.count_organization_tasks_by_status(
+        organization_id=organization_id,
+    )
+
+    return {
+        "organization_id": organization_id,
+        "organization_public_id": organization.public_id,
+        "task_counts": task_counts,
+        "members_count": repository.count_organization_members(
+            db,
+            organization_id=organization_id,
+        ),
+        "pending_invitations_count": repository.count_organization_invitations(
+            db,
+            organization_id=organization_id,
+            status=ORGANIZATION_INVITATION_STATUS_PENDING,
+        ),
+        "recent_activity_count": repository.count_organization_audit_logs(
+            db,
+            organization_id=organization_id,
+        ),
+    }
+
+
+def get_user_organization_membership(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember | None:
+    return repository.get_user_organization_membership(
+        db,
+        organization_id=organization_id,
+        user_id=current_user.id,
+    )
+
+
+def ensure_user_is_organization_member(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = get_user_organization_membership(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if membership is None:
+        raise NotFoundError("Organization not found.")
+
+    return membership
+
+
+def ensure_user_can_manage_organization_tasks(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_is_organization_member(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_manage_tasks(membership.role):
+        raise ForbiddenError("Organization member role is required.")
+
+    return membership
+
+
+def ensure_user_can_manage_active_organization_tasks(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+    ensure_organization_is_active_by_id(
+        db,
+        organization_id=organization_id,
+    )
+
+    return membership
+
+
+def ensure_user_is_organization_owner(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not is_owner_role(membership.role):
+        raise ForbiddenError(
+            "Organization owner role is required.",
+            error_code="workspace_owner_required",
+        )
+
+    return membership
+
+
+def ensure_user_can_view_members(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_view_members(membership.role):
+        raise ForbiddenError("Organization member role is required.")
+
+    return membership
+
+
+def ensure_user_can_invite_members(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_invite_members(membership.role):
+        raise ForbiddenError("Organization owner role is required.")
+
+    return membership
+
+
+def ensure_user_can_cancel_invitations(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_cancel_invitations(membership.role):
+        raise ForbiddenError("Organization owner role is required.")
+
+    return membership
+
+
+def ensure_user_can_remove_members(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_remove_members(membership.role):
+        raise ForbiddenError("Organization owner role is required.")
+
+    return membership
+
+
+def ensure_user_can_transfer_ownership(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_transfer_ownership(membership.role):
+        raise ForbiddenError("Organization owner role is required.")
+
+    return membership
+
+
+def ensure_user_can_leave_workspace(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> OrganizationMember:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if not can_leave_workspace(membership.role):
+        raise ForbiddenError(
+            "Workspace owner cannot leave before transferring ownership.",
+            error_code="workspace_owner_cannot_leave_before_transfer",
+        )
+
+    return membership
+
+def list_members_for_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> list[dict[str, int | str]]:
+    ensure_user_can_view_members(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    return repository.list_organization_members(
+        db,
+        organization_id=organization_id,
+    )
+
+ORGANIZATION_INVITATION_STATUS_PENDING = "pending"
+ORGANIZATION_INVITATION_STATUS_CANCELLED = "cancelled"
+ORGANIZATION_INVITATION_STATUS_ACCEPTED = "accepted"
+ORGANIZATION_INVITATION_STATUS_DECLINED = "declined"
+ORGANIZATION_INVITATION_STATUS_EXPIRED = "expired"
+ORGANIZATION_INVITATION_EXPIRATION_DAYS = 7
+
+
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def create_user_organization_invitation(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+    invitation_create: OrganizationInvitationCreate,
+):
+    ensure_user_can_invite_members(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+    ensure_organization_is_active_by_id(
+        db,
+        organization_id=organization_id,
+    )
+
+    if not can_invite_role(invitation_create.role):
+        raise ForbiddenError(
+            "Only member role can be invited for now.",
+            error_code="workspace_invitation_invalid_role",
+        )
+
+    email = _normalize_email(str(invitation_create.email))
+
+    invited_user = users_repository.get_user_by_email(
+        db,
+        email=email,
+    )
+
+    if invited_user is not None:
+        existing_member = repository.get_organization_member_by_user_id(
+            db,
+            organization_id=organization_id,
+            user_id=invited_user.id,
+        )
+
+        if existing_member is not None:
+            raise ForbiddenError(
+                "User is already a workspace member.",
+                error_code="workspace_invitation_user_already_member",
+            )
+
+    existing_invitation = repository.get_pending_organization_invitation_by_email(
+        db,
+        organization_id=organization_id,
+        email=email,
+    )
+
+    if existing_invitation is not None:
+        raise ForbiddenError(
+            "A pending invitation already exists for this email.",
+            error_code="workspace_invitation_already_pending",
+        )
+
+    from datetime import datetime, timedelta, timezone
+    import secrets
+
+    invitation = repository.create_organization_invitation(
+        db,
+        organization_id=organization_id,
+        email=email,
+        role=ORGANIZATION_ROLE_MEMBER,
+        status=ORGANIZATION_INVITATION_STATUS_PENDING,
+        invited_by_user_id=current_user.id,
+        token=secrets.token_urlsafe(32),
+        expires_at=datetime.now(timezone.utc)
+        + timedelta(days=ORGANIZATION_INVITATION_EXPIRATION_DAYS),
+    )
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_MEMBER_INVITED,
+        metadata_json={
+            "invitation_id": invitation.id,
+            "email": invitation.email,
+            "role": invitation.role,
+        },
+    )
+
+    db.commit()
+    db.refresh(invitation)
+
+    return invitation
+
+
+def list_user_organization_invitations(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+):
+    ensure_user_can_cancel_invitations(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    return repository.list_organization_invitations(
+        db,
+        organization_id=organization_id,
+        status=ORGANIZATION_INVITATION_STATUS_PENDING,
+    )
+
+
+def cancel_user_organization_invitation(
+    db: Session,
+    *,
+    organization_id: int,
+    invitation_id: int,
+    current_user: User,
+) -> None:
+    ensure_user_can_cancel_invitations(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    invitation = repository.get_organization_invitation_by_id(
+        db,
+        organization_id=organization_id,
+        invitation_id=invitation_id,
+    )
+
+    if invitation is None:
+        raise NotFoundError("Invitation not found.")
+
+    invitation.status = ORGANIZATION_INVITATION_STATUS_CANCELLED
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_INVITATION_CANCELLED,
+        metadata_json={
+            "invitation_id": invitation.id,
+            "email": invitation.email,
+            "role": invitation.role,
+        },
+    )
+
+    db.commit()
+
+
+def _ensure_invitation_is_pending(invitation: OrganizationInvitation) -> None:
+    if invitation.status != ORGANIZATION_INVITATION_STATUS_PENDING:
+        raise ForbiddenError(
+            "Invitation is not pending.",
+            error_code="workspace_invitation_not_pending",
+        )
+
+
+def _ensure_invitation_is_not_expired(invitation: OrganizationInvitation) -> None:
+    expires_at = invitation.expires_at
+
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at <= datetime.now(timezone.utc):
+        invitation.status = ORGANIZATION_INVITATION_STATUS_EXPIRED
+
+        raise ForbiddenError(
+            "Invitation has expired.",
+            error_code="workspace_invitation_expired",
+        )
+
+
+def list_current_user_pending_invitations(
+    db: Session,
+    *,
+    current_user: User,
+) -> list[dict]:
+    email = _normalize_email(current_user.email)
+
+    invitations = repository.list_pending_organization_invitations_by_email(
+        db,
+        email=email,
+    )
+
+    active_invitations: list[dict] = []
+
+    for invitation in invitations:
+        try:
+            _ensure_invitation_is_not_expired(invitation)
+        except ForbiddenError:
+            continue
+
+        organization = db.get(Organization, invitation.organization_id)
+        organization_name = (
+            organization.name
+            if organization is not None
+            else f"Workspace #{invitation.organization_id}"
+        )
+
+        active_invitations.append(
+            {
+                "id": invitation.id,
+                "organization_id": invitation.organization_id,
+                "organization_name": organization_name,
+                "email": invitation.email,
+                "role": invitation.role,
+                "status": invitation.status,
+                "invited_by_user_id": invitation.invited_by_user_id,
+                "expires_at": invitation.expires_at,
+                "created_at": invitation.created_at,
+            }
+        )
+
+    db.commit()
+
+    return active_invitations
+
+
+def accept_current_user_invitation(
+    db: Session,
+    *,
+    invitation_id: int,
+    current_user: User,
+) -> dict[str, int | str]:
+    email = _normalize_email(current_user.email)
+
+    invitation = repository.get_organization_invitation_by_id_and_email(
+        db,
+        invitation_id=invitation_id,
+        email=email,
+    )
+
+    if invitation is None:
+        raise NotFoundError("Invitation not found.")
+
+    _ensure_invitation_is_pending(invitation)
+    _ensure_invitation_is_not_expired(invitation)
+
+    existing_member = repository.get_organization_member_by_user_id(
+        db,
+        organization_id=invitation.organization_id,
+        user_id=current_user.id,
+    )
+
+    if existing_member is not None:
+        invitation.status = ORGANIZATION_INVITATION_STATUS_ACCEPTED
+
+        record_organization_audit_log(
+            db,
+            organization_id=invitation.organization_id,
+            actor_user_id=current_user.id,
+            event_type=ORGANIZATION_AUDIT_EVENT_INVITATION_ACCEPTED,
+            metadata_json={
+                "invitation_id": invitation.id,
+                "member_id": existing_member.id,
+                "user_id": existing_member.user_id,
+                "email": current_user.email,
+                "role": existing_member.role,
+                "already_member": True,
+            },
+        )
+
+        db.commit()
+
+        return {
+            "id": existing_member.id,
+            "organization_id": existing_member.organization_id,
+            "user_id": existing_member.user_id,
+            "role": existing_member.role,
+            "email": current_user.email,
+        }
+
+    member = repository.create_organization_member(
+        db,
+        organization_id=invitation.organization_id,
+        user_id=current_user.id,
+        role=invitation.role,
+    )
+
+    invitation.status = ORGANIZATION_INVITATION_STATUS_ACCEPTED
+
+    record_organization_audit_log(
+        db,
+        organization_id=invitation.organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_INVITATION_ACCEPTED,
+        metadata_json={
+            "invitation_id": invitation.id,
+            "member_id": member.id,
+            "user_id": member.user_id,
+            "email": current_user.email,
+            "role": member.role,
+        },
+    )
+
+    db.commit()
+    db.refresh(member)
+
+    return {
+        "id": member.id,
+        "organization_id": member.organization_id,
+        "user_id": member.user_id,
+        "role": member.role,
+        "email": current_user.email,
+    }
+
+
+def decline_current_user_invitation(
+    db: Session,
+    *,
+    invitation_id: int,
+    current_user: User,
+) -> OrganizationInvitation:
+    email = _normalize_email(current_user.email)
+
+    invitation = repository.get_organization_invitation_by_id_and_email(
+        db,
+        invitation_id=invitation_id,
+        email=email,
+    )
+
+    if invitation is None:
+        raise NotFoundError("Invitation not found.")
+
+    _ensure_invitation_is_pending(invitation)
+    _ensure_invitation_is_not_expired(invitation)
+
+    invitation.status = ORGANIZATION_INVITATION_STATUS_DECLINED
+
+    record_organization_audit_log(
+        db,
+        organization_id=invitation.organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_INVITATION_DECLINED,
+        metadata_json={
+            "invitation_id": invitation.id,
+            "email": invitation.email,
+            "role": invitation.role,
+        },
+    )
+
+    db.commit()
+    db.refresh(invitation)
+
+    return invitation
+
+
+def list_user_organization_invite_candidates(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+    query: str,
+) -> list[dict[str, int | str | None]]:
+    ensure_user_can_invite_members(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    normalized_query = query.strip().lower()
+
+    if len(normalized_query) < 2:
+        return []
+
+    statement = (
+        select(User)
+        .where(User.email.ilike(f"%{normalized_query}%"))
+        .order_by(User.email.asc())
+        .limit(10)
+    )
+
+    users = list(db.scalars(statement).all())
+    candidates: list[dict[str, int | str | None]] = []
+
+    for user in users:
+        existing_member = repository.get_organization_member_by_user_id(
+            db,
+            organization_id=organization_id,
+            user_id=user.id,
+        )
+
+        pending_invitation = repository.get_pending_organization_invitation_by_user_email(
+            db,
+            organization_id=organization_id,
+            email=_normalize_email(user.email),
+        )
+
+        candidates.append(
+            {
+                "user_id": user.id,
+                "email": user.email,
+                "membership_status": "member"
+                if existing_member is not None
+                else "not_member",
+                "invitation_status": ORGANIZATION_INVITATION_STATUS_PENDING
+                if pending_invitation is not None
+                else None,
+            }
+        )
+
+    return candidates
+
+
+def remove_member_from_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    member_id: int,
+    current_user: User,
+) -> None:
+    ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    member = repository.get_organization_member_by_id(
+        db,
+        organization_id=organization_id,
+        member_id=member_id,
+    )
+
+    if member is None:
+        raise NotFoundError("Workspace member not found.")
+
+    if member.user_id == current_user.id:
+        raise ForbiddenError(
+            "You cannot remove yourself from the workspace.",
+            error_code="workspace_member_self_remove_not_allowed",
+        )
+
+    if is_owner_role(member.role):
+        raise ForbiddenError(
+            "Workspace owner members cannot be removed for now.",
+            error_code="workspace_member_owner_remove_not_allowed",
+        )
+
+    removed_member_metadata = {
+        "member_id": member.id,
+        "user_id": member.user_id,
+        "role": member.role,
+    }
+
+    repository.delete_organization_member(
+        db,
+        member=member,
+    )
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_MEMBER_REMOVED,
+        metadata_json=removed_member_metadata,
+    )
+
+    db.commit()
+
+
+def transfer_user_organization_ownership(
+    db: Session,
+    *,
+    organization_id: int,
+    member_id: int,
+    current_user: User,
+) -> None:
+    current_owner_membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    target_member = repository.get_organization_member_by_id(
+        db,
+        organization_id=organization_id,
+        member_id=member_id,
+    )
+
+    if target_member is None:
+        raise NotFoundError("Workspace member not found.")
+
+    if target_member.user_id == current_user.id:
+        raise ForbiddenError(
+            "You cannot transfer ownership to yourself.",
+            error_code="workspace_ownership_self_transfer_not_allowed",
+        )
+
+    if is_owner_role(target_member.role):
+        raise ForbiddenError(
+            "Target member is already an owner.",
+            error_code="workspace_ownership_target_already_owner",
+        )
+
+    if not is_member_role(target_member.role):
+        raise ForbiddenError(
+            "Ownership can only be transferred to a workspace member.",
+            error_code="workspace_ownership_target_invalid_role",
+        )
+
+    previous_owner_user_id = current_owner_membership.user_id
+    new_owner_user_id = target_member.user_id
+
+    current_owner_membership.role = ORGANIZATION_ROLE_MEMBER
+    target_member.role = ORGANIZATION_ROLE_OWNER
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_OWNERSHIP_TRANSFERRED,
+        metadata_json={
+            "previous_owner_member_id": current_owner_membership.id,
+            "previous_owner_user_id": previous_owner_user_id,
+            "new_owner_member_id": target_member.id,
+            "new_owner_user_id": new_owner_user_id,
+        },
+    )
+
+    db.commit()
+
+
+def leave_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> None:
+    membership = ensure_user_can_manage_organization_tasks(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    if is_owner_role(membership.role):
+        raise ForbiddenError(
+            "Transfer workspace ownership before leaving this workspace.",
+            error_code="workspace_owner_cannot_leave_before_transfer",
+        )
+
+    left_member_metadata = {
+        "member_id": membership.id,
+        "user_id": membership.user_id,
+        "role": membership.role,
+    }
+
+    repository.delete_organization_member(
+        db,
+        member=membership,
+    )
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_LEFT,
+        metadata_json=left_member_metadata,
+    )
+
+    db.commit()
+
+def archive_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> dict[str, int | str]:
+    membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    organization = db.get(Organization, organization_id)
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    if organization.status == ORGANIZATION_STATUS_ARCHIVED:
+        return {
+            "id": organization.id,
+            "public_id": organization.public_id,
+            "name": organization.name,
+            "status": organization.status,
+            "role": membership.role,
+        }
+
+    previous_status = organization.status
+    organization.status = ORGANIZATION_STATUS_ARCHIVED
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_ARCHIVED,
+        metadata_json={
+            "previous_status": previous_status,
+            "new_status": organization.status,
+        },
+    )
+
+    db.commit()
+    db.refresh(organization)
+
+    return {
+        "id": organization.id,
+        "public_id": organization.public_id,
+        "name": organization.name,
+        "status": organization.status,
+        "role": membership.role,
+    }
+
+
+def restore_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> dict[str, int | str]:
+    membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    organization = db.get(Organization, organization_id)
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    if organization.status == ORGANIZATION_STATUS_ACTIVE:
+        return {
+            "id": organization.id,
+            "public_id": organization.public_id,
+            "name": organization.name,
+            "status": organization.status,
+            "role": membership.role,
+        }
+
+    previous_status = organization.status
+    organization.status = ORGANIZATION_STATUS_ACTIVE
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_RESTORED,
+        metadata_json={
+            "previous_status": previous_status,
+            "new_status": ORGANIZATION_STATUS_ACTIVE,
+        },
+    )
+
+    db.commit()
+    db.refresh(organization)
+
+    return {
+        "id": organization.id,
+        "public_id": organization.public_id,
+        "name": organization.name,
+        "status": organization.status,
+        "role": membership.role,
+    }
+
+
+
+def delete_user_organization(
+    db: Session,
+    *,
+    organization_id: int,
+    current_user: User,
+) -> None:
+    membership = ensure_user_is_organization_owner(
+        db,
+        organization_id=organization_id,
+        current_user=current_user,
+    )
+
+    organization = db.get(Organization, organization_id)
+
+    if organization is None:
+        raise NotFoundError("Organization not found.")
+
+    ensure_organization_is_not_deleted(organization)
+
+    if organization.status != ORGANIZATION_STATUS_ARCHIVED:
+        raise ForbiddenError(
+            "Archive the workspace before deleting it.",
+            error_code="workspace_delete_requires_archive",
+        )
+
+    previous_status = organization.status
+    organization.status = ORGANIZATION_STATUS_DELETED
+
+    record_organization_audit_log(
+        db,
+        organization_id=organization.id,
+        actor_user_id=current_user.id,
+        event_type=ORGANIZATION_AUDIT_EVENT_WORKSPACE_DELETED,
+        metadata_json={
+            "previous_status": previous_status,
+            "new_status": ORGANIZATION_STATUS_DELETED,
+        },
+    )
+
+    db.commit()

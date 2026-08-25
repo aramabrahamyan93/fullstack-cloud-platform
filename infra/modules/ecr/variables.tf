@@ -29,3 +29,9 @@ variable "account_id" {
   description = "Target AWS account ID."
   type        = string
 }
+
+variable "enable_repositories" {
+  description = "Whether this module should create/manage ECR repositories."
+  type        = bool
+  default     = true
+}

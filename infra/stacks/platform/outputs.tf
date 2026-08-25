@@ -40,3 +40,9 @@ output "external_secrets_role_arn" {
 output "vpc_id" {
   value = var.enable_vpc ? module.vpc[0].vpc_id : null
 }
+
+output "argocd_repo_secret_name" {
+  description = "Secrets Manager secret for ArgoCD Git repository credentials."
+
+  value = aws_secretsmanager_secret.argocd_repo_credentials.name
+}

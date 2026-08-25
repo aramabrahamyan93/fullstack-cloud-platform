@@ -1,0 +1,62 @@
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+# The argo-cd chart does not fully remove the ApplicationSet controller with
+# applicationSet.enabled=false in the currently used chart version.
+# Keep replicas at 0 for the dev cluster to reduce pod count.
+applicationSet:
+  enabled: false
+  replicas: 0
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi
+
+global:
+  logging:
+    level: warn
+
+redis:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi
+
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 150m
+      memory: 192Mi
+
+server:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 150m
+      memory: 192Mi
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 384Mi

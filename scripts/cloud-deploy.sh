@@ -39,8 +39,13 @@ ACCOUNT_ENV="${BASH_REMATCH[1]}"
 AWS_ACCOUNT_ID="${BASH_REMATCH[2]}"
 
 export ENV="${ACCOUNT_ENV}"
+export ACCOUNT
+export AWS_PROFILE
+export AWS_REGION
+export PROJECT_NAME
 
 ACCOUNT_FILE="${REPO_ROOT}/infra/accounts/${ACCOUNT}.tfvars"
+ADDONS_ENV_FILE="${REPO_ROOT}/config/addons/${ACCOUNT_ENV}.env"
 
 if [ ! -f "${ACCOUNT_FILE}" ]; then
   echo "ERROR: Account tfvars file not found: ${ACCOUNT_FILE}"
@@ -57,23 +62,193 @@ if [ -z "${PROJECT_NAME}" ]; then
   exit 1
 fi
 
+if [ -f "${ADDONS_ENV_FILE}" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${ADDONS_ENV_FILE}"
+  set +a
+else
+  echo "WARNING: Addons config file not found: ${ADDONS_ENV_FILE}"
+fi
+
+ENABLE_ARGOCD_APPLICATION="${ENABLE_ARGOCD_APPLICATION:-false}"
+ENABLE_ARGOCD="${ENABLE_ARGOCD:-false}"
+ENABLE_EXTERNAL_SECRETS="${ENABLE_EXTERNAL_SECRETS:-false}"
+ENABLE_INGRESS_NGINX="${ENABLE_INGRESS_NGINX:-false}"
+ENABLE_MONITORING="${ENABLE_MONITORING:-false}"
+GIT_TARGET_REVISION="${ARGOCD_TARGET_REVISION:-${GIT_TARGET_REVISION:-$(git -C "${REPO_ROOT}" branch --show-current)}}"
+
 CLUSTER_NAME="${PROJECT_NAME}-${ACCOUNT_ENV}"
-APP_NAMESPACE="fullstack-${ACCOUNT_ENV}"
-APP_HOST="${ACCOUNT_ENV}.${PROJECT_NAME}.local"
+RELEASE_PREFIX="${RELEASE_PREFIX:-fullstack}"
+
+APP_NAMESPACE="${RELEASE_PREFIX}-${ACCOUNT_ENV}"
+ARGOCD_APP_NAME="${RELEASE_PREFIX}-${ACCOUNT_ENV}"
+HELM_RELEASE="${RELEASE_PREFIX}-${ACCOUNT_ENV}"
+
+wait_for_argocd_application() {
+  echo "Waiting for ArgoCD Application: ${ARGOCD_APP_NAME}"
+
+  for i in {1..60}; do
+    if kubectl get application "${ARGOCD_APP_NAME}" -n argocd >/dev/null 2>&1; then
+      echo "ArgoCD Application exists."
+      break
+    fi
+
+    echo "Waiting for ArgoCD Application to be created ${i}/60..."
+    sleep 10
+  done
+
+  if ! kubectl get application "${ARGOCD_APP_NAME}" -n argocd >/dev/null 2>&1; then
+    echo "ERROR: ArgoCD Application was not created: ${ARGOCD_APP_NAME}"
+    kubectl get applications -n argocd || true
+    exit 1
+  fi
+
+  echo "Waiting for ArgoCD Application to become Synced and Healthy..."
+
+  for i in {1..90}; do
+    local sync_status
+    local health_status
+
+    sync_status="$(
+      kubectl get application "${ARGOCD_APP_NAME}" \
+        -n argocd \
+        -o jsonpath='{.status.sync.status}' 2>/dev/null || true
+    )"
+
+    health_status="$(
+      kubectl get application "${ARGOCD_APP_NAME}" \
+        -n argocd \
+        -o jsonpath='{.status.health.status}' 2>/dev/null || true
+    )"
+
+    echo "ArgoCD status ${i}/90: sync=${sync_status:-unknown}, health=${health_status:-unknown}"
+
+    if [ "${sync_status}" = "Synced" ] && [ "${health_status}" = "Healthy" ]; then
+      echo "ArgoCD Application is Synced and Healthy."
+      return
+    fi
+
+    sleep 10
+  done
+
+  echo "ERROR: ArgoCD Application did not become Synced and Healthy in time."
+  echo "Application summary:"
+  kubectl get application "${ARGOCD_APP_NAME}" -n argocd -o wide || true
+
+  echo
+  echo "Application details:"
+  kubectl describe application "${ARGOCD_APP_NAME}" -n argocd || true
+
+  echo
+  echo "ArgoCD pods:"
+  kubectl get pods -n argocd || true
+
+  exit 1
+}
+
+wait_for_app_rollout() {
+  echo "Waiting for frontend/backend deployments..."
+
+  kubectl rollout status deployment/frontend \
+    -n "${APP_NAMESPACE}" \
+    --timeout=300s
+
+  kubectl rollout status deployment/backend \
+    -n "${APP_NAMESPACE}" \
+    --timeout=300s
+}
+
+print_application_status() {
+  echo "Application status:"
+  kubectl get pods -n "${APP_NAMESPACE}" || true
+  kubectl get svc -n "${APP_NAMESPACE}" || true
+  kubectl get ingress -n "${APP_NAMESPACE}" || true
+  kubectl get clustersecretstore || true
+  kubectl get externalsecret -n "${APP_NAMESPACE}" || true
+  kubectl get secret backend-database-secret -n "${APP_NAMESPACE}" || true
+  kubectl get servicemonitor -n "${APP_NAMESPACE}" || true
+
+  echo
+  echo "Addon status:"
+  kubectl get pods -n external-secrets || true
+  kubectl get pods -n ingress-nginx || true
+  kubectl get pods -n monitoring || true
+  kubectl get pods -n argocd || true
+  kubectl get applications -n argocd || true
+}
+
+run_smoke_tests() {
+  echo "Waiting for LoadBalancer hostname..."
+
+  local lb_host=""
+
+  for i in {1..60}; do
+    lb_host="$(
+      kubectl get svc ingress-nginx-controller \
+        -n ingress-nginx \
+        -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true
+    )"
+
+    if [ -n "${lb_host}" ]; then
+      break
+    fi
+
+    echo "Waiting for LoadBalancer hostname ${i}/60..."
+    sleep 10
+  done
+
+  if [ -z "${lb_host}" ]; then
+    echo "ERROR: LoadBalancer hostname is not ready."
+    kubectl get svc ingress-nginx-controller -n ingress-nginx -o wide || true
+    exit 1
+  fi
+
+  echo "LoadBalancer host: ${lb_host}"
+
+  echo "Smoke test: frontend"
+  curl -sS -f -H "Host: ${APP_HOST}" "http://${lb_host}/" >/dev/null
+  echo "Frontend OK"
+
+  echo "Smoke test: backend health"
+  local health_response
+  health_response="$(curl -sS -f -H "Host: ${APP_HOST}" "http://${lb_host}/api/health")"
+
+  echo "${health_response}"
+
+  if ! echo "${health_response}" | grep -q '"status":"ok"'; then
+    echo "ERROR: Backend health check did not return status ok."
+    exit 1
+  fi
+
+  echo "Backend health OK"
+}
 
 echo "Cloud deploy"
-echo "Environment:    ${ACCOUNT_ENV}"
-echo "Account:        ${ACCOUNT}"
-echo "Account file:   ${ACCOUNT_FILE}"
-echo "AWS Profile:    ${AWS_PROFILE}"
-echo "AWS Account ID: ${AWS_ACCOUNT_ID}"
-echo "AWS Region:     ${AWS_REGION}"
-echo "Project Name:   ${PROJECT_NAME}"
-echo "Cluster Name:   ${CLUSTER_NAME}"
-echo "Namespace:      ${APP_NAMESPACE}"
+echo "Environment:              ${ACCOUNT_ENV}"
+echo "Account:                  ${ACCOUNT}"
+echo "Account file:             ${ACCOUNT_FILE}"
+echo "Addons config:            ${ADDONS_ENV_FILE}"
+echo "AWS Profile:              ${AWS_PROFILE}"
+echo "AWS Account ID:           ${AWS_ACCOUNT_ID}"
+echo "AWS Region:               ${AWS_REGION}"
+echo "Project Name:             ${PROJECT_NAME}"
+echo "Cluster Name:             ${CLUSTER_NAME}"
+echo "Namespace:                ${APP_NAMESPACE}"
+echo "Image Tag:                ${IMAGE_TAG:-not set}"
+echo "Enable ArgoCD:            ${ENABLE_ARGOCD}"
+echo "Enable ArgoCD App:        ${ENABLE_ARGOCD_APPLICATION}"
+echo "Enable External Secrets:  ${ENABLE_EXTERNAL_SECRETS}"
+echo "Enable Ingress NGINX:     ${ENABLE_INGRESS_NGINX}"
+echo "Enable Monitoring:        ${ENABLE_MONITORING}"
+echo "Git target revision:      ${GIT_TARGET_REVISION}"
+echo
 
 echo "Applying Terraform platform stack..."
-make tf-apply STACK=platform ACCOUNT="${ACCOUNT}" AWS_PROFILE="${AWS_PROFILE}"
+make tf-apply \
+  STACK=platform \
+  ACCOUNT="${ACCOUNT}" \
+  AWS_PROFILE="${AWS_PROFILE}"
 
 echo "Updating kubeconfig..."
 aws eks update-kubeconfig \
@@ -85,50 +260,28 @@ echo "Waiting for EKS nodes..."
 kubectl wait node --all --for=condition=Ready --timeout=600s
 kubectl get nodes
 
-echo "Installing ingress-nginx..."
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null 2>&1 || true
-helm repo update
+echo "Deploying enabled addons from ${ADDONS_ENV_FILE}..."
+make deploy-addons \
+  ACCOUNT="${ACCOUNT}" \
+  AWS_PROFILE="${AWS_PROFILE}" \
+  AWS_REGION="${AWS_REGION}" \
+  PROJECT_NAME="${PROJECT_NAME}"
 
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  -n ingress-nginx \
-  --create-namespace
+if [ "${ENABLE_ARGOCD_APPLICATION}" = "true" ]; then
+  echo "GitOps mode is enabled."
+  echo "Application will be deployed by ArgoCD. Skipping direct Helm app deploy."
+  echo "ArgoCD target revision: ${GIT_TARGET_REVISION}"
 
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=600s
+  wait_for_argocd_application
+else
+  echo "GitOps mode is disabled."
+  echo "Deploying application directly with Helm..."
 
-echo "Getting External Secrets IRSA role ARN..."
-EXTERNAL_SECRETS_ROLE_ARN="$(
-  cd "${REPO_ROOT}/infra/stacks/platform" && terraform output -raw external_secrets_role_arn
-)"
-
-if [ -z "${EXTERNAL_SECRETS_ROLE_ARN}" ]; then
-  echo "ERROR: external_secrets_role_arn output is empty."
-  exit 1
+  make helm-deploy \
+    ENV="${ACCOUNT_ENV}" \
+    AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID}" \
+    IMAGE_TAG="${IMAGE_TAG}"
 fi
-
-echo "Installing external-secrets with IRSA role: ${EXTERNAL_SECRETS_ROLE_ARN}"
-
-helm repo add external-secrets https://charts.external-secrets.io >/dev/null 2>&1 || true
-helm repo update
-
-helm upgrade --install external-secrets external-secrets/external-secrets \
-  -n external-secrets \
-  --create-namespace \
-  --set installCRDs=true \
-  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="${EXTERNAL_SECRETS_ROLE_ARN}"
-
-kubectl wait --namespace external-secrets \
-  --for=condition=ready pod \
-  --all \
-  --timeout=600s
-
-echo "Deleting old ClusterSecretStore to avoid jwt/secretRef merge leftovers..."
-kubectl delete clustersecretstore aws-secrets-manager --ignore-not-found=true
-
-echo "Deploying application for ENV=${ACCOUNT_ENV}..."
-make helm-deploy ENV="${ACCOUNT_ENV}" AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID}" IMAGE_TAG="${IMAGE_TAG}"
 
 echo "Waiting for ExternalSecret sync..."
 kubectl wait externalsecret backend-database-external-secret \
@@ -136,42 +289,9 @@ kubectl wait externalsecret backend-database-external-secret \
   --for=condition=Ready \
   --timeout=300s || true
 
-echo "Waiting for frontend/backend deployments..."
-kubectl rollout status deployment/frontend -n "${APP_NAMESPACE}" --timeout=300s || true
-kubectl rollout status deployment/backend -n "${APP_NAMESPACE}" --timeout=300s || true
-
-echo "Application status:"
-kubectl get pods -n "${APP_NAMESPACE}" || true
-kubectl get svc -n "${APP_NAMESPACE}" || true
-kubectl get ingress -n "${APP_NAMESPACE}" || true
-kubectl get clustersecretstore || true
-kubectl get externalsecret -n "${APP_NAMESPACE}" || true
-kubectl get secret backend-database-secret -n "${APP_NAMESPACE}" || true
-
-LB_HOST="$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
-
-if [ -n "${LB_HOST}" ]; then
-  echo "LoadBalancer host: ${LB_HOST}"
-
-  echo "Smoke test: frontend"
-  curl -sS -f -H "Host: ${APP_HOST}" "http://${LB_HOST}/" >/dev/null
-  echo "Frontend OK"
-
-  echo "Smoke test: backend health"
-  HEALTH_RESPONSE="$(curl -sS -f -H "Host: ${APP_HOST}" "http://${LB_HOST}/api/health")"
-
-  echo "${HEALTH_RESPONSE}"
-
-  if ! echo "${HEALTH_RESPONSE}" | grep -q '"status":"ok"'; then
-    echo "ERROR: Backend health check did not return status ok."
-    exit 1
-  fi
-
-  echo "Backend health OK"
-else
-  echo "ERROR: LoadBalancer hostname is not ready."
-  exit 1
-fi
+wait_for_app_rollout
+print_application_status
+run_smoke_tests
 
 echo "Cloud deploy completed."
 echo "Reminder: EKS/RDS/LoadBalancer are active and generating cost."

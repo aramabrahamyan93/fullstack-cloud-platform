@@ -10,6 +10,10 @@ data:
   APP_NAME: "{{ .Values.global.projectName }}-api"
   APP_VERSION: {{ .Values.app.version | quote }}
 
+  SQL_ECHO: {{ .Values.backend.config.sqlEcho | quote }}
+  DB_INIT_RETRIES: {{ .Values.backend.config.dbInitRetries | quote }}
+  DB_INIT_RETRY_DELAY_SECONDS: {{ .Values.backend.config.dbInitRetryDelaySeconds | quote }}
+
   {{- if eq .Values.database.mode "local" }}
   DATABASE_URL: "postgresql+psycopg://{{ .Values.postgres.username }}:{{ .Values.postgres.password }}@postgres:{{ .Values.postgres.port }}/{{ .Values.postgres.database }}"
   {{- end }}
@@ -41,6 +45,47 @@ spec:
         app: backend
 
     spec:
+      {{- $waitForDatabase := false }}
+      {{- $waitTimeoutSeconds := 60 }}
+      {{- with .Values.backend.waitForDatabase }}
+      {{- $waitForDatabase = (.enabled | default false) }}
+      {{- $waitTimeoutSeconds = (.timeoutSeconds | default 60) }}
+      {{- end }}
+
+      {{- if and (eq .Values.database.mode "local") $waitForDatabase }}
+      initContainers:
+        - name: wait-for-postgres
+          image: {{ .Values.postgres.image | quote }}
+          imagePullPolicy: IfNotPresent
+
+          envFrom:
+            - secretRef:
+                name: postgres-secret
+
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Postgres at postgres:{{ .Values.postgres.port }}..."
+
+              for i in $(seq 1 {{ $waitTimeoutSeconds }}); do
+                if pg_isready \
+                  -h postgres \
+                  -p {{ .Values.postgres.port }} \
+                  -U "${POSTGRES_USER}" \
+                  -d "${POSTGRES_DB}"; then
+                  echo "Postgres is ready."
+                  exit 0
+                fi
+
+                echo "Postgres is not ready yet. Attempt ${i}/{{ $waitTimeoutSeconds }}..."
+                sleep 1
+              done
+
+              echo "ERROR: Postgres did not become ready in {{ $waitTimeoutSeconds }} seconds."
+              exit 1
+      {{- end }}
+
       containers:
         - name: backend
           image: "{{ include "platform.backendImage" . }}"
@@ -67,21 +112,21 @@ spec:
 
           startupProbe:
             httpGet:
-              path: /health
+              path: /health/live
               port: {{ .Values.backend.port }}
             failureThreshold: 30
             periodSeconds: 5
 
           readinessProbe:
             httpGet:
-              path: /health
+              path: /health/ready
               port: {{ .Values.backend.port }}
             initialDelaySeconds: 5
             periodSeconds: 5
 
           livenessProbe:
             httpGet:
-              path: /health
+              path: /health/live
               port: {{ .Values.backend.port }}
             initialDelaySeconds: 15
             periodSeconds: 10
@@ -93,11 +138,14 @@ kind: Service
 metadata:
   name: backend
   namespace: {{ .Values.namespace }}
+  labels:
+    app: backend
 
 spec:
   selector:
     app: backend
 
   ports:
-    - port: {{ .Values.backend.port }}
+    - name: http
+      port: {{ .Values.backend.port }}
       targetPort: {{ .Values.backend.port }}

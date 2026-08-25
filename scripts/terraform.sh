@@ -41,8 +41,8 @@ if [ ! -d "${STACK_DIR}" ]; then
   exit 1
 fi
 
-if [ ! -f "${REPO_ROOT}/infra/accounts/${ACCOUNT}.tfvars" ]; then
-  echo "ERROR: Account config does not exist: infra/accounts/${ACCOUNT}.tfvars"
+if [ ! -f "${REPO_ROOT}/infra/accounts/${ACCOUNT}.tfvars" ] && [ ! -d "${REPO_ROOT}/infra/accounts/${ACCOUNT}" ]; then
+  echo "ERROR: Account config does not exist: infra/accounts/${ACCOUNT}.tfvars or infra/accounts/${ACCOUNT}/"
   exit 1
 fi
 
@@ -61,29 +61,45 @@ if [ -n "${AWS_PROFILE}" ]; then
   AWS_ENV=("AWS_PROFILE=${AWS_PROFILE}")
 fi
 
+add_account_var_files() {
+  local account_dir_absolute="${REPO_ROOT}/infra/accounts/${ACCOUNT}"
+  local account_dir_relative="../../accounts/${ACCOUNT}"
+  local legacy_account_vars="../../accounts/${ACCOUNT}.tfvars"
+
+  if [ -d "${account_dir_absolute}" ]; then
+    EXTRA_VAR_FILES+=("-var-file=${account_dir_relative}/common.tfvars")
+
+    if [ -f "${account_dir_absolute}/${STACK}.tfvars" ]; then
+      EXTRA_VAR_FILES+=("-var-file=${account_dir_relative}/${STACK}.tfvars")
+    fi
+  else
+    EXTRA_VAR_FILES+=("-var-file=${legacy_account_vars}")
+  fi
+}
+
 case "${STACK}" in
   ecr)
     EXTRA_VAR_FILES+=("-var-file=${GLOBAL_VARS}")
     EXTRA_VAR_FILES+=("-var-file=../../config/services.tfvars")
-    EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
+    add_account_var_files
     ;;
 
   bootstrap)
     EXTRA_VAR_FILES+=("-var-file=${GLOBAL_VARS}")
     EXTRA_VAR_FILES+=("-var-file=../../config/services.tfvars")
     EXTRA_VAR_FILES+=("-var-file=../../config/github.tfvars")
-    EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
+    add_account_var_files
     ;;
 
   platform)
     EXTRA_VAR_FILES+=("-var-file=${GLOBAL_VARS}")
     EXTRA_VAR_FILES+=("-var-file=../../config/platform.tfvars")
-    EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
+    add_account_var_files
     ;;
 
   *)
     EXTRA_VAR_FILES+=("-var-file=${GLOBAL_VARS}")
-    EXTRA_VAR_FILES+=("-var-file=${ACCOUNT_VARS}")
+    add_account_var_files
     ;;
 esac
 

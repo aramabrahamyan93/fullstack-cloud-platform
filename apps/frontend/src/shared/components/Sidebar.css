@@ -1,0 +1,281 @@
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  border-right: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(18px);
+}
+
+.sidebar-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.sidebar-brand div {
+  display: grid;
+  gap: 2px;
+}
+
+.sidebar-brand span:not(.sidebar-logo) {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.sidebar-logo {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 14px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.workspace-switcher,
+.sidebar-user {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f9fafb;
+  overflow-wrap: anywhere;
+}
+
+.workspace-select {
+  min-width: 0;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.workspace-create-link {
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.workspace-create-link:hover {
+  text-decoration: underline;
+}
+
+.workspace-guest {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar-nav-item {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #374151;
+  text-align: left;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.sidebar-nav-item:hover {
+  background: #f8fafc;
+}
+
+.sidebar-nav-item.active {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.sidebar-nav-item small {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.sidebar-user {
+  margin-top: auto;
+}
+
+.sidebar-user-label {
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    position: static;
+    height: auto;
+    padding: 16px;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .sidebar-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sidebar-logout-button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.sidebar-logout-button:hover {
+  background: #fee2e2;
+}
+
+.sidebar-nav-section {
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar-nav-group {
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar-section-title {
+  color: #6b7280;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sidebar-nav-section + .sidebar-nav-section {
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.sidebar-nav-item.disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: transparent;
+  border-color: transparent;
+}
+
+.sidebar-nav-item.disabled:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Compact sidebar refinement */
+.sidebar {
+  gap: 18px;
+  padding: 20px;
+}
+
+.workspace-switcher,
+.sidebar-user {
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.sidebar-nav-group {
+  gap: 6px;
+}
+
+.sidebar-nav-item {
+  min-height: 48px;
+  padding: 10px 12px;
+  gap: 2px;
+}
+
+.sidebar-nav-item small {
+  display: none;
+}
+
+.sidebar-nav-item.active small,
+.sidebar-nav-item:hover small,
+.sidebar-nav-item:focus-visible small {
+  display: block;
+}
+
+.sidebar-nav-section + .sidebar-nav-section {
+  padding-top: 12px;
+}
+
+/* Collapsible sidebar UX refinement */
+.sidebar-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.sidebar-section-toggle:hover {
+  color: #374151;
+}
+
+.workspace-switcher-content {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-collapsed-label {
+  overflow: hidden;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-nav-item {
+  grid-template-columns: 1fr;
+}
+
+.sidebar-nav-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-nav-item small {
+  margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .sidebar-section-toggle {
+    font-size: 0.72rem;
+  }
+}
+

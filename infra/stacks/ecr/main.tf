@@ -5,4 +5,6 @@ module "ecr" {
   services     = var.services
   environment  = var.environment
   account_id   = var.account_id
+
+  enable_repositories = var.enable_ecr_repositories
 }

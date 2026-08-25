@@ -1,7 +1,8 @@
 services:
   backend:
+    image: "${PROJECT_NAME}-backend:latest"
     build:
-      context: ./backend
+      context: ./services/backend
     env_file:
       - .env.local
     ports:
@@ -13,8 +14,12 @@ services:
       - app-network
 
   frontend:
+    image: "${PROJECT_NAME}-frontend:latest"
     build:
-      context: ./frontend
+      context: ./apps/frontend
+      args:
+        VITE_APP_TITLE: "${FRONTEND_APP_TITLE}"
+        VITE_API_BASE_URL: "${FRONTEND_API_BASE_URL}"
     ports:
       - "3000:80"
     depends_on:

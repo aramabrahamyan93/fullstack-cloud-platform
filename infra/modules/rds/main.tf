@@ -29,7 +29,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
     username = var.db_username
     password = random_password.db_password.result
 
-    database_url = "postgresql+psycopg://${var.db_username}:${random_password.db_password.result}@${aws_db_instance.this.address}:5432/${var.db_name}"
+    database_url = "postgresql+psycopg://${var.db_username}:${urlencode(random_password.db_password.result)}@${aws_db_instance.this.address}:5432/${var.db_name}?sslmode=require"
 
     engine = "postgres"
   })

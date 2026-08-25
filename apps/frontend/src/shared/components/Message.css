@@ -1,0 +1,22 @@
+.message {
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin: 0 0 18px;
+  border: 1px solid transparent;
+  font-weight: 700;
+}
+
+.message.muted {
+  background: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+.message.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.message.success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}

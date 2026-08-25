@@ -43,6 +43,11 @@ backend:
     maxUnavailable: 0
     maxSurge: 1
 
+  config:
+    sqlEcho: false
+    dbInitRetries: 30
+    dbInitRetryDelaySeconds: 1
+
   resources:
     requests:
       cpu: 100m
@@ -50,6 +55,10 @@ backend:
     limits:
       cpu: 500m
       memory: 512Mi
+
+  metrics:
+    enabled: false
+    path: /metrics
 
 
 frontend:

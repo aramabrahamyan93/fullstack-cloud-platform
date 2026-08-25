@@ -6,15 +6,49 @@ on:
       - main
       - develop
       - staging
+    paths:
+      - services/backend/**
+      - apps/frontend/**
+      - helm/**
+      - scripts/validate-services.py
+      - scripts/docker-build-push.sh
+      - scripts/compose.sh
+      - scripts/local-smoke-test.sh
+      - scripts/k8s-smoke-test.sh
+      - docker-compose.yml
+      - docker-compose.yaml
+      - Makefile
+      - services.json
+      - project.env
+      - .github/workflows/fullstack-ci.yml
 
   push:
     branches:
       - main
       - develop
       - staging
+    paths:
+      - services/backend/**
+      - apps/frontend/**
+      - helm/**
+      - scripts/validate-services.py
+      - scripts/docker-build-push.sh
+      - scripts/compose.sh
+      - scripts/local-smoke-test.sh
+      - scripts/k8s-smoke-test.sh
+      - docker-compose.yml
+      - docker-compose.yaml
+      - Makefile
+      - services.json
+      - project.env
+      - .github/workflows/fullstack-ci.yml
 
 permissions:
   contents: read
+
+concurrency:
+  group: fullstack-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   fullstack-checks:
@@ -25,47 +59,77 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Validate Docker Compose file syntax before building services.
+      - name: Validate service registry
+        run: make validate-services
+
+      - name: Validate Docker Compose wrapper syntax
+        run: bash -n scripts/compose.sh
+
+      - name: Validate local smoke test syntax
+        run: bash -n scripts/local-smoke-test.sh
+
+      - name: Validate Kubernetes smoke test syntax
+        run: bash -n scripts/k8s-smoke-test.sh
+
+      - name: Validate Docker build push script syntax
+        run: bash -n scripts/docker-build-push.sh
+
+      - name: Validate registry-based Docker build push dry run
+        run: |
+          DRY_RUN=true \
+          ACCOUNT=dev-000000000000 \
+          bash scripts/docker-build-push.sh
+
       - name: Validate Docker Compose config
-        run: docker compose config
+        run: bash scripts/compose.sh config
 
       - name: Build backend Docker image
-        run: docker compose build backend
+        run: bash scripts/compose.sh build backend
 
       - name: Run backend tests
-        run: docker compose run --rm backend pytest
+        run: bash scripts/compose.sh run --rm backend pytest
 
-      - name: Build frontend Docker image
-        run: docker compose build frontend
+      - name: Validate frontend TypeScript and production build
+        run: make frontend-validate
 
-      # Install Helm CLI so Kubernetes templates can be validated in CI.
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      # Validate Helm chart structure and template syntax.
       - name: Lint Helm chart
         run: make helm-lint
 
-      # Render local values without AWS settings because local kind uses locally loaded images.
       - name: Render Helm chart for local
-        run: make helm-render ENV=local PROJECT_NAME=${{ vars.PROJECT_NAME }}
+        run: make helm-render ENV=local PROJECT_NAME=${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }}
 
-      # Render cloud-like environments with AWS/ECR settings.
       - name: Render Helm chart for dev
-        run: make helm-render ENV=dev PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
+        run: |
+          make helm-render \
+            ENV=dev \
+            PROJECT_NAME=${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }} \
+            AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID || '000000000000' }} \
+            AWS_REGION=${{ vars.AWS_REGION || 'eu-central-1' }}
 
       - name: Render Helm chart for staging
-        run: make helm-render ENV=staging PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
+        run: |
+          make helm-render \
+            ENV=staging \
+            PROJECT_NAME=${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }} \
+            AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID || '000000000000' }} \
+            AWS_REGION=${{ vars.AWS_REGION || 'eu-central-1' }}
 
       - name: Render Helm chart for prod
-        run: make helm-render ENV=prod PROJECT_NAME=${{ vars.PROJECT_NAME }} AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID }} AWS_REGION=${{ vars.AWS_REGION }}
+        run: |
+          make helm-render \
+            ENV=prod \
+            PROJECT_NAME=${{ vars.PROJECT_NAME || 'fullstack-cloud-platform' }} \
+            AWS_ACCOUNT_ID=${{ vars.AWS_ACCOUNT_ID || '000000000000' }} \
+            AWS_REGION=${{ vars.AWS_REGION || 'eu-central-1' }}
 
-      # Start the full local stack for smoke testing.
       - name: Start full stack
-        run: docker compose up -d
+        run: bash scripts/compose.sh up -d
 
       - name: Show containers
-        run: docker compose ps
+        run: bash scripts/compose.sh ps
 
       - name: Wait for backend health
         run: |
@@ -76,12 +140,12 @@ jobs:
             fi
 
             echo "Waiting for backend..."
-            docker compose ps
+            bash scripts/compose.sh ps
             sleep 3
           done
 
           echo "Backend did not become healthy"
-          docker compose logs backend
+          bash scripts/compose.sh logs backend
           exit 1
 
       - name: Wait for frontend
@@ -93,18 +157,21 @@ jobs:
             fi
 
             echo "Waiting for frontend..."
-            docker compose ps
+            bash scripts/compose.sh ps
             sleep 3
           done
 
           echo "Frontend did not become reachable"
-          docker compose logs frontend
+          bash scripts/compose.sh logs frontend
           exit 1
+
+      - name: Run auth-aware local smoke test
+        run: make local-smoke-test
 
       - name: Show logs on failure
         if: failure()
-        run: docker compose logs
+        run: bash scripts/compose.sh logs
 
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: bash scripts/compose.sh down -v

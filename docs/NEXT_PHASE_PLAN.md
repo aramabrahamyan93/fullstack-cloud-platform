@@ -1,0 +1,348 @@
+# Next Phase Planning
+
+This document captures the agreed planning direction after the infrastructure safety cleanup and before the next implementation branches.
+
+The goal is to keep the project moving in small, reviewable phases while avoiding large risky rewrites.
+
+## Current baseline
+
+The current `develop` baseline includes:
+
+- workspace lifecycle foundation, including public workspace IDs, dashboard, activity, archive, restore, and soft delete
+- dev ECR repositories disabled for cost safety
+- automatic ECR publishing disabled while dev ECR repositories are disabled
+- Terraform account variables split by account and stack
+- cloud deploy Makefile environment chain fixed so `IMAGE_TAG` is passed correctly
+- infrastructure documentation updated for the current AWS safety state
+
+All future implementation work should start from a dedicated branch instead of committing directly on `develop`.
+
+## Branch workflow
+
+Every change should follow this workflow:
+
+```text
+sync develop
+create feature/fix/docs branch
+make one focused change
+write validation output to tmp/<phase>.txt
+review output
+commit on branch
+push branch
+merge only after review
+```
+
+Recommended branch prefixes:
+
+```text
+feature/...
+fix/...
+docs/...
+chore/...
+```
+
+Use small branches. Avoid mixing roadmap documentation, monitoring implementation, and workspace domain refactors in one branch.
+
+## Next recommended sequence
+
+```text
+Phase 1: Roadmap and planning docs
+Phase 2: Local ArgoCD/monitoring audit
+Phase 3: Minimal local monitoring stack
+Phase 4: Optional local ArgoCD preview
+Phase 5: Workspace-first domain decision and staged refactor plan
+```
+
+## Phase 1 — Roadmap and planning docs
+
+Status: current branch.
+
+Goal:
+
+- document the next sequence of work
+- define the local GitOps/monitoring review scope
+- define the workspace-first domain decision scope
+- keep the plan explicit before implementation starts
+
+This phase should not change application behavior.
+
+Expected outputs:
+
+- updated roadmap
+- updated architecture notes
+- clear implementation branch list
+- risk notes
+
+Validation:
+
+```bash
+git status --short
+git diff --stat
+```
+
+## Phase 2 — Local ArgoCD and monitoring audit
+
+Audit implementation notes:
+
+- `HELM_EXTRA_VALUES` provides opt-in Helm overrides.
+- `helm/platform/values-local-monitoring.yaml` enables backend metrics ServiceMonitor rendering for local monitoring preview.
+- Default local Helm render/deploy remains unchanged and does not render ServiceMonitor.
+- The monitoring override should be used for deployment only after the local monitoring stack has installed the required ServiceMonitor CRD.
+
+This keeps normal local development safe while still allowing a controlled monitoring preview.
+
+Recommended branch:
+
+```text
+feature/local-gitops-monitoring-audit
+```
+
+Goal:
+
+Understand what is already available and what is missing before enabling anything locally.
+
+Review areas:
+
+- kind cluster status
+- Helm local values
+- `backend-servicemonitor.yaml`
+- backend `/metrics` availability
+- `addons/monitoring/values.yaml`
+- `scripts/addons/monitoring.sh`
+- `scripts/addons/argocd.sh`
+- `scripts/deploy-addons.sh`
+- whether local addon flags should exist separately from dev/staging cloud flags
+
+Questions to answer:
+
+- Does local monitoring need Grafana now, or is Prometheus enough for the first step?
+- Does the backend expose `/metrics` in the current local runtime?
+- Is ServiceMonitor rendered in local Helm values?
+- Should local ArgoCD be part of normal local validation, or only an optional preview?
+- Which parts are useful locally and which parts should remain cloud-only?
+
+Expected outcome:
+
+- no major implementation yet
+- a clear local observability/GitOps implementation plan
+- a decision on whether to start with monitoring or ArgoCD
+
+Recommendation:
+
+Start with monitoring before ArgoCD. Monitoring gives faster practical feedback and helps validate backend metrics, ServiceMonitor wiring, and dashboards. ArgoCD local preview can be added later if it provides enough value.
+
+## Phase 3 — Minimal local monitoring stack
+
+Phase 3 status: implemented in branch `feature/local-monitoring-stack`.
+
+Goal achieved:
+
+Create an optional local monitoring flow for kind without changing the default local development path.
+
+Implemented capabilities:
+
+- `scripts/local-monitoring.sh` for local-only monitoring lifecycle
+- `make local-monitoring-up`
+- `make local-monitoring-status`
+- `make local-monitoring-down`
+- `make local-k8s-deploy-monitoring`
+- app deployment with `HELM_EXTRA_VALUES=helm/platform/values-local-monitoring.yaml`
+- backend `ServiceMonitor` creation after CRDs exist
+- Prometheus target validation for backend `/metrics`
+
+Validated result:
+
+```text
+backend /metrics
+→ ServiceMonitor/backend
+→ Prometheus scrape target health=up
+→ up{job="backend", namespace="fullstack-local", service="backend"} = 1
+```
+
+Safety result:
+
+- no AWS resources are created
+- default local Helm render/deploy remains unchanged
+- monitoring is optional and cleanup is available with `make local-monitoring-down`
+
+
+## Phase 4 — Optional local ArgoCD preview
+
+Phase 4 status: implemented in branch `feature/local-argocd-preview`.
+
+Recommended branch:
+
+```text
+feature/local-argocd-preview
+```
+
+Goal:
+
+Evaluate ArgoCD locally as an optional GitOps learning and preview workflow.
+
+Implemented capabilities:
+
+- `scripts/local-argocd.sh` for local-only ArgoCD lifecycle
+- `make local-argocd-up`
+- `make local-argocd-status`
+- `make local-argocd-down`
+- `make local-argocd-app-render`
+- `make local-argocd-app-apply`
+- `make local-argocd-app-status`
+- `make local-argocd-app-delete`
+- local Application template at `addons/argocd/applications/local-app.yaml.tpl`
+
+Validated result:
+
+```text
+ArgoCD UI:   https://localhost:18443
+Version:     v3.4.4
+Application: fullstack-local
+Source:      develop / helm/platform
+Revision:    a234c967...
+Sync:        OutOfSync
+Health:      Progressing
+```
+
+The local Application resource tree includes backend, frontend, postgres, ingress, and backend `ServiceMonitor` resources.
+
+Important behavior:
+
+- auto-sync is intentionally disabled
+- `OutOfSync / Progressing` is expected before manual sync
+- local ArgoCD is not part of the default fast validation path
+- the flow does not require AWS credentials, External Secrets, or cloud account metadata
+- cleanup is available with `make local-argocd-app-delete` and `make local-argocd-down`
+
+Recommendation:
+
+Keep local ArgoCD as an optional preview and learning workflow. Do not make it mandatory for normal development.
+
+
+## Phase 4.5 — Local platform configurable access hardening
+
+Phase 4.5 status: implemented in branch `fix/local-gitops-configurable-access`.
+
+Goal achieved:
+
+Provide a reproducible local platform workflow that can start from zero state, install pinned local addons, refresh local app images, validate Prometheus scraping, apply the local ArgoCD preview, and print reliable browser access commands.
+
+Implemented capabilities:
+
+- `config/addons/local.env` follows the same `config/addons/<env>.env` pattern as dev/staging.
+- Local config is minimal and contains only real local choices.
+- `scripts/local-common.sh` derives namespaces, release names, chart paths, value files, and service names.
+- `make local-platform-up` creates/reuses kind and builds the full local platform.
+- `make local-platform-refresh` rebuilds/reloads app images and validates the app path.
+- `make local-platform-doctor` checks Helm releases, rollouts, ServiceMonitor, Prometheus target health, and smoke tests.
+- `make local-platform-links` prints browser access commands and URLs.
+- `make local-platform-access-check` validates browser links when port-forwards are running.
+- `make local-app-port-forward`, `make local-argocd-port-forward`, `make local-prometheus-port-forward`, and `make local-grafana-port-forward` provide consistent access commands.
+- Local monitoring and ArgoCD chart versions are pinned for reproducible installs.
+- Failed or pending local Helm releases are cleaned before retry.
+
+Important architecture decision:
+
+Local platform scripts must not contain custom SQL or database schema fixes. They only build, load, deploy, observe, and validate. Database schema belongs to the backend Alembic migration layer.
+
+Validated result:
+
+```text
+argocd:          argo-cd-9.6.0 deployed
+monitoring:      kube-prometheus-stack-86.3.2 deployed
+fullstack-local: platform-0.1.0 deployed
+ServiceMonitor:  backend present
+Prometheus:      up{job="backend", namespace="fullstack-local", service="backend"} = 1
+Smoke test:      passed
+ArgoCD app:      OutOfSync / Progressing expected, auto-sync disabled
+```
+
+## Phase 5 — Workspace-first domain decision
+
+Recommended branch:
+
+```text
+docs/workspace-first-domain-plan
+```
+
+Goal:
+
+Decide how to move from the current organization/workspace split toward a workspace-first product model without losing the future organization-level option.
+
+Current state:
+
+```text
+Backend package: services/backend/app/features/organizations/
+Backend route prefix: /organizations
+Database tables: organizations, organization_members, organization_invitations, organization_audit_logs
+Frontend product routes: /workspaces
+Frontend feature folder: apps/frontend/src/features/organizations/
+Product language: workspace
+Internal/domain language: mixed organization/workspace
+```
+
+Preferred direction:
+
+- product concept: workspace
+- one deployed platform can represent one customer/company
+- inside that platform, users can create one or more workspaces
+- organization-level/multi-tenant enterprise concepts remain a future extension
+- public workspace IDs remain the browser/API route identifier
+- backend remains the source of truth for permissions
+
+Recommended strategy:
+
+Do not rename database tables now.
+
+Reasons:
+
+- Alembic migration foundation exists
+- database/table renames still create unnecessary risk unless planned as explicit migrations
+- current code and tests already cover many organization/workspace flows
+- the public product model can become workspace-first without a destructive database rename
+
+Suggested staged approach:
+
+1. Document the product decision.
+2. Clean user-facing wording to consistently say workspace.
+3. Keep `/organizations` API routes for compatibility.
+4. Consider adding `/workspaces` API aliases later if needed.
+5. Rename frontend feature folder only if it can be done safely with strong validation.
+6. Rename backend package/classes only after the workspace API contract is stable.
+7. Revisit DB table/column renames only as explicit Alembic migrations with validation and rollback/backfill notes.
+
+## Decision matrix
+
+| Topic | Recommended decision | Reason |
+|---|---|---|
+| Product term | Workspace | Matches current UI and desired business model |
+| Backend DB tables | Keep `organizations` for now | Avoid risky renames unless implemented as explicit Alembic migrations |
+| API route | Keep `/organizations` for now | Existing tests/docs depend on it |
+| Browser route | Keep `/workspaces` | Good product-facing route |
+| Public ID | Keep `ws_...` | Already workspace-first and safer than numeric IDs |
+| Future organization level | Preserve as extension option | Useful if later enterprise/multi-tenant model is needed |
+| Immediate refactor | Small docs/UI/service naming steps | Avoid one large rename |
+
+## Risk management
+
+Avoid these changes in one large step:
+
+- renaming database tables
+- renaming all backend files/classes/functions
+- changing API routes and frontend calls at the same time
+- changing permission logic while renaming domain terms
+- enabling cloud resources while testing local GitOps/monitoring
+
+Use separate branches and validation after each phase.
+
+## Recommended immediate next implementation branch
+
+After this planning branch is committed, start with:
+
+```text
+feature/local-gitops-monitoring-audit
+```
+
+Reason:
+
+It is lower risk than the workspace refactor and gives a clear operational improvement path. It also helps decide what local observability should look like before deeper domain refactoring continues.

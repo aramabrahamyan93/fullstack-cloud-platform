@@ -1,0 +1,239 @@
+import { useNavigate } from "react-router-dom";
+import type { User } from "../../features/auth/types";
+import type { Organization, OrganizationRef } from "../../features/organizations/types";
+import { useTasks } from "../../features/tasks/hooks/useTasks";
+import type {
+  TaskPageSize,
+  TaskStatus,
+  TaskStatusFilter
+} from "../../features/tasks/types";
+import type { MessageType } from "../../shared/components/Message";
+
+type UseTaskControllerOptions = {
+  currentUser: User | null;
+  selectedOrganization: Organization | null;
+  showMessage: (text: string, type: MessageType) => void;
+};
+
+export function useTaskController({
+  currentUser,
+  selectedOrganization,
+  showMessage
+}: UseTaskControllerOptions) {
+  const navigate = useNavigate();
+
+  function isSelectedWorkspaceArchived(): boolean {
+    return selectedOrganization?.status === "archived";
+  }
+
+  const {
+    tasks,
+    taskStatusFilter,
+    taskSearch,
+    taskCounters,
+    currentPage,
+    pageSize,
+    pageSizeOptions,
+    totalItems,
+    totalPages,
+    hasPreviousPage,
+    hasNextPage,
+    isTasksLoading,
+    isSubmitting,
+    isMutating,
+    activeTaskOrganizationId,
+    changeTaskStatusFilter,
+    changeTaskPageSize,
+    changeTaskSearch,
+    clearTaskSearch,
+    goToPreviousTaskPage,
+    goToNextTaskPage,
+    loadTasks,
+    clearTasks,
+    createUserTask,
+    updateUserTask,
+    deleteUserTask
+  } = useTasks();
+
+  async function handleTaskStatusFilterChange(
+    statusFilter: TaskStatusFilter
+  ): Promise<void> {
+    const result = await changeTaskStatusFilter(
+      statusFilter,
+      selectedOrganization?.public_id
+    );
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleTaskPageSizeChange(
+    nextPageSize: TaskPageSize
+  ): Promise<void> {
+    const result = await changeTaskPageSize(
+      nextPageSize,
+      selectedOrganization?.public_id
+    );
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleTaskSearch(search: string): Promise<void> {
+    const result = await changeTaskSearch(search, selectedOrganization?.public_id);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleClearTaskSearch(): Promise<void> {
+    const result = await clearTaskSearch(selectedOrganization?.public_id);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handlePreviousTaskPage(): Promise<void> {
+    const result = await goToPreviousTaskPage(selectedOrganization?.public_id);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleNextTaskPage(): Promise<void> {
+    const result = await goToNextTaskPage(selectedOrganization?.public_id);
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  async function handleCreateTask(
+    title: string,
+    status: TaskStatus
+  ): Promise<void> {
+    if (!currentUser) {
+      showMessage("Please login before creating tasks.", "error");
+      return;
+    }
+
+    if (!selectedOrganization) {
+      showMessage(
+        "Please create or select a workspace before creating tasks.",
+        "error"
+      );
+      navigate("/workspaces");
+      return;
+    }
+
+    if (isSelectedWorkspaceArchived()) {
+      showMessage("This workspace is archived and read-only.", "error");
+      return;
+    }
+
+    showMessage("Creating task...", "muted");
+
+    const result = await createUserTask(
+      title,
+      status,
+      selectedOrganization.public_id
+    );
+
+    showMessage(result.message, result.success ? "success" : "error");
+  }
+
+  async function handleUpdateTask(
+    taskId: number,
+    title: string,
+    status: TaskStatus
+  ): Promise<void> {
+    if (!currentUser) {
+      showMessage("Please login before updating tasks.", "error");
+      return;
+    }
+
+    if (isSelectedWorkspaceArchived()) {
+      showMessage("This workspace is archived and read-only.", "error");
+      return;
+    }
+
+    showMessage(`Updating task #${taskId}...`, "muted");
+
+    const result = await updateUserTask(
+      taskId,
+      title,
+      status,
+      selectedOrganization?.public_id
+    );
+
+    showMessage(result.message, result.success ? "success" : "error");
+  }
+
+  async function handleDeleteTask(taskId: number): Promise<void> {
+    if (!currentUser) {
+      showMessage("Please login before deleting tasks.", "error");
+      return;
+    }
+
+    if (isSelectedWorkspaceArchived()) {
+      showMessage("This workspace is archived and read-only.", "error");
+      return;
+    }
+
+    showMessage(`Deleting task #${taskId}...`, "muted");
+
+    const result = await deleteUserTask(taskId, selectedOrganization?.public_id);
+
+    showMessage(result.message, result.success ? "success" : "error");
+  }
+
+  async function loadWorkspaceTasks(organizationRef: OrganizationRef): Promise<void> {
+    const result = await loadTasks({
+      organizationId: organizationRef,
+      page: 1,
+      refreshCounters: true
+    });
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+    }
+  }
+
+  return {
+    tasks,
+    taskStatusFilter,
+    taskSearch,
+    taskCounters,
+    currentPage,
+    pageSize,
+    pageSizeOptions,
+    totalItems,
+    totalPages,
+    hasPreviousPage,
+    hasNextPage,
+    isTasksLoading,
+    isSubmitting,
+    isMutating,
+    activeTaskOrganizationId,
+
+    clearTasks,
+    loadWorkspaceTasks,
+
+    handleTaskStatusFilterChange,
+    handleTaskPageSizeChange,
+    handleTaskSearch,
+    handleClearTaskSearch,
+    handlePreviousTaskPage,
+    handleNextTaskPage,
+    handleCreateTask,
+    handleUpdateTask,
+    handleDeleteTask
+  };
+}
+
+export type TaskController = ReturnType<typeof useTaskController>;
